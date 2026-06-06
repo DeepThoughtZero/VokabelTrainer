@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Hunter: Vokabel-Trainer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Start Screen -->
+        <section id="start-screen" class="screen active">
+            <h1 class="title">Zombie Hunter</h1>
+            <p class="subtitle">Vokabel-Trainer</p>
+            
+            <div class="menu-box glass">
+                <div class="form-group">
+                    <label>Lernpfad auswählen (Mehrfachauswahl):</label>
+                    <div id="learning-path-container" class="custom-filter-grid">
+                        <p>Lade Vokabeln...</p>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Jäger & Waffe wählen:</label>
+                    <div id="character-selection" class="char-select-grid">
+                        <div class="char-card active" data-hunter="laser">
+                            <img src="assets/hunter.png" alt="Laser">
+                            <span>Commander Neon</span>
+                        </div>
+                        <div class="char-card" data-hunter="water">
+                            <img src="assets/hunter_water.png" alt="Wasser">
+                            <span>Hydro Striker</span>
+                        </div>
+                        <div class="char-card" data-hunter="fire">
+                            <img src="assets/hunter_fire.png" alt="Feuer">
+                            <span>Pyro Blaze</span>
+                        </div>
+                        <div class="char-card" data-hunter="lightning">
+                            <img src="assets/hunter_lightning.png" alt="Strom">
+                            <span>Volt Master</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="translation-direction">Abfragerichtung:</label>
+                    <select id="translation-direction">
+                        <option value="en-de">Englisch ➔ Deutsch</option>
+                        <option value="de-en" selected>Deutsch ➔ Englisch</option>
+                        <option value="mixed">Gemischt</option>
+                    </select>
+                </div>
+                
+                <button id="start-btn" class="btn-primary">Jagd Beginnen</button>
+            </div>
+        </section>
+
+        <!-- Game Screen -->
+        <section id="game-screen" class="screen">
+            <div class="top-bar">
+                <div id="hearts-container">
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                </div>
+                <div id="score-container">Score: <span id="score">0</span></div>
+            </div>
+            
+            <div id="options-container" class="options">
+                <!-- Answer options will be injected here -->
+            </div>
+
+            <div id="game-canvas">
+                <div id="hunter" class="entity">
+                    <img src="assets/hunter.png" alt="Hunter" class="sprite-img" id="hunter-img">
+                </div>
+                <div id="zombie" class="entity">
+                    <div id="zombie-word" class="word-bubble">Word</div>
+                    <img src="assets/zombie.png" alt="Zombie" class="sprite-img" id="zombie-img">
+                </div>
+                <div id="projectile" class="hidden"></div>
+            </div>
+        </section>
+
+        <!-- End Screen -->
+        <section id="end-screen" class="screen">
+            <h2 class="title">Jagd Beendet!</h2>
+            <div class="stats-box glass">
+                <div class="final-score-display">
+                    <h3>Score</h3>
+                    <div id="stat-final-score">0</div>
+                </div>
+                <div class="visual-stats">
+                    <div class="stat-item">
+                        <h3>Erfolgsquote</h3>
+                        <div class="pie-chart" id="accuracy-pie">
+                            <span id="stat-accuracy-text">0%</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Trefferzeit</h3>
+                        <div class="clock-container">
+                            <div class="clock-face">
+                                <div class="clock-label clock-label-top">0s</div>
+                                <div class="clock-label clock-label-right">5s</div>
+                                <div class="clock-label clock-label-bottom">10s</div>
+                                <div class="clock-label clock-label-left">15s</div>
+                                <div class="clock-hand" id="time-hand"></div>
+                                <div class="clock-center"></div>
+                            </div>
+                            <span id="stat-time-text">0s / Wort</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="weaknesses">
+                    <h3>Deine Schwächen:</h3>
+                    <table class="weakness-table">
+                        <thead>
+                            <tr>
+                            <th>Wort</th>
+                            <th>Lösung</th>
+                            <th>Unit</th>
+                            <th>Part</th>
+                            <th>Seite</th>
+                            <th>Fehler</th>
+                        </tr>
+                        </thead>
+                        <tbody id="stat-weaknesses-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <button id="restart-btn" class="btn-primary">Neue Jagd</button>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/vocabs.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
