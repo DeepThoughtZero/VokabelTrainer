@@ -8,7 +8,7 @@ Schärfe dein Wissen, triff die richtigen Entscheidungen und überlebe die anrü
 
 Du kannst das Spiel direkt und bequem in deinem Browser spielen via GitHub Pages:
 
-👉 **[Hier klicken, um Vokabel Zombie zu spielen](#)** *(Link wird noch ergänzt)*
+👉 **[Hier klicken, um Vokabel Zombie zu spielen](https://deepthoughtzero.github.io/VokabelTrainer/)**
 
 ## ✨ Features
 

@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
             state.weaknesses[q] = { a: a, count: 0, vocab: vocabObj };
         }
         state.weaknesses[q].count++;
+        
+        // Die Vokabel zusätzlich in den Lostopf werfen, damit sie häufiger vorkommt
+        state.vocabPool.push(vocabObj);
     }
 
     let animationId;
@@ -320,10 +323,12 @@ document.addEventListener('DOMContentLoaded', () => {
         animationId = requestAnimationFrame(gameLoop);
     }
 
-    function getQuestionAndAnswer(vocab) {
-        let isEnToDe = state.direction === 'en-de';
-        if (state.direction === 'mixed') {
-            isEnToDe = Math.random() > 0.5;
+    function getQuestionAndAnswer(vocab, isEnToDe) {
+        if (isEnToDe === undefined) {
+            isEnToDe = state.direction === 'en-de';
+            if (state.direction === 'mixed') {
+                isEnToDe = Math.random() > 0.5;
+            }
         }
         return isEnToDe ? 
             { q: vocab.english, a: vocab.german, vocab: vocab } : 
@@ -340,7 +345,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const randomIndex = Math.floor(Math.random() * state.vocabPool.length);
         const vocab = state.vocabPool[randomIndex];
-        state.currentWord = getQuestionAndAnswer(vocab);
+        
+        let isEnToDe = state.direction === 'en-de';
+        if (state.direction === 'mixed') {
+            isEnToDe = Math.random() > 0.5;
+        }
+
+        state.currentWord = getQuestionAndAnswer(vocab, isEnToDe);
 
         zombieWordEl.textContent = state.currentWord.q;
         state.zombiePosition = canvas.clientWidth; 
@@ -351,18 +362,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
 
-        generateOptions(vocab);
+        generateOptions(vocab, isEnToDe);
     }
 
-    function generateOptions(correctVocab) {
+    function generateOptions(correctVocab, isEnToDe) {
         optionsContainer.innerHTML = '';
         // Dynamische Schwierigkeit: Mehr Auswahlmöglichkeiten je Level (max 8)
         const optionsCount = Math.min(8, 3 + state.level);
-        let options = [getQuestionAndAnswer(correctVocab).a];
+        let options = [state.currentWord.a];
 
         while (options.length < optionsCount) {
             const randomV = state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)];
-            const wrongA = getQuestionAndAnswer(randomV).a;
+            const wrongA = getQuestionAndAnswer(randomV, isEnToDe).a;
             if (!options.includes(wrongA)) {
                 options.push(wrongA);
             }
@@ -384,6 +395,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const correct = selectedOption === state.currentWord.a;
 
         if (correct) {
+            // Wenn die Vokabel mehrmals im Pool ist, ein Exemplar entfernen (bis auf 1)
+            let occurrences = 0;
+            let lastIndex = -1;
+            for (let i = 0; i < state.vocabPool.length; i++) {
+                if (state.vocabPool[i] === state.currentWord.vocab) {
+                    occurrences++;
+                    lastIndex = i;
+                }
+            }
+            if (occurrences > 1 && lastIndex > -1) {
+                state.vocabPool.splice(lastIndex, 1);
+            }
+
             state.correctAttempts++;
             state.streak++;
             state.correctSinceLastRegen++;
@@ -422,6 +446,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             btn.classList.add('wrong');
             btn.disabled = true;
+
+            // Score sinkt bei falscher Antwort
+            state.score = Math.max(0, state.score - 5);
+            scoreEl.textContent = state.score;
             
             state.wrongAttemptsForCurrentWord++;
             if (state.wrongAttemptsForCurrentWord >= 3) {
