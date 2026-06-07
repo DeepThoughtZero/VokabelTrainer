@@ -28,7 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
         streak: 0,
         lastHeartRegenTime: 0,
         wrongAttemptsForCurrentWord: 0,
-        zombieDead: false
+        zombieDead: false,
+        maxStreak: 0
     };
 
     function recordWeakness(q, a, vocabObj) {
@@ -101,7 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'assets/zombie1.png',
         'assets/zombie2.png',
         'assets/zombie3.png',
-        'assets/zombie4.png'
+        'assets/zombie4.png',
+        'assets/zombie5.png'
     ];
 
     // Init
@@ -309,6 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.startTime = Date.now();
         state.level = 1;
         state.streak = 0;
+        state.maxStreak = 0;
         state.correctSinceLastRegen = 0;
         state.lastTimestamp = performance.now();
         state.wrongAttemptsForCurrentWord = 0;
@@ -455,10 +458,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleAnswer(selectedOption, btn) {
+        if (state.zombieDead) return;
         state.totalAttempts++;
         const correct = selectedOption === state.currentWord.a;
 
         if (correct) {
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.disabled = true);
             // Wenn die Vokabel mehrmals im Pool ist, ein Exemplar entfernen (bis auf 1)
             let occurrences = 0;
             let lastIndex = -1;
@@ -475,6 +481,10 @@ document.addEventListener('DOMContentLoaded', () => {
             state.correctAttempts++;
             state.streak++;
             state.correctSinceLastRegen++;
+            
+            if (state.streak > state.maxStreak) {
+                state.maxStreak = state.streak;
+            }
             
             if (state.streak >= 3) {
                 state.level = Math.min(5, state.level + 1); // Level Up! Max Level 5
@@ -540,11 +550,64 @@ document.addEventListener('DOMContentLoaded', () => {
         zombieEl.classList.add('dead');
         
         setTimeout(() => {
-            spawnZombie();
+            showSolutionDialog(spawnZombie);
         }, 600);
     }
 
+    function showSolutionDialog(onClose) {
+        state.onDialogClose = onClose || spawnZombie;
+
+        const dialog = document.getElementById('solution-dialog');
+        const enEl = document.getElementById('solution-en');
+        const deEl = document.getElementById('solution-de');
+        
+        enEl.textContent = state.currentWord.vocab.english;
+        deEl.textContent = state.currentWord.vocab.german;
+        
+        dialog.classList.remove('hidden');
+        
+        // Dateiname analog zu generate_audio.sh bauen
+        const filename = state.currentWord.vocab.english.replace(/\//g, '_') + '.mp3';
+        const audio = new Audio('assets/audio/' + filename);
+        
+        let dialogClosed = false;
+
+        const safeClose = () => {
+            if (!dialogClosed) {
+                dialogClosed = true;
+                closeSolutionDialog();
+            }
+        };
+        
+        audio.onended = () => {
+            safeClose();
+        };
+        
+        audio.onerror = () => {
+            safeClose();
+        };
+        
+        audio.play().catch(err => {
+            console.log("Audio playback failed or file not found:", err);
+            // 2 Sekunden Fallback, wenn Audio fehlt
+            setTimeout(safeClose, 2000);
+        });
+    }
+
+    function closeSolutionDialog() {
+        const dialog = document.getElementById('solution-dialog');
+        dialog.classList.add('hidden');
+        if (state.onDialogClose) {
+            state.onDialogClose();
+        } else {
+            spawnZombie();
+        }
+    }
+
     function takeDamage() {
+        if (state.zombieDead) return;
+        state.zombieDead = true;
+
         playHitSound();
         state.totalAttempts++; // Zählt als falscher Versuch, wenn der Zombie einen erreicht
         recordWeakness(state.currentWord.q, state.currentWord.a, state.currentWord.vocab); // Unbeantwortetes Wort als Schwäche erfassen!
@@ -556,12 +619,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         hunterContainer.classList.add('wrong');
         setTimeout(() => hunterContainer.classList.remove('wrong'), 400);
+        
+        zombieEl.classList.add('hidden'); // Zombie während Dialog ausblenden
 
-        if (state.hearts <= 0) {
-            endGame();
-        } else {
-            spawnZombie();
-        }
+        const afterDialog = () => {
+            zombieEl.classList.remove('hidden');
+            if (state.hearts <= 0) {
+                endGame();
+            } else {
+                spawnZombie();
+            }
+        };
+
+        showSolutionDialog(afterDialog);
     }
 
     function updateHeartsUI() {
@@ -613,6 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const timePerWord = state.totalAttempts > 0 ? (totalTimeSeconds / state.totalAttempts).toFixed(1) : 0;
 
         document.getElementById('stat-final-score').textContent = state.score;
+        document.getElementById('stat-max-streak-text').textContent = state.maxStreak;
 
         document.getElementById('stat-accuracy-text').textContent = accuracy + '%';
         const pieChart = document.getElementById('accuracy-pie');

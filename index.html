@@ -74,6 +74,10 @@
             </div>
 
             <div id="game-canvas">
+                <div id="solution-dialog" class="hidden glass">
+                    <h2 id="solution-en">English</h2>
+                    <h3 id="solution-de">Deutsch</h3>
+                </div>
                 <div id="hunter" class="entity">
                     <img src="assets/hunter.png" alt="Hunter" class="sprite-img" id="hunter-img">
                 </div>
@@ -112,6 +116,12 @@
                                 <div class="clock-center"></div>
                             </div>
                             <span id="stat-time-text">0s / Wort</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Längster Streak</h3>
+                        <div class="streak-circle">
+                            <span id="stat-max-streak-text">0</span>
                         </div>
                     </div>
                 </div>
