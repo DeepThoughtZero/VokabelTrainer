@@ -19,17 +19,38 @@ set -Eeuo pipefail
 
 # ── Argumente parsen ──
 ONLY_MISSING=false
-for arg in "$@"; do
-  case "$arg" in
-    --only-missing) ONLY_MISSING=true ;;
+PAGE_FILTER=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --only-missing)
+      ONLY_MISSING=true
+      shift
+      ;;
+    --page)
+      PAGE_FILTER="$2"
+      shift 2
+      ;;
+    --engine)
+      ENGINE="$2"
+      shift 2
+      ;;
+    --voice)
+      VOICE="$2"
+      shift 2
+      ;;
     --help|-h)
-      echo "Verwendung: $0 [--only-missing]"
+      echo "Verwendung: $0 [--only-missing] [--page <seite>] [--engine <name>] [--voice <name>]"
       exit 0
+      ;;
+    *)
+      echo "Unbekanntes Argument: $1"
+      exit 1
       ;;
   esac
 done
 
-ENGINE="${ENGINE:-voxtral}"
+ENGINE="${ENGINE:-qwen3-builtin}"
 OUTPUT_DIR="${OUTPUT_DIR:-assets/audio}"
 
 if [[ "$ENGINE" == "chatterbox" ]]; then
@@ -50,8 +71,8 @@ elif [[ "$ENGINE" == "qwen3" ]]; then
 elif [[ "$ENGINE" == "qwen3-builtin" ]]; then
   API_URL="${API_URL:-http://127.0.0.1:8880/v1/audio/speech}"
   MODEL="${MODEL:-qwen3-tts}"
-  VOICE="${VOICE:-Uncle_Fu}"
-  LANGUAGE="${LANGUAGE:-German}"
+  VOICE="${VOICE:-ryan}"
+  LANGUAGE="${LANGUAGE:-english}"
   SPEED="${SPEED:-1.0}"
 else
   # Default to Voxtral
@@ -99,7 +120,7 @@ synthesize_json() {
       '{model: $model, input: $input, voice: $voice, response_format: $response_format, speed: $speed}')
   fi
 
-  echo "🎙️  Erzeuge $(basename "$outfile") mit Text: '$text'"
+
   curl --silent --show-error --fail \
     -X POST "$API_URL" \
     -H 'Content-Type: application/json' \
@@ -116,7 +137,7 @@ synthesize_clone() {
   local text="$1"
   local outfile="$2"
 
-  echo "🎙️  Erzeuge $(basename "$outfile") (Voice Clone) ..."
+
   curl --silent --show-error --fail \
     -X POST "$API_URL" \
     -F "input=$text" \
@@ -154,8 +175,16 @@ echo "---"
 # Lese alle Vokabeln aus js/vocabs.js
 jq_input=$(sed -e 's/^const VOCABULARY = //' -e 's/;$//' -e 's/\/\/.*//' js/vocabs.js)
 
-echo "$jq_input" | jq -c '.[]' |
+if [[ -n "$PAGE_FILTER" ]]; then
+  jq_items=$(echo "$jq_input" | jq -c "map(select(.page == $PAGE_FILTER))")
+else
+  jq_items="$jq_input"
+fi
+total_items=$(echo "$jq_items" | jq '. | length')
+count_current=0
+
 while IFS= read -r item; do
+  count_current=$((count_current + 1))
   english=$(jq -r '.english' <<<"$item")
   
   # Dateiname anpassen (Schrägstriche ersetzen, um Pfadprobleme zu vermeiden)
@@ -208,13 +237,38 @@ while IFS= read -r item; do
     continue
   fi
 
-  if synthesize_file "$text" "$filepath"; then
-    echo "✅ $filename"
-    count_generated=$((count_generated + 1))
-  else
+  max_retries=10
+  attempt=1
+  success=false
+
+  while [[ $attempt -le $max_retries ]]; do
+    printf "(%03d/%03d) 🎙️  Erzeuge %-25s (Versuch %2d/%d)... " "$count_current" "$total_items" "$filename" "$attempt" "$max_retries"
+
+    if synthesize_file "$text" "$filepath.tmp.mp3" >/dev/null; then
+      ffmpeg -y -hide_banner -loglevel error -i "$filepath.tmp.mp3" -af "loudnorm=I=-16:TP=-1.5:LRA=11" "$filepath"
+      rm -f "$filepath.tmp.mp3"
+      
+      filesize=$(stat -c%s "$filepath" 2>/dev/null || echo 0)
+      if [[ $filesize -lt 30720 ]]; then
+        echo "✅ OK ($((filesize/1024)) KB)"
+        success=true
+        count_generated=$((count_generated + 1))
+        break
+      else
+        echo "⚠️ Zu groß ($((filesize/1024)) KB) -> Wiederholung"
+        rm -f "$filepath"
+      fi
+    else
+      echo "❌ API-Fehler"
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  if [[ "$success" == false ]]; then
+    echo "❌ Aufgegeben bei $filename"
     count_failed=$((count_failed + 1))
   fi
-done
+done < <(echo "$jq_items" | jq -c '.[]')
 
 echo
 echo "═══════════════════════════════════"

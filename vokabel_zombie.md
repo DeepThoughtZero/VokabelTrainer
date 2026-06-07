@@ -67,3 +67,31 @@ Damit der Schuss direkt aus der Waffe kommt, startet er bei `left: 320px`. Ansta
 ### Quota-Limits (API)
 Bei der Massen-Generierung von Bildern (z.B. 10 Zombies am Stück) schlägt die Bild-API schnell in einen `429 Too Many Requests` (Quota Limit).
 **Lösung für spätere Agenten:** Prompts dosiert absenden, existierende Arrays reduzieren und dem Nutzer klar kommunizieren, falls ein Limit erreicht wurde.
+
+## 🔊 TTS (Text-to-Speech) & Audio
+
+Die Vokabeln werden im Spiel per Sprachausgabe (TTS) vorgelesen. Dies wird durch das Shell-Skript `generate_audio.sh` gesteuert.
+
+### 1. Engine & Stimmen
+Das Skript unterstützt verschiedene lokale TTS-APIs:
+- **`qwen3-builtin` (Aktueller Standard):** Läuft lokal auf Port 8880. Die aktuelle Standard-Stimme ist `ryan` (männlich, englisch). Diese Kombination hat sich als besonders robust, verständlich und gut klingend erwiesen.
+- **Weitere verfügbare Qwen3-Stimmen:** `aiden`, `eric`, `dylan`, `serena`, `vivian`, etc.
+- **Alternative Engines:** `voxtral` (Port 8091), `chatterbox` (Port 4123) oder Qwen3-Voice-Cloning (`qwen3`).
+
+### 2. Prompt-Engineering gegen KI-Füllwörter
+Ein typisches Problem von KI-basierten TTS-Modellen (wie Qwen3 oder Voxtral) ist das Einfügen von Konversations-Füllwörtern wie "Ähm" oder "Uhm", wenn sie nur einzelne Wörter oder kurze Fragmente ohne Satzzeichen erhalten. 
+**Lösung im Skript:** Die `generate_audio.sh` bereitet den Text vor dem Senden an die API automatisch auf:
+1. Der erste Buchstabe wird konsequent **großgeschrieben**.
+2. An das Ende der Vokabel wird zwingend ein **Satzzeichen (Punkt `.`)** gehängt.
+Dadurch wird die API gezwungen, das Wort als geschlossenen Aussagesatz zu interpretieren. Füllwörter treten somit nicht mehr auf.
+
+### 3. Inline-Normalisierung (EBU R128)
+Da unterschiedliche Vokabeln leicht variierende Lautstärken haben können, nutzt das Skript direkt nach der Erstellung jeder einzelnen Audiodatei das Tool `ffmpeg`, um einen `loudnorm`-Filter (EBU R128 Standard) anzuwenden. 
+- Parameter: `loudnorm=I=-16:TP=-1.5:LRA=11`
+- Das sorgt für ein komplett gleichmäßiges und verzerrungsfreies Audio-Level über das gesamte Vokabular hinweg.
+
+### 4. Bedienung der \`generate_audio.sh\`
+Das Skript ist modular und kann flexibel auf der Kommandozeile bedient werden:
+- `./generate_audio.sh` -> Generiert das gesamte Vokabular neu (überschreibt bestehende Dateien).
+- `./generate_audio.sh --only-missing` -> Überspringt Dateien, die bereits im Ordner `assets/audio` liegen.
+- `./generate_audio.sh --page 248 --engine qwen3-builtin --voice aiden` -> Generiert gezielt nur die Audios für eine bestimmte Seite mit einer abweichenden Stimme/Engine.
