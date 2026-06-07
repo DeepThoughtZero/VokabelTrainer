@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pageCell.style.gridRow = `${row}`;
             pageCell.style.gridColumn = '4';
             const unitPages = Array.from(pages.get(u) || []).sort((a,b) => a - b);
-            unitPages.forEach(p => pageCell.appendChild(createCheckbox(`page:${p}`, `Seite ${p}`)));
+            unitPages.forEach(p => pageCell.appendChild(createCheckbox(`page:${p}`, `${p}`)));
             container.appendChild(pageCell);
         });
     }

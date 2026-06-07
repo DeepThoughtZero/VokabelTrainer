@@ -12,7 +12,6 @@
         <!-- Start Screen -->
         <section id="start-screen" class="screen active">
             <h1 class="title">Zombie Hunter</h1>
-            <p class="subtitle">Vokabel-Trainer</p>
             
             <div class="menu-box glass">
                 <div class="form-group">
@@ -44,16 +43,18 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="translation-direction">Abfragerichtung:</label>
-                    <select id="translation-direction">
-                        <option value="en-de">Englisch ➔ Deutsch</option>
-                        <option value="de-en" selected>Deutsch ➔ Englisch</option>
-                        <option value="mixed">Gemischt</option>
-                    </select>
+                <div class="bottom-actions">
+                    <div class="form-group direction-group">
+                        <label for="translation-direction">Abfragerichtung:</label>
+                        <select id="translation-direction">
+                            <option value="en-de">Englisch ➔ Deutsch</option>
+                            <option value="de-en" selected>Deutsch ➔ Englisch</option>
+                            <option value="mixed">Gemischt</option>
+                        </select>
+                    </div>
+                    
+                    <button id="start-btn" class="btn-primary">Jagd Beginnen</button>
                 </div>
-                
-                <button id="start-btn" class="btn-primary">Jagd Beginnen</button>
             </div>
         </section>
 
