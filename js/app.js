@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Game Config
+    const CONFIG = {
+        maxVocabsForMaxSpeed: 100,
+        minZombieDuration: 2.0,
+        maxZombieDuration: 15.0,
+        streakForExtraOption: 3,
+        streakForHeart: 10,
+        bubbleOnLeft: true // Schalter: Setze auf false, um die Sprechblase wieder oben anzuzeigen
+    };
+
     // Game State
     let state = {
         hunterType: 'laser',
@@ -338,8 +348,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function spawnZombie() {
         if (!state.gameRunning) return;
         
-        // Dynamische Schwierigkeit: Zombie wird schneller je Level
-        state.zombieSpeed = 1.5 + (state.level * 0.3);
+        // Dynamische Schwierigkeit: Zombie wird kontinuierlich schneller bis 100 Vokabeln (2 Sekunden)
+        let progress = Math.min(state.correctAttempts / CONFIG.maxVocabsForMaxSpeed, 1.0);
+        let currentDuration = CONFIG.maxZombieDuration - (progress * (CONFIG.maxZombieDuration - CONFIG.minZombieDuration));
+        let startX = canvas.clientWidth;
+        let distance = startX - 200; // 200 ist der Hit-Bereich
+        let framesNeeded = currentDuration * 60; // Geht von 60fps aus
+        state.zombieSpeed = distance / framesNeeded;
+        
         state.wrongAttemptsForCurrentWord = 0;
         state.zombieDead = false;
 
@@ -360,6 +376,12 @@ document.addEventListener('DOMContentLoaded', () => {
         zombieEl.classList.add('walking');
         zombieEl.classList.remove('dead');
         
+        if (CONFIG.bubbleOnLeft) {
+            zombieEl.classList.add('bubble-left');
+        } else {
+            zombieEl.classList.remove('bubble-left');
+        }
+        
         zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
 
         generateOptions(vocab, isEnToDe);
@@ -367,8 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateOptions(correctVocab, isEnToDe) {
         optionsContainer.innerHTML = '';
-        // Dynamische Schwierigkeit: Mehr Auswahlmöglichkeiten je Level (max 8)
-        const optionsCount = Math.min(8, 3 + state.level);
+        // Dynamische Schwierigkeit: Mehr Auswahlmöglichkeiten je besser der Streak ist (max 8)
+        const optionsCount = Math.min(8, 4 + Math.floor(state.streak / CONFIG.streakForExtraOption));
         let options = [state.currentWord.a];
 
         while (options.length < optionsCount) {
@@ -388,6 +410,48 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', () => handleAnswer(opt, btn));
             optionsContainer.appendChild(btn);
         });
+
+        adjustOptionsFontSize();
+    }
+
+    function adjustOptionsFontSize() {
+        const buttons = Array.from(optionsContainer.querySelectorAll('.option-btn'));
+        if (buttons.length === 0) return;
+        
+        // Zurücksetzen auf Standard
+        buttons.forEach(btn => {
+            btn.style.fontSize = '';
+            btn.style.padding = '';
+        });
+        
+        let fontSize = 3.6; // Startwert aus CSS (3.6rem)
+        const minFontSize = 1.6;
+        const step = 0.2;
+        
+        while (fontSize >= minFontSize) {
+            let rows = 1;
+            let lastTop = buttons[0].offsetTop;
+            
+            for (let i = 1; i < buttons.length; i++) {
+                if (Math.abs(buttons[i].offsetTop - lastTop) > 5) {
+                    rows++;
+                    lastTop = buttons[i].offsetTop;
+                }
+            }
+            
+            if (rows <= 3) {
+                break; // Passt in 3 oder weniger Zeilen
+            }
+            
+            fontSize -= step;
+            buttons.forEach(btn => {
+                btn.style.fontSize = `${fontSize}rem`;
+                // Passendes Padding verringern, damit die Buttons kompakter werden
+                const paddingY = Math.max(10, fontSize * 5);
+                const paddingX = Math.max(15, fontSize * 8);
+                btn.style.padding = `${paddingY}px ${paddingX}px`;
+            });
+        }
     }
 
     function handleAnswer(selectedOption, btn) {
@@ -414,13 +478,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (state.streak >= 3) {
                 state.level = Math.min(5, state.level + 1); // Level Up! Max Level 5
-                state.streak = 0;
+                // Streak wird nicht mehr resettet, da wir ihn für Herzen und Optionen brauchen
             }
             
-            if (state.hearts < 3 && state.correctSinceLastRegen >= 5) {
-                state.hearts++;
-                updateHeartsUI();
-                state.correctSinceLastRegen = 0;
+            // Ein Herz wird aufgefüllt und animiert, wenn man N Vokabeln in Folge fehlerfrei gelöst hat
+            if (state.streak > 0 && state.streak % CONFIG.streakForHeart === 0) {
+                if (state.hearts < 3) {
+                    state.hearts++;
+                    updateHeartsUI();
+                    showStreakAnimation(state.streak);
+                }
             }
 
             state.score += 10;
@@ -600,4 +667,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', resizeApp);
     resizeApp(); // Initiale Skalierung
+
+    function showStreakAnimation(streak) {
+        let animEl = document.getElementById('streak-animation');
+        if (!animEl) {
+            animEl = document.createElement('div');
+            animEl.id = 'streak-animation';
+            document.getElementById('game-screen').appendChild(animEl);
+        }
+        
+        animEl.classList.remove('animate');
+        void animEl.offsetWidth; // Trigger reflow
+        
+        animEl.innerHTML = `❤️ +1 <br> <span style="font-size: 0.8em">${streak}x STREAK!</span>`;
+        animEl.classList.add('streak-anim', 'animate');
+    }
 });

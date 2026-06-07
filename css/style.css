@@ -305,6 +305,35 @@ select {
     filter: grayscale(100%) opacity(0.3);
 }
 
+.streak-anim {
+    position: absolute;
+    top: 80px;
+    left: 40px;
+    font-size: 4rem;
+    font-weight: bold;
+    color: var(--danger-color);
+    text-shadow: 0 0 20px var(--danger-color), 0 0 40px var(--danger-color), 2px 2px 5px rgba(0,0,0,0.8);
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    text-align: left;
+    font-family: 'Creepster', cursive;
+    letter-spacing: 2px;
+}
+
+.streak-anim.animate {
+    animation: heartPopUp 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes heartPopUp {
+    0% { transform: translateY(50px) scale(0.2); opacity: 0; }
+    15% { transform: translateY(0) scale(1.2); opacity: 1; }
+    30% { transform: translateY(-10px) scale(1); opacity: 1; }
+    70% { transform: translateY(-10px) scale(1); opacity: 1; }
+    85% { transform: translateY(-30px) scale(1.1); opacity: 1; }
+    100% { transform: translateY(-50px) scale(0); opacity: 0; }
+}
+
 #score-container {
     font-size: 2.5rem;
     font-weight: bold;
@@ -406,6 +435,23 @@ select {
     border-width: 12px 12px 0;
     border-style: solid;
     border-color: white transparent transparent transparent;
+}
+
+#zombie.bubble-left .word-bubble {
+    position: absolute;
+    right: 85%;
+    top: 50px;
+    margin-bottom: 0;
+}
+
+#zombie.bubble-left .word-bubble::after {
+    bottom: 20px;
+    top: auto;
+    left: auto;
+    right: -12px;
+    transform: none;
+    border-width: 12px 0 12px 12px;
+    border-color: transparent transparent transparent white;
 }
 
 #projectile {
@@ -513,14 +559,14 @@ select {
 
 .final-score-display h3 {
     color: #ccc;
-    font-size: 1.2rem;
+    font-size: 2rem;
     text-transform: uppercase;
     letter-spacing: 2px;
     margin-bottom: 5px;
 }
 
 #stat-final-score {
-    font-size: 4rem;
+    font-size: 6rem;
     font-weight: bold;
     color: var(--accent-color);
     text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
@@ -545,7 +591,7 @@ select {
 
 .stat-item h3 {
     color: var(--accent-color);
-    font-size: 1.3rem;
+    font-size: 2rem;
     letter-spacing: 1px;
     text-transform: uppercase;
 }
@@ -575,7 +621,7 @@ select {
 #stat-accuracy-text {
     position: relative;
     z-index: 1;
-    font-size: 2rem;
+    font-size: 3rem;
     font-weight: bold;
     color: white;
 }
@@ -675,7 +721,7 @@ select {
 }
 
 #stat-time-text {
-    font-size: 1.2rem;
+    font-size: 2rem;
     font-weight: bold;
     color: white;
 }
@@ -691,6 +737,11 @@ select {
     margin-top: 30px;
     text-align: left;
 }
+.weaknesses h3 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: var(--accent-color);
+}
 .weakness-table {
     width: 100%;
     border-collapse: collapse;
@@ -700,16 +751,16 @@ select {
     overflow: hidden;
 }
 .weakness-table th, .weakness-table td {
-    padding: 12px 15px;
+    padding: 15px 20px;
     text-align: left;
     border-bottom: 1px solid var(--glass-border);
-    font-size: 1rem;
+    font-size: 1.5rem;
 }
 .weakness-table th {
     background: rgba(0, 255, 136, 0.2);
     color: var(--accent-color);
     text-transform: uppercase;
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     letter-spacing: 1px;
 }
 .weakness-table tr:last-child td {
