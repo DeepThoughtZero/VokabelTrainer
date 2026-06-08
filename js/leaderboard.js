@@ -92,8 +92,11 @@ function filterAndRenderLeaderboard() {
 
 async function loadLeaderboard() {
     try {
-        const url = `${LEADERBOARD_CONFIG.url}?sheet=${LEADERBOARD_CONFIG.sheet}`;
+        const url = `${LEADERBOARD_CONFIG.url}?sheet=${LEADERBOARD_CONFIG.sheet}&t=${Date.now()}`;
         const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
+        }
         const data = await response.json();
         const entries = data.entries || [];
 
@@ -121,10 +124,15 @@ async function saveHighscore(name, score, kategorie, trefferquote, maxStreak) {
     });
 
     try {
-        await fetch(`${LEADERBOARD_CONFIG.url}?${params}`, {
+        const url = `${LEADERBOARD_CONFIG.url}?${params}`;
+        const response = await fetch(url, {
             method: 'GET',
             mode: 'cors'
         });
+
+        if (!response.ok) {
+            throw new Error(`Server returned status ${response.status}`);
+        }
 
         lastSavedEntry = {
             name: name,
@@ -141,7 +149,7 @@ async function saveHighscore(name, score, kategorie, trefferquote, maxStreak) {
 }
 
 function escapeHtml(text) {
-    if (!text) return "";
+    if (text === null || text === undefined || text === '') return "";
     return String(text)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -254,6 +262,8 @@ window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStrea
         
         // Remove old listeners to avoid multiple submissions
         const newSubmitBtn = submitBtn.cloneNode(true);
+        newSubmitBtn.disabled = false;
+        newSubmitBtn.textContent = 'Eintragen';
         submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
         
         newSubmitBtn.addEventListener('click', async () => {
@@ -270,6 +280,13 @@ window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStrea
             const success = await saveHighscore(name, score, kategorie, trefferquote, maxStreak);
             if (success) {
                 formContainer.style.display = 'none';
+                
+                // Verhindere mehrfaches Eintragen desselben Spiels
+                const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
+                if (showLeaderboardBtn) {
+                    showLeaderboardBtn.style.display = 'none';
+                }
+
                 await loadLeaderboard();
                 
                 // Set filter to current category to see own rank

@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pageCell.style.gridRow = `${row}`;
             pageCell.style.gridColumn = '4';
             const unitPages = Array.from(pages.get(u) || []).sort((a,b) => a - b);
-            unitPages.forEach(p => pageCell.appendChild(createCheckbox(`page:${p}`, `${p}`)));
+            unitPages.forEach(p => pageCell.appendChild(createCheckbox(`page:${u}:${p}`, `${p}`)));
             container.appendChild(pageCell);
         });
     }
@@ -383,7 +383,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return paths.some(path => {
                     if (path.startsWith('unit:')) return v.unit === path.split(':')[1];
                     if (path.startsWith('part:')) return `${v.unit} - ${v.part}` === path.split(':')[1];
-                    if (path.startsWith('page:')) return String(v.page) === path.split(':')[1];
+                    if (path.startsWith('page:')) {
+                        const parts = path.split(':');
+                        if (parts.length === 3) {
+                            return v.unit === parts[1] && String(v.page) === parts[2];
+                        }
+                        return String(v.page) === parts[1];
+                    }
                     return false;
                 });
             });
@@ -394,18 +400,68 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let units = [];
+        let unitStatus = new Map();
+
         if (paths.includes('all') || paths.length === 0) {
-            units.push('Alle Units');
+            state.kategorie = "Englisch: Alle Units";
         } else {
             paths.forEach(p => {
-                if (p.startsWith('unit:')) units.push('Unit ' + p.split(':')[1]);
-                else if (p.startsWith('part:')) units.push(p.split(':')[1]);
+                if (p.startsWith('unit:')) {
+                    const u = p.split(':')[1];
+                    if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
+                    unitStatus.get(u).full = true;
+                } else if (p.startsWith('part:')) {
+                    const name = p.split(':')[1];
+                    const match = name.match(/Unit\s*\d+/i);
+                    const u = match ? match[0] : name;
+                    if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
+                    unitStatus.get(u).partial = true;
+                } else if (p.startsWith('page:')) {
+                    const parts = p.split(':');
+                    if (parts.length === 3) {
+                        const match = parts[1].match(/Unit\s*\d+/i);
+                        const u = match ? match[0] : parts[1];
+                        if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
+                        unitStatus.get(u).partial = true;
+                    } else {
+                        const pageNum = parts[1];
+                        const matchingVocabs = VOCABULARY.filter(v => String(v.page) === pageNum);
+                        const pageUnits = [...new Set(matchingVocabs.map(v => v.unit).filter(Boolean))];
+                        
+                        if (pageUnits.length > 0) {
+                            pageUnits.forEach(pu => {
+                                const match = pu.match(/Unit\s*\d+/i);
+                                const u = match ? match[0] : pu;
+                                if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
+                                unitStatus.get(u).partial = true;
+                            });
+                        } else {
+                            const u = 'Seite ' + pageNum;
+                            if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
+                            unitStatus.get(u).partial = true;
+                        }
+                    }
+                }
             });
+
+            let formattedUnits = [];
+            for (let [u, status] of unitStatus.entries()) {
+                if (status.full) {
+                    formattedUnits.push(u);
+                } else {
+                    formattedUnits.push(`${u} - Mix`);
+                }
+            }
+            
+            // Aufsteigend sortieren
+            formattedUnits.sort();
+
+            if (formattedUnits.length === 0) {
+                state.kategorie = "Englisch: Mix";
+            } else {
+                state.kategorie = "Englisch: " + formattedUnits.join(', ');
+            }
         }
-        // Deduplizieren und formatieren
-        units = [...new Set(units)];
-        state.kategorie = "Englisch - " + units.join(', ');
 
         // Reset State
         state.hearts = 3;
@@ -514,12 +570,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const optionsCount = Math.min(8, 4 + Math.floor(state.streak / CONFIG.streakForExtraOption));
         let options = [state.currentWord.a];
 
-        while (options.length < optionsCount) {
+        let attempts = 0;
+        // Zuerst aus dem aktiven Vokabelpool auffüllen
+        while (options.length < optionsCount && attempts < 100) {
             const randomV = state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)];
             const wrongA = getQuestionAndAnswer(randomV, isEnToDe).a;
             if (!options.includes(wrongA)) {
                 options.push(wrongA);
             }
+            attempts++;
+        }
+        
+        // Falls der Pool zu klein war (z.B. nur 3 Vokabeln auf einer Seite),
+        // fülle den Rest aus dem globalen Vokabular auf
+        attempts = 0;
+        while (options.length < optionsCount && attempts < 100) {
+            const randomV = VOCABULARY[Math.floor(Math.random() * VOCABULARY.length)];
+            const wrongA = getQuestionAndAnswer(randomV, isEnToDe).a;
+            if (!options.includes(wrongA) && wrongA && wrongA.trim() !== '') {
+                options.push(wrongA);
+            }
+            attempts++;
         }
 
         options.sort(() => Math.random() - 0.5);
@@ -822,6 +893,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const accuracy = state.totalAttempts > 0 ? Math.round((state.correctAttempts / state.totalAttempts) * 100) : 0;
         const totalTimeSeconds = (Date.now() - state.startTime) / 1000;
         const timePerWord = state.totalAttempts > 0 ? (totalTimeSeconds / state.totalAttempts).toFixed(1) : 0;
+
+        const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
+        if (showLeaderboardBtn) {
+            showLeaderboardBtn.style.display = 'inline-block';
+        }
 
         document.getElementById('stat-final-score').textContent = state.score;
         document.getElementById('stat-max-streak-text').textContent = state.maxStreak;
