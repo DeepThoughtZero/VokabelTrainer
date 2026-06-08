@@ -90,8 +90,23 @@ Da unterschiedliche Vokabeln leicht variierende Lautstärken haben können, nutz
 - Parameter: `loudnorm=I=-16:TP=-1.5:LRA=11`
 - Das sorgt für ein komplett gleichmäßiges und verzerrungsfreies Audio-Level über das gesamte Vokabular hinweg.
 
-### 4. Bedienung der \`generate_audio.sh\`
+### 4. Bedienung der `generate_audio.sh`
 Das Skript ist modular und kann flexibel auf der Kommandozeile bedient werden:
 - `./generate_audio.sh` -> Generiert das gesamte Vokabular neu (überschreibt bestehende Dateien).
 - `./generate_audio.sh --only-missing` -> Überspringt Dateien, die bereits im Ordner `assets/audio` liegen.
 - `./generate_audio.sh --page 248 --engine qwen3-builtin --voice aiden` -> Generiert gezielt nur die Audios für eine bestimmte Seite mit einer abweichenden Stimme/Engine.
+
+## 🚀 Spiel starten (Lokaler Server vs. direkter Datei-Aufruf)
+
+Das Spiel kann grundsätzlich auf zwei Arten gestartet werden:
+
+1. **Lokaler Webserver (Empfohlen):** Über z.B. `npx serve` oder `python3 -m http.server`. Dies ist die Standard-Methode für Web-Apps.
+2. **Direkter Aufruf (`file://`):** Durch einfaches Doppelklicken der `index.html`.
+
+**Vorteile / Nachteile des direkten Aufrufs (`index.html`):**
+- **Vorteil:** Es ist kein Setup oder Terminalbefehl nötig. Jeder Nutzer kann das Spiel sofort im Browser öffnen.
+- **Nachteil (CORS & Fetch):** Da moderne Browser strenge Sicherheitsrichtlinien (CORS) für das `file://`-Protokoll haben, können keine Dateien dynamisch per `fetch()` (z.B. eine `words.json`) nachgeladen werden. Da die Vokabeln in diesem Projekt aktuell fest in der `js/vocabs.js` als JavaScript-Variable (`const VOCABULARY`) eingebunden sind, funktioniert das Spiel reibungslos auch ohne Server.
+- **Nachteil (ES Modules):** Falls das Projekt zukünftig auf ES Modules (`<script type="module">`) umgestellt wird, blockiert der Browser dies unter `file://`.
+- **Audio-Dateien:** Das Abspielen lokaler Audio-Dateien (`assets/audio/`) über `new Audio(...)` funktioniert im `file://` Kontext meistens problemlos, kann aber in manchen extrem restriktiven Browser-Umgebungen blockiert werden.
+
+**Fazit:** Solange die Architektur so bleibt (JS direkt eingebunden, keine asynchronen Datenabfragen), hat der direkte Aufruf der `index.html` keine gravierenden Nachteile und kann bequem genutzt werden.

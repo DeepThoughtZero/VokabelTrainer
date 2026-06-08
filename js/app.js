@@ -80,13 +80,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DOM Elements
     const screens = {
+        login: document.getElementById('login-screen'),
         start: document.getElementById('start-screen'),
         game: document.getElementById('game-screen'),
         end: document.getElementById('end-screen')
     };
 
+    const loginBtn = document.getElementById('login-btn');
+    const passwordInput = document.getElementById('secret-password');
+    const loginError = document.getElementById('login-error');
+    
+    // Obfuscated password ("Zombie" in base64)
+    const SECRET_HASH = "Wm9tYmll";
+
+    loginBtn.addEventListener('click', handleLogin);
+    passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
+
+    function handleLogin() {
+        const input = passwordInput.value.trim();
+        // Simple base64 encoding check (btoa)
+        // btoa("Zombie") === "Wm9tYmll"
+        if (btoa(input) === SECRET_HASH) {
+            showScreen('start');
+        } else {
+            loginError.classList.remove('hidden');
+            // Remove animation class and add it back to trigger the shake animation again
+            loginError.classList.remove('error-msg');
+            void loginError.offsetWidth; // trigger reflow
+            loginError.classList.add('error-msg');
+        }
+    }
+
     const startBtn = document.getElementById('start-btn');
     const restartBtn = document.getElementById('restart-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsDialog = document.getElementById('settings-dialog');
+    const confirmSettingsBtn = document.getElementById('confirm-settings-btn');
+    const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
     const optionsContainer = document.getElementById('options-container');
     const zombieEl = document.getElementById('zombie');
     const zombieWordEl = document.getElementById('zombie-word');
@@ -110,6 +142,25 @@ document.addEventListener('DOMContentLoaded', () => {
     initFilters();
     startBtn.addEventListener('click', startGame);
     restartBtn.addEventListener('click', showStartScreen);
+
+    settingsBtn.addEventListener('click', () => {
+        state.gameRunning = false;
+        settingsDialog.classList.remove('hidden');
+    });
+
+    cancelSettingsBtn.addEventListener('click', () => {
+        settingsDialog.classList.add('hidden');
+        state.gameRunning = true;
+        lastFrameTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    });
+
+    confirmSettingsBtn.addEventListener('click', () => {
+        settingsDialog.classList.add('hidden');
+        state.gameRunning = false;
+        cancelAnimationFrame(animationId);
+        showStartScreen();
+    });
 
     // Charakter-Auswahl
     const charCards = document.querySelectorAll('.char-card');
@@ -511,9 +562,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const startX = 430;
             projectile.style.left = startX + 'px';
             projectile.style.width = '0px';
+            
+            // Zielpunkt in der horizontalen Mitte des Zombies
+            const targetX = state.zombiePosition + (zombieEl.offsetWidth / 2);
+            const distanceX = Math.max(10, targetX - startX);
+            
+            // Zielpunkt auf der Y-Achse: Lasse 20% oben und unten frei, treffe also die mittleren 60%
+            // 30% vom Zentrum in beide Richtungen
+            const maxVerticalOffset = zombieImgEl.offsetHeight * 0.3;
+            const randomYOffset = (Math.random() - 0.5) * 2 * maxVerticalOffset;
+            
+            // Winkel und tatsächliche Schusslänge (Hypotenuse) berechnen
+            const angleRad = Math.atan2(randomYOffset, distanceX);
+            const randomAngle = angleRad * (180 / Math.PI);
+            projectile.style.rotate = randomAngle + 'deg';
+            
+            const shootDistance = Math.sqrt(distanceX * distanceX + randomYOffset * randomYOffset);
+            
             state.zombieDead = true; // Stop zombie immediately
             setTimeout(() => {
-                projectile.style.width = Math.max(10, state.zombiePosition - startX) + 'px';
+                projectile.style.width = shootDistance + 'px';
                 setTimeout(() => {
                     projectile.className = 'hidden';
                     killZombie();
