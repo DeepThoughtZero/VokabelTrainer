@@ -29,7 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
         lastHeartRegenTime: 0,
         wrongAttemptsForCurrentWord: 0,
         zombieDead: false,
-        maxStreak: 0
+        maxStreak: 0,
+        settingsPending: false,
+        kategorie: ''
     };
 
     function recordWeakness(q, a, vocabObj) {
@@ -119,6 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsDialog = document.getElementById('settings-dialog');
     const confirmSettingsBtn = document.getElementById('confirm-settings-btn');
     const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
+    const infoBtn = document.getElementById('info-btn');
+    const infoDialog = document.getElementById('info-dialog');
+    const closeInfoBtn = document.getElementById('close-info-btn');
     const optionsContainer = document.getElementById('options-container');
     const zombieEl = document.getElementById('zombie');
     const zombieWordEl = document.getElementById('zombie-word');
@@ -144,23 +149,61 @@ document.addEventListener('DOMContentLoaded', () => {
     restartBtn.addEventListener('click', showStartScreen);
 
     settingsBtn.addEventListener('click', () => {
-        state.gameRunning = false;
-        settingsDialog.classList.remove('hidden');
+        state.settingsPending = true;
+        settingsBtn.classList.add('pending');
     });
+
+    if (infoBtn) {
+        infoBtn.addEventListener('click', () => {
+            infoDialog.classList.remove('hidden');
+        });
+    }
+
+    if (closeInfoBtn) {
+        closeInfoBtn.addEventListener('click', () => {
+            infoDialog.classList.add('hidden');
+        });
+    }
 
     cancelSettingsBtn.addEventListener('click', () => {
         settingsDialog.classList.add('hidden');
+        state.settingsPending = false;
         state.gameRunning = true;
         lastFrameTime = performance.now();
         requestAnimationFrame(gameLoop);
+        spawnZombie();
     });
 
     confirmSettingsBtn.addEventListener('click', () => {
         settingsDialog.classList.add('hidden');
+        state.settingsPending = false;
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
         showStartScreen();
     });
+
+    const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
+    if (showLeaderboardBtn) {
+        showLeaderboardBtn.addEventListener('click', () => {
+            if (typeof window.openLeaderboardDialog === 'function') {
+                const accuracy = state.totalAttempts > 0 ? Math.round((state.correctAttempts / state.totalAttempts) * 100) : 0;
+                window.openLeaderboardDialog(state.score, state.kategorie, accuracy + '%', state.maxStreak);
+            } else {
+                alert("Bestenliste wird noch geladen...");
+            }
+        });
+    }
+
+    const showLeaderboardStartBtn = document.getElementById('show-leaderboard-start-btn');
+    if (showLeaderboardStartBtn) {
+        showLeaderboardStartBtn.addEventListener('click', () => {
+            if (typeof window.openLeaderboardDialog === 'function') {
+                window.openLeaderboardDialog(-1, '', '', 0);
+            } else {
+                alert("Bestenliste wird noch geladen...");
+            }
+        });
+    }
 
     // Charakter-Auswahl
     const charCards = document.querySelectorAll('.char-card');
@@ -351,6 +394,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        let units = [];
+        if (paths.includes('all') || paths.length === 0) {
+            units.push('Alle Units');
+        } else {
+            paths.forEach(p => {
+                if (p.startsWith('unit:')) units.push('Unit ' + p.split(':')[1]);
+                else if (p.startsWith('part:')) units.push(p.split(':')[1]);
+            });
+        }
+        // Deduplizieren und formatieren
+        units = [...new Set(units)];
+        state.kategorie = "Englisch - " + units.join(', ');
+
         // Reset State
         state.hearts = 3;
         state.score = 0;
@@ -366,6 +422,10 @@ document.addEventListener('DOMContentLoaded', () => {
         state.correctSinceLastRegen = 0;
         state.lastTimestamp = performance.now();
         state.wrongAttemptsForCurrentWord = 0;
+        state.settingsPending = false;
+        settingsBtn.classList.remove('pending');
+        
+        updateBoostUI();
         
         if (state.hunterType === 'water') {
             hunterEl.src = 'assets/hunter_water.png';
@@ -402,6 +462,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function spawnZombie() {
         if (!state.gameRunning) return;
         
+        if (state.settingsPending) {
+            state.gameRunning = false;
+            settingsDialog.classList.remove('hidden');
+            settingsBtn.classList.remove('pending');
+            return;
+        }
+
         // Dynamische Schwierigkeit: Zombie wird kontinuierlich schneller bis 100 Vokabeln (2 Sekunden)
         let progress = Math.min(state.correctAttempts / CONFIG.maxVocabsForMaxSpeed, 1.0);
         let currentDuration = CONFIG.maxZombieDuration - (progress * (CONFIG.maxZombieDuration - CONFIG.minZombieDuration));
@@ -551,9 +618,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            state.score += 10;
+            const poolSize = state.vocabPool.length;
+            const points = Math.floor(10 + (state.streak * (poolSize / 100)));
+            state.score += points;
             scoreEl.textContent = state.score;
             btn.classList.add('correct');
+            
+            updateBoostUI();
             
             playShootSound();
             
@@ -593,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = true;
 
             // Score sinkt bei falscher Antwort
-            state.score = Math.max(0, state.score - 5);
+            state.score = Math.max(0, state.score - 10);
             scoreEl.textContent = state.score;
             
             state.wrongAttemptsForCurrentWord++;
@@ -607,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             state.streak = 0;
+            updateBoostUI();
             state.level = Math.max(1, state.level - 1); // Level Down!
             
             recordWeakness(state.currentWord.q, state.currentWord.a, state.currentWord.vocab);
@@ -680,6 +752,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.totalAttempts++; // Zählt als falscher Versuch, wenn der Zombie einen erreicht
         recordWeakness(state.currentWord.q, state.currentWord.a, state.currentWord.vocab); // Unbeantwortetes Wort als Schwäche erfassen!
         state.streak = 0;
+        updateBoostUI();
         state.level = Math.max(1, state.level - 1);
         
         state.hearts--;
@@ -806,6 +879,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', resizeApp);
     resizeApp(); // Initiale Skalierung
+
+    function updateBoostUI() {
+        const boostBar = document.getElementById('streak-boost-bar');
+        const proj = document.getElementById('projectile');
+        const container = document.getElementById('streak-boost-container');
+        if (!boostBar || !proj || !container) return;
+        
+        const maxStreak = 50;
+        const currentBoost = Math.min(maxStreak, state.streak);
+        const percentage = (currentBoost / maxStreak) * 100;
+        
+        boostBar.style.height = percentage + '%';
+        
+        const boostFactor = 1 + (currentBoost / maxStreak) * 2; 
+        const baseHeights = {
+            'water': 15,
+            'fire': 20,
+            'lightning': 10,
+            'laser': 8
+        };
+        const baseHeight = baseHeights[state.hunterType] || 8;
+        proj.style.setProperty('--boost-height', (baseHeight * boostFactor) + 'px');
+        proj.style.setProperty('--boost-glow', (15 * boostFactor) + 'px');
+
+        const colors = {
+            'lightning': { color: '#ffff00', glow: 'rgba(255, 255, 0, 0.5)' },
+            'fire': { color: '#ff3300', glow: 'rgba(255, 51, 0, 0.5)' },
+            'water': { color: '#00ccff', glow: 'rgba(0, 204, 255, 0.5)' },
+            'laser': { color: '#0000ff', glow: 'rgba(0, 0, 255, 0.5)' }
+        };
+        const theme = colors[state.hunterType] || colors['laser'];
+        container.style.setProperty('--boost-border-color', theme.color);
+        container.style.setProperty('--boost-border-glow', theme.glow);
+    }
 
     function showStreakAnimation(streak) {
         let animEl = document.getElementById('streak-animation');

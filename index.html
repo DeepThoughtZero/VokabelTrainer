@@ -24,6 +24,10 @@
 
         <!-- Start Screen -->
         <section id="start-screen" class="screen">
+            <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+                <button id="show-leaderboard-start-btn" class="gear-btn" title="Weltrangliste">🏆</button>
+                <button id="info-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
+            </div>
             <h1 class="title">Zombie Hunter</h1>
             
             <div class="menu-box glass">
@@ -92,6 +96,14 @@
                     <h2 id="solution-en">English</h2>
                     <h3 id="solution-de">Deutsch</h3>
                 </div>
+                <div id="streak-boost-container" title="Streak Boost">
+                    <div id="streak-boost-bg"></div>
+                    <div id="streak-boost-bar"></div>
+                    <div class="streak-marker" style="bottom: 20%;"></div>
+                    <div class="streak-marker" style="bottom: 40%;"></div>
+                    <div class="streak-marker" style="bottom: 60%;"></div>
+                    <div class="streak-marker" style="bottom: 80%;"></div>
+                </div>
                 <div id="hunter" class="entity">
                     <img src="assets/hunter.png" alt="Hunter" class="sprite-img" id="hunter-img">
                 </div>
@@ -110,6 +122,7 @@
                 <div class="final-score-display">
                     <h3>Score</h3>
                     <div id="stat-final-score">0</div>
+                    <button id="show-leaderboard-btn" class="btn-secondary" style="margin-top: 15px; font-size: 1.5rem; padding: 10px 20px; font-family: 'Roboto', sans-serif;">Trage dich in die Weltrangliste ein</button>
                 </div>
                 <div class="visual-stats">
                     <div class="stat-item">
@@ -159,6 +172,52 @@
             <button id="restart-btn" class="btn-primary">Neue Jagd</button>
         </section>
 
+        <!-- Leaderboard Dialog -->
+        <div id="leaderboard-dialog" class="hidden glass modal-dialog" style="max-width: 1000px; width: 95%; z-index: 100; box-shadow: 0 0 0 100vw rgba(0,0,0,0.95), 0 0 30px rgba(0,0,0,0.9), 0 0 15px rgba(0,255,136,0.4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0; color: var(--accent-color);">Weltrangliste</h2>
+                <button id="close-leaderboard-btn" class="btn-secondary" style="padding: 5px 15px;">X</button>
+            </div>
+            
+            <div id="leaderboard-entry-form" class="form-group" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <input type="text" id="player-name" placeholder="Dein Name..." maxlength="20" style="padding: 10px; border-radius: 5px; font-size: 1.2rem; max-width: 200px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.5); color: white;">
+                <button id="submit-score-btn" class="btn-primary" style="font-size: 1.2rem; padding: 10px 20px; font-family: 'Roboto', sans-serif;">Eintragen</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px; display: flex; flex-direction: row; gap: 10px; align-items: center; justify-content: center; flex-wrap: nowrap;">
+                <label for="kategorie-filter" style="margin: 0; font-size: 1.2rem;">Filtern:</label>
+                <select id="kategorie-filter" style="padding: 5px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; width: auto;">
+                    <option value="">Alle Kategorien</option>
+                </select>
+                
+                <label for="sort-filter" style="margin: 0; margin-left: 15px; font-size: 1.2rem;">Sortieren:</label>
+                <select id="sort-filter" style="padding: 5px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; width: auto;">
+                    <option value="score">Score</option>
+                    <option value="trefferquote">Trefferquote</option>
+                    <option value="maxStreak">Längster Streak</option>
+                </select>
+            </div>
+
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                <table class="weakness-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--glass-border);">
+                            <th style="padding: 8px; width: 80px; white-space: nowrap;">Rang</th>
+                            <th style="padding: 8px;">Name</th>
+                            <th style="padding: 8px;">Score</th>
+                            <th style="padding: 8px;">Kategorie</th>
+                            <th style="padding: 8px;">Trefferquote</th>
+                            <th style="padding: 8px;">max Streak</th>
+                            <th style="padding: 8px;">Datum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <tr><td colspan="7" style="text-align:center; padding: 10px;">Lade Bestenliste...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Settings Confirmation Dialog -->
         <div id="settings-dialog" class="hidden glass modal-dialog">
             <h2>Spiel abbrechen?</h2>
@@ -168,9 +227,28 @@
                 <button id="confirm-settings-btn" class="btn-primary btn-danger">Zurück</button>
             </div>
         </div>
+
+        <!-- Info Dialog -->
+        <div id="info-dialog" class="hidden glass modal-dialog info-dialog-custom">
+            <h2 style="color: var(--accent-color);">Die Rettung von London</h2>
+            <div class="info-content text-left">
+                <p>Ein mysteriöser Nebel hat London in eine Stadt der Untoten verwandelt! Nur ihr, die tapfersten Schüler der Akademie, könnt die Zombie-Invasion stoppen. Mit jedem richtig übersetzten Wort feuert ihr eure Elementarwaffen ab und drängt die Horde zurück. Kämpft gemeinsam und rettet die Stadt!</p>
+                <p><strong>So wird der Score berechnet:</strong></p>
+                <ul style="font-size: 1.4rem; line-height: 1.4; margin-bottom: 20px; text-align: left; padding-left: 20px;">
+                    <li><strong>Basis-Punkte:</strong> 10 Punkte pro richtigem Wort.</li>
+                    <li><strong>Streak-Bonus:</strong> Je länger deine fehlerfreie Serie (Streak), desto mehr Bonuspunkte erhältst du pro Treffer.</li>
+                    <li><strong>Pool-Bonus:</strong> Je mehr Vokabeln im aktuellen Lernpfad ausgewählt sind, desto höher der Multiplikator!</li>
+                    <li><strong>Fehler-Abzug:</strong> Bei einer falschen Antwort verlierst du 10 Punkte.</li>
+                </ul>
+            </div>
+            <div class="modal-actions">
+                <button id="close-info-btn" class="btn-primary">Kämpfen!</button>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
+    <script src="js/leaderboard.js"></script>
     <script src="js/vocabs.js"></script>
     <script src="js/app.js"></script>
 </body>

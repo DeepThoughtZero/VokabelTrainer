@@ -442,6 +442,49 @@ select {
     bottom: 140px;
 }
 
+#streak-boost-container {
+    position: absolute;
+    left: 40px;
+    bottom: 140px;
+    width: 30px;
+    height: 450px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 3px solid var(--boost-border-color, #00ffcc);
+    border-radius: 15px;
+    overflow: hidden;
+    z-index: 5;
+    box-shadow: 0 0 15px var(--boost-border-color, #00ffcc), 0 0 30px var(--boost-border-glow, rgba(0, 255, 204, 0.5));
+}
+
+#streak-boost-bg {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0, 255, 136, 0.1), rgba(255, 200, 0, 0.1), rgba(255, 0, 0, 0.1));
+}
+
+#streak-boost-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%; /* Adjusted via JS */
+    background: linear-gradient(to top, #00ff88, #ffcc00, #ff0055);
+    transition: height 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.streak-marker {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.5);
+    z-index: 2;
+}
+
 #hunter {
     left: 100px;
     z-index: 2;
@@ -514,44 +557,44 @@ select {
 
 .proj-laser {
     width: 60px;
-    height: 8px;
+    height: var(--boost-height, 8px);
     background: #00ffff;
     color: #00ffff;
     bottom: 340px;
     border-radius: 4px;
-    box-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;
+    box-shadow: 0 0 var(--boost-glow, 15px) #00ffff, 0 0 calc(var(--boost-glow, 15px) * 2) #00ffff;
 }
 
 .proj-water {
     width: 50px;
-    height: 15px;
+    height: var(--boost-height, 15px);
     background: #0088ff;
     color: #0088ff;
     bottom: 350px;
     border-radius: 10px;
-    box-shadow: 0 0 10px #0088ff, inset 0 0 5px rgba(255,255,255,0.5);
+    box-shadow: 0 0 var(--boost-glow, 10px) #0088ff, inset 0 0 5px rgba(255,255,255,0.5);
     animation: waterRipple 0.2s infinite alternate;
 }
 
 .proj-fire {
     width: 70px;
-    height: 20px;
+    height: var(--boost-height, 20px);
     background: linear-gradient(to right, #ffcc00, #ff3300);
     color: #ff5500;
     bottom: 255px;
     border-radius: 10px;
-    box-shadow: 0 0 20px #ff3300, 0 0 40px #ff9900;
+    box-shadow: 0 0 var(--boost-glow, 20px) #ff3300, 0 0 calc(var(--boost-glow, 20px) * 2) #ff9900;
     animation: fireFlicker 0.1s infinite alternate;
 }
 
 .proj-lightning {
     width: 80px;
-    height: 10px;
+    height: var(--boost-height, 10px);
     background: #ffff00;
     color: #ffff00;
     bottom: 360px;
     border-radius: 2px;
-    box-shadow: 0 0 15px #ffff00, 0 0 30px #ffff00;
+    box-shadow: 0 0 var(--boost-glow, 15px) #ffff00, 0 0 calc(var(--boost-glow, 15px) * 2) #ffff00;
     animation: lightningStrike 0.05s infinite alternate;
 }
 
@@ -877,6 +920,24 @@ select {
     text-align: center;
 }
 
+/* Info Button & Dialog */
+.info-btn-top-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+.info-dialog-custom h2 {
+    color: var(--accent-color) !important;
+}
+.info-content {
+    text-align: left;
+}
+.info-content p {
+    font-size: 1.4rem;
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
 /* Settings Dialog & Gear Button */
 .gear-btn {
     background: transparent;
@@ -890,6 +951,14 @@ select {
 .gear-btn:hover {
     transform: rotate(45deg) scale(1.1);
     filter: drop-shadow(0 0 10px var(--accent-color));
+}
+.gear-btn.pending {
+    color: var(--accent-color);
+    animation: spin 2s linear infinite;
+    filter: drop-shadow(0 0 10px var(--accent-color));
+}
+@keyframes spin {
+    100% { transform: rotate(360deg); }
 }
 .modal-dialog {
     position: absolute;
