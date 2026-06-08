@@ -191,7 +191,8 @@ function renderLeaderboard(entries) {
         const safeName = escapeHtml(entry.name || 'Anonym');
         const safeScore = escapeHtml(entry.score);
         let safeKategorie = escapeHtml(entry.kategorie || '-');
-        safeKategorie = safeKategorie.replace(' - ', '<br>- ');
+        safeKategorie = safeKategorie.replace('Englisch: ', 'Englisch:<br>');
+        safeKategorie = safeKategorie.replace('Englisch - ', 'Englisch<br>- ');
         let quoteVal = entry.trefferquote;
         if (typeof quoteVal === 'number') {
             // Google Sheets converted 35% to 0.35
