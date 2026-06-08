@@ -403,7 +403,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let unitStatus = new Map();
 
         if (paths.includes('all') || paths.length === 0) {
-            state.kategorie = "Englisch: Alle Units";
+            const allUnits = [...new Set(VOCABULARY.map(v => {
+                if (!v.unit) return null;
+                const match = v.unit.match(/Unit\s*\d+/i);
+                return match ? match[0] : v.unit;
+            }).filter(Boolean))];
+            
+            allUnits.forEach(u => {
+                unitStatus.set(u, { full: true, partial: false });
+            });
         } else {
             paths.forEach(p => {
                 if (p.startsWith('unit:')) {
@@ -443,8 +451,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
+        }
 
-            let formattedUnits = [];
+        let formattedUnits = [];
             for (let [u, status] of unitStatus.entries()) {
                 if (status.full) {
                     formattedUnits.push(u);
@@ -453,14 +462,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // Aufsteigend sortieren
-            formattedUnits.sort();
+        // Aufsteigend sortieren
+        formattedUnits.sort();
 
-            if (formattedUnits.length === 0) {
-                state.kategorie = "Englisch: Mix";
-            } else {
-                state.kategorie = "Englisch: " + formattedUnits.join(', ');
-            }
+        if (formattedUnits.length === 0) {
+            state.kategorie = "Englisch: Mix";
+        } else {
+            state.kategorie = "Englisch: " + formattedUnits.join(', ');
         }
 
         // Reset State
