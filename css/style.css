@@ -1110,7 +1110,7 @@ select {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
-    padding: 40px calc(50% - 130px); /* Centers the first/last item */
+    padding: 90px calc(50% - 130px); /* Centers the first/last item, plenty of vertical room for scale/glow */
     width: 100%;
     max-width: 900px;
     align-items: center;

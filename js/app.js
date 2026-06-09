@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'water', name: 'Hydro Striker', desc: 'Spezialist für Wasser-Angriffe.', img: 'assets/hunter_water.png', element: 'water' },
         { id: 'fire', name: 'Pyro Blaze', desc: 'Entfesselt die Kraft des Feuers.', img: 'assets/hunter_pyroblaze.png', element: 'fire' },
         { id: 'lightning', name: 'Volt Master', desc: 'Elektrisiert die Untoten.', img: 'assets/hunter_voltmaster.png', element: 'lightning' },
-        { id: 'fuchsia', name: 'Magenta Myst', desc: 'Meisterin der arkanen Künste.', img: 'assets/hunter_fuchsia.png', element: 'fuchsia' },
+        { id: 'fuchsia', name: 'Fuchsia', desc: 'Meisterin der arkanen Künste.', img: 'assets/hunter_fuchsia.png', element: 'fuchsia' },
         { id: 'pink', name: 'Pinky Pump', desc: 'Mit der Pumpgun auf Zombiejagd.', img: 'assets/hunter_pinkypump.png', element: 'pink' }
     ];
 
@@ -191,14 +191,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Leaderboard logic for hunter screen
     const showLeaderboardHunterBtn = document.getElementById('show-leaderboard-hunter-btn');
+    const showLeaderboardStartBtn = document.getElementById('show-leaderboard-start-btn');
+    const handleLeaderboardClick = () => {
+        if (typeof window.openLeaderboardDialog === 'function') {
+            window.openLeaderboardDialog(-1, '', '', 0);
+        } else {
+            alert("Bestenliste wird noch geladen...");
+        }
+    };
     if (showLeaderboardHunterBtn) {
-        showLeaderboardHunterBtn.addEventListener('click', () => {
-            if (typeof window.openLeaderboardDialog === 'function') {
-                window.openLeaderboardDialog(-1, '', '', 0);
-            } else {
-                alert("Bestenliste wird noch geladen...");
-            }
-        });
+        showLeaderboardHunterBtn.addEventListener('click', handleLeaderboardClick);
+    }
+    if (showLeaderboardStartBtn) {
+        showLeaderboardStartBtn.addEventListener('click', handleLeaderboardClick);
     }
 
     const infoBtnStart = document.getElementById('info-btn');
@@ -249,6 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const carousel = document.getElementById('hunter-carousel');
         carousel.innerHTML = '';
         
+        let isDown = false;
+        let isDragging = false;
+        let startX;
+        let scrollLeft;
+        
         for(let s = 0; s < CAROUSEL_SETS; s++) {
             HUNTERS.forEach((hunter, i) => {
                 const index = s * HUNTERS.length + i;
@@ -270,11 +280,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.appendChild(nameSpan);
                 carousel.appendChild(item);
                 
-                item.addEventListener('click', () => {
+                item.addEventListener('click', (e) => {
+                    if (isDragging) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
                     focusHunter(index);
                 });
             });
         }
+        
+        carousel.addEventListener('mousedown', (e) => {
+            isDown = true;
+            isDragging = false;
+            carousel.style.scrollSnapType = 'none';
+            carousel.style.cursor = 'grabbing';
+            startX = e.pageX - carousel.offsetLeft;
+            scrollLeft = carousel.scrollLeft;
+        });
+
+        carousel.addEventListener('mouseleave', () => {
+            if (!isDown) return;
+            isDown = false;
+            carousel.style.scrollSnapType = 'x mandatory';
+            carousel.style.cursor = 'grab';
+        });
+
+        carousel.addEventListener('mouseup', () => {
+            if (!isDown) return;
+            isDown = false;
+            carousel.style.scrollSnapType = 'x mandatory';
+            carousel.style.cursor = 'grab';
+            
+            // Programmatically find the closest and explicitly snap to it to ensure perfect centering
+            const items = document.querySelectorAll('.carousel-item');
+            let closest = 0;
+            let minDistance = Infinity;
+            const containerCenter = carousel.scrollLeft + carousel.clientWidth / 2;
+            
+            items.forEach((item, index) => {
+                const itemCenter = item.offsetLeft + item.clientWidth / 2;
+                const dist = Math.abs(containerCenter - itemCenter);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closest = index;
+                }
+            });
+            focusHunter(closest, true, true);
+        });
+
+        carousel.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - carousel.offsetLeft;
+            const walk = (x - startX) * 1.5;
+            if (Math.abs(walk) > 5) isDragging = true;
+            carousel.scrollLeft = scrollLeft - walk;
+        });
         
         document.getElementById('carousel-prev').addEventListener('click', () => {
             focusHunter((currentHunterIndex - 1 + TOTAL_ITEMS) % TOTAL_ITEMS);
@@ -304,13 +367,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentHunterIndex !== closest) {
                     focusHunter(closest, false);
                 }
-            }, 100);
+            }, 300); // 300ms debounce to avoid flickering while smooth-scrolling
         });
         
-        // Initialer Fokus in der Mitte des "unendlichen" Arrays
-        const middleStartIndex = Math.floor(CAROUSEL_SETS / 2) * HUNTERS.length;
-        // Turn off smooth scrolling for the initial jump
-        focusHunter(middleStartIndex, true, false);
+        // Remove static initial focus here, it will be handled by showHunterScreen
     }
     
     function focusHunter(index, scrollTo = true, smooth = true) {
@@ -487,8 +547,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showHunterScreen() {
         showScreen('hunter');
-        // Falls wir zurückkommen, den Fokus wiederherstellen
-        setTimeout(() => focusHunter(currentHunterIndex), 50);
+        // Wähle jedes Mal einen zufälligen Jäger in der Mitte des unendlichen Karussells
+        const middleStartIndex = Math.floor(CAROUSEL_SETS / 2) * HUNTERS.length;
+        const randomOffset = Math.floor(Math.random() * HUNTERS.length);
+        const targetIndex = middleStartIndex + randomOffset;
+        setTimeout(() => focusHunter(targetIndex, true, false), 50);
     }
 
     function showStartScreen() {
