@@ -67,6 +67,13 @@ body {
     text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
     margin-top: 10px;
     margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 5px 30px;
+    border-radius: 20px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
 
 .subtitle {
@@ -959,6 +966,23 @@ select {
 }
 @keyframes spin {
     100% { transform: rotate(360deg); }
+}
+
+/* Pulsating glow for top right buttons on start screen */
+#show-leaderboard-start-btn, #info-btn {
+    font-size: 4.5rem;
+    animation: pulseGlow 2s infinite alternate;
+}
+
+@keyframes pulseGlow {
+    0% { filter: drop-shadow(0 0 5px rgba(0, 255, 136, 0.5)); transform: scale(1); }
+    100% { filter: drop-shadow(0 0 15px var(--accent-color)) drop-shadow(0 0 35px var(--accent-color)); transform: scale(1.1); }
+}
+
+#show-leaderboard-start-btn:hover, #info-btn:hover {
+    animation: none; /* stop pulse on hover */
+    transform: rotate(20deg) scale(1.2);
+    filter: drop-shadow(0 0 20px var(--accent-color)) drop-shadow(0 0 50px var(--accent-color));
 }
 .modal-dialog {
     position: absolute;
