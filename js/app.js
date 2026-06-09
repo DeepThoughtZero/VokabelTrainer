@@ -82,11 +82,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DOM Elements
     const screens = {
+        terms: document.getElementById('terms-screen'),
         login: document.getElementById('login-screen'),
         start: document.getElementById('start-screen'),
         game: document.getElementById('game-screen'),
         end: document.getElementById('end-screen')
     };
+
+    const acceptTermsBtn = document.getElementById('accept-terms-btn');
+    if (acceptTermsBtn) {
+        acceptTermsBtn.addEventListener('click', () => {
+            showScreen('login');
+        });
+    }
 
     const loginBtn = document.getElementById('login-btn');
     const passwordInput = document.getElementById('secret-password');
