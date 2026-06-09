@@ -40,13 +40,30 @@
             </div>
         </section>
 
-        <!-- Start Screen -->
-        <section id="start-screen" class="screen">
+        <!-- Hunter Selection Screen -->
+        <section id="hunter-selection-screen" class="screen">
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
-                <button id="show-leaderboard-start-btn" class="gear-btn" title="Weltrangliste">🏆</button>
-                <button id="info-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
+                <button id="show-leaderboard-hunter-btn" class="gear-btn" title="Weltrangliste">🏆</button>
+                <button id="info-hunter-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
             </div>
-            <h1 class="title">Zombie Hunter</h1>
+            
+            <div class="carousel-container">
+                <button id="carousel-prev" class="carousel-nav-btn">◀</button>
+                <div id="hunter-carousel" class="hunter-carousel">
+                    <!-- Hunters injected via JS -->
+                </div>
+                <button id="carousel-next" class="carousel-nav-btn">▶</button>
+            </div>
+
+            <div class="hunter-action-box" style="text-align: center; margin-top: 20px;">
+                <button id="confirm-hunter-btn" class="btn-primary pulse-anim">Das bin ich.</button>
+            </div>
+        </section>
+
+        <!-- Start Screen (Settings) -->
+        <section id="start-screen" class="screen">
+            <button id="back-to-hunter-btn" class="gear-btn" style="position: absolute; top: 20px; left: 20px; z-index: 10;" title="Zurück zur Jägerauswahl">⬅ Zurück</button>
+            <h1 class="title">Lernpfad Einstellen</h1>
             
             <div class="menu-box glass">
                 <div class="form-group">
@@ -56,28 +73,6 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>Jäger & Waffe wählen:</label>
-                    <div id="character-selection" class="char-select-grid">
-                        <div class="char-card active" data-hunter="laser">
-                            <img src="assets/hunter.png" alt="Laser">
-                            <span>Commander Neon</span>
-                        </div>
-                        <div class="char-card" data-hunter="water">
-                            <img src="assets/hunter_water.png" alt="Wasser">
-                            <span>Hydro Striker</span>
-                        </div>
-                        <div class="char-card" data-hunter="fire">
-                            <img src="assets/hunter_fire.png" alt="Feuer">
-                            <span>Pyro Blaze</span>
-                        </div>
-                        <div class="char-card" data-hunter="lightning">
-                            <img src="assets/hunter_lightning.png" alt="Strom">
-                            <span>Volt Master</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="bottom-actions">
                     <div class="form-group direction-group">
                         <label for="translation-direction">Abfragerichtung:</label>
@@ -123,11 +118,11 @@
                     <div class="streak-marker" style="bottom: 80%;"></div>
                 </div>
                 <div id="hunter" class="entity">
-                    <img src="assets/hunter.png" alt="Hunter" class="sprite-img" id="hunter-img">
+                    <img src="assets/hunter_commanderneon.png" alt="Hunter" class="sprite-img" id="hunter-img">
                 </div>
                 <div id="zombie" class="entity">
                     <div id="zombie-word" class="word-bubble">Word</div>
-                    <img src="assets/zombie1.png" alt="Zombie" class="sprite-img" id="zombie-img">
+                    <img src="assets/zombie01.png" alt="Zombie" class="sprite-img" id="zombie-img">
                 </div>
                 <div id="projectile" class="hidden"></div>
             </div>

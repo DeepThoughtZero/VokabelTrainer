@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const screens = {
         terms: document.getElementById('terms-screen'),
         login: document.getElementById('login-screen'),
+        hunter: document.getElementById('hunter-selection-screen'),
         start: document.getElementById('start-screen'),
         game: document.getElementById('game-screen'),
         end: document.getElementById('end-screen')
@@ -113,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Simple base64 encoding check (btoa)
         // btoa("Zombie") === "Wm9tYmll"
         if (btoa(input) === SECRET_HASH) {
-            showScreen('start');
+            showHunterScreen();
         } else {
             loginError.classList.remove('hidden');
             // Remove animation class and add it back to trigger the shake animation again
@@ -143,26 +144,66 @@ document.addEventListener('DOMContentLoaded', () => {
     const hunterEl = document.getElementById('hunter-img');
     const hunterContainer = document.getElementById('hunter');
 
+    const HUNTERS = [
+        { id: 'laser', name: 'Commander Neon', desc: 'Meister der Laser-Waffen.', img: 'assets/hunter_commanderneon.png', element: 'laser' },
+        { id: 'water', name: 'Hydro Striker', desc: 'Spezialist für Wasser-Angriffe.', img: 'assets/hunter_water.png', element: 'water' },
+        { id: 'fire', name: 'Pyro Blaze', desc: 'Entfesselt die Kraft des Feuers.', img: 'assets/hunter_pyroblaze.png', element: 'fire' },
+        { id: 'lightning', name: 'Volt Master', desc: 'Elektrisiert die Untoten.', img: 'assets/hunter_voltmaster.png', element: 'lightning' },
+        { id: 'fuchsia', name: 'Magenta Myst', desc: 'Meisterin der arkanen Künste.', img: 'assets/hunter_fuchsia.png', element: 'fuchsia' },
+        { id: 'pink', name: 'Pinky Pump', desc: 'Mit der Pumpgun auf Zombiejagd.', img: 'assets/hunter_pinkypump.png', element: 'pink' }
+    ];
+
+    let currentHunterIndex = 0;
+    const CAROUSEL_SETS = 30;
+    const TOTAL_ITEMS = CAROUSEL_SETS * HUNTERS.length;
+
     const zombieImages = [
-        'assets/zombie1.png',
-        'assets/zombie2.png',
-        'assets/zombie3.png',
-        'assets/zombie4.png',
-        'assets/zombie5.png'
+        'assets/zombie01.png',
+        'assets/zombie02.png',
+        'assets/zombie03.png',
+        'assets/zombie04.png',
+        'assets/zombie05.png',
+        'assets/zombie06.png',
+        'assets/zombie07.png',
+        'assets/zombie08.png'
     ];
 
     // Init
     initFilters();
+    initCarousel();
     startBtn.addEventListener('click', startGame);
-    restartBtn.addEventListener('click', showStartScreen);
+    restartBtn.addEventListener('click', showHunterScreen);
+
+    document.getElementById('back-to-hunter-btn').addEventListener('click', showHunterScreen);
+    document.getElementById('confirm-hunter-btn').addEventListener('click', showStartScreen);
 
     settingsBtn.addEventListener('click', () => {
         state.settingsPending = true;
         settingsBtn.classList.add('pending');
     });
 
-    if (infoBtn) {
-        infoBtn.addEventListener('click', () => {
+    const infoHunterBtn = document.getElementById('info-hunter-btn');
+    if (infoHunterBtn) {
+        infoHunterBtn.addEventListener('click', () => {
+            infoDialog.classList.remove('hidden');
+        });
+    }
+
+    // Leaderboard logic for hunter screen
+    const showLeaderboardHunterBtn = document.getElementById('show-leaderboard-hunter-btn');
+    if (showLeaderboardHunterBtn) {
+        showLeaderboardHunterBtn.addEventListener('click', () => {
+            if (typeof window.openLeaderboardDialog === 'function') {
+                window.openLeaderboardDialog(-1, '', '', 0);
+            } else {
+                alert("Bestenliste wird noch geladen...");
+            }
+        });
+    }
+
+    const infoBtnStart = document.getElementById('info-btn');
+    if (infoBtnStart) {
+        infoBtnStart.addEventListener('click', () => {
             infoDialog.classList.remove('hidden');
         });
     }
@@ -187,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.settingsPending = false;
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
-        showStartScreen();
+        showHunterScreen();
     });
 
     const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
@@ -202,26 +243,104 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const showLeaderboardStartBtn = document.getElementById('show-leaderboard-start-btn');
-    if (showLeaderboardStartBtn) {
-        showLeaderboardStartBtn.addEventListener('click', () => {
-            if (typeof window.openLeaderboardDialog === 'function') {
-                window.openLeaderboardDialog(-1, '', '', 0);
+    // Charakter-Auswahl Carousel
+    // Charakter-Auswahl Carousel
+    function initCarousel() {
+        const carousel = document.getElementById('hunter-carousel');
+        carousel.innerHTML = '';
+        
+        for(let s = 0; s < CAROUSEL_SETS; s++) {
+            HUNTERS.forEach((hunter, i) => {
+                const index = s * HUNTERS.length + i;
+                const item = document.createElement('div');
+                item.className = 'carousel-item';
+                item.dataset.index = index;
+                item.dataset.realIndex = i;
+                item.dataset.element = hunter.element;
+                
+                const img = document.createElement('img');
+                img.src = hunter.img;
+                img.alt = hunter.name;
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'hunter-name';
+                nameSpan.textContent = hunter.name;
+                
+                item.appendChild(img);
+                item.appendChild(nameSpan);
+                carousel.appendChild(item);
+                
+                item.addEventListener('click', () => {
+                    focusHunter(index);
+                });
+            });
+        }
+        
+        document.getElementById('carousel-prev').addEventListener('click', () => {
+            focusHunter((currentHunterIndex - 1 + TOTAL_ITEMS) % TOTAL_ITEMS);
+        });
+        
+        document.getElementById('carousel-next').addEventListener('click', () => {
+            focusHunter((currentHunterIndex + 1) % TOTAL_ITEMS);
+        });
+        
+        carousel.addEventListener('scroll', () => {
+            clearTimeout(carousel.scrollTimeout);
+            carousel.scrollTimeout = setTimeout(() => {
+                const items = document.querySelectorAll('.carousel-item');
+                let closest = 0;
+                let minDistance = Infinity;
+                const containerCenter = carousel.scrollLeft + carousel.clientWidth / 2;
+                
+                items.forEach((item, index) => {
+                    const itemCenter = item.offsetLeft + item.clientWidth / 2;
+                    const dist = Math.abs(containerCenter - itemCenter);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closest = index;
+                    }
+                });
+                
+                if (currentHunterIndex !== closest) {
+                    focusHunter(closest, false);
+                }
+            }, 100);
+        });
+        
+        // Initialer Fokus in der Mitte des "unendlichen" Arrays
+        const middleStartIndex = Math.floor(CAROUSEL_SETS / 2) * HUNTERS.length;
+        // Turn off smooth scrolling for the initial jump
+        focusHunter(middleStartIndex, true, false);
+    }
+    
+    function focusHunter(index, scrollTo = true, smooth = true) {
+        currentHunterIndex = index;
+        const items = document.querySelectorAll('.carousel-item');
+        
+        items.forEach((item, i) => {
+            if (i === index) {
+                item.classList.add('active');
             } else {
-                alert("Bestenliste wird noch geladen...");
+                item.classList.remove('active');
             }
         });
+        
+        // Get the real hunter from the original array
+        const realIndex = index % HUNTERS.length;
+        const hunter = HUNTERS[realIndex];
+        state.hunterType = hunter.id;
+        
+        if (scrollTo) {
+            const carousel = document.getElementById('hunter-carousel');
+            const targetItem = items[index];
+            if (targetItem) {
+                carousel.scrollTo({
+                    left: targetItem.offsetLeft - carousel.clientWidth / 2 + targetItem.clientWidth / 2,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+            }
+        }
     }
-
-    // Charakter-Auswahl
-    const charCards = document.querySelectorAll('.char-card');
-    charCards.forEach(card => {
-        card.addEventListener('click', () => {
-            charCards.forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            state.hunterType = card.dataset.hunter;
-        });
-    });
 
     function initFilters() {
         const container = document.getElementById('learning-path-container');
@@ -366,6 +485,12 @@ document.addEventListener('DOMContentLoaded', () => {
         screens[screenName].classList.add('active');
     }
 
+    function showHunterScreen() {
+        showScreen('hunter');
+        // Falls wir zurückkommen, den Fokus wiederherstellen
+        setTimeout(() => focusHunter(currentHunterIndex), 50);
+    }
+
     function showStartScreen() {
         showScreen('start');
     }
@@ -499,15 +624,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         updateBoostUI();
         
-        if (state.hunterType === 'water') {
-            hunterEl.src = 'assets/hunter_water.png';
-        } else if (state.hunterType === 'fire') {
-            hunterEl.src = 'assets/hunter_fire.png';
-        } else if (state.hunterType === 'lightning') {
-            hunterEl.src = 'assets/hunter_lightning.png';
-        } else {
-            hunterEl.src = 'assets/hunter.png';
-        }
+        const selectedHunter = HUNTERS.find(h => h.id === state.hunterType) || HUNTERS[0];
+        hunterEl.src = selectedHunter.img;
 
         updateHeartsUI();
         scoreEl.textContent = state.score;
@@ -989,7 +1107,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'water': 15,
             'fire': 20,
             'lightning': 10,
-            'laser': 8
+            'laser': 8,
+            'fuchsia': 12,
+            'pink': 15
         };
         const baseHeight = baseHeights[state.hunterType] || 8;
         proj.style.setProperty('--boost-height', (baseHeight * boostFactor) + 'px');
@@ -999,7 +1119,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'lightning': { color: '#ffff00', glow: 'rgba(255, 255, 0, 0.5)' },
             'fire': { color: '#ff3300', glow: 'rgba(255, 51, 0, 0.5)' },
             'water': { color: '#00ccff', glow: 'rgba(0, 204, 255, 0.5)' },
-            'laser': { color: '#0000ff', glow: 'rgba(0, 0, 255, 0.5)' }
+            'laser': { color: '#0000ff', glow: 'rgba(0, 0, 255, 0.5)' },
+            'fuchsia': { color: '#ff00ff', glow: 'rgba(255, 0, 255, 0.5)' },
+            'pink': { color: '#ff66b2', glow: 'rgba(255, 102, 178, 0.5)' }
         };
         const theme = colors[state.hunterType] || colors['laser'];
         container.style.setProperty('--boost-border-color', theme.color);
