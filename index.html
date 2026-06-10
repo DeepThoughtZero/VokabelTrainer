@@ -101,11 +101,12 @@
                 
                 <div class="bottom-actions">
                     <div class="form-group direction-group">
-                        <label for="translation-direction">Abfragerichtung:</label>
+                        <label for="translation-direction">Abfrage-Modus:</label>
                         <select id="translation-direction">
                             <option value="en-de">Englisch ➔ Deutsch</option>
                             <option value="de-en" selected>Deutsch ➔ Englisch</option>
                             <option value="mixed">Gemischt</option>
+                            <option value="de-en-write">Deutsch ➔ Englisch (schreiben)</option>
                         </select>
                     </div>
                     
@@ -128,6 +129,11 @@
             
             <div id="options-container" class="options">
                 <!-- Answer options will be injected here -->
+            </div>
+
+            <div id="writing-container" class="hidden writing-mode-ui">
+                <div id="writing-pool" class="letter-pool"></div>
+                <div id="writing-target" class="letter-target"></div>
             </div>
 
             <div id="game-canvas">
@@ -269,9 +275,9 @@
 
         <!-- Info Dialog -->
         <div id="info-dialog" class="hidden glass modal-dialog info-dialog-custom" style="max-width: 800px; width: 90%; box-shadow: 0 0 0 100vw rgba(0,0,0,0.95), 0 0 30px rgba(0,0,0,0.9), 0 0 15px rgba(0,255,136,0.4);">
-            <h2 style="color: var(--accent-color);">Die Rettung von London</h2>
+            <h2 style="color: var(--accent-color);">Die Rettung der Welt</h2>
             <div class="info-content text-left">
-                <p>Ein mysteriöser Nebel hat London in eine Stadt der Untoten verwandelt! Nur ihr, die tapfersten Schüler der Akademie, könnt die Zombie-Invasion stoppen. Mit jedem richtig übersetzten Wort feuert ihr eure Elementarwaffen ab und drängt die Horde zurück. Kämpft gemeinsam und rettet die Stadt!</p>
+                <p>Ein mysteriöser Nebel hat die Welt in einen Ort der Untoten verwandelt! Nur ihr, die tapfersten Schüler der Akademie, könnt die Zombie-Invasion stoppen. Mit jedem richtig übersetzten Wort feuert ihr eure Elementarwaffen ab und drängt die Horde zurück. Kämpft gemeinsam und rettet eure Stadt!</p>
                 <p><strong>So wird der Score berechnet:</strong></p>
                 <ul style="font-size: 1.4rem; line-height: 1.4; margin-bottom: 20px; text-align: left; padding-left: 20px;">
                     <li><strong>Basis-Punkte:</strong> 10 Punkte pro richtigem Wort.</li>

@@ -105,7 +105,7 @@ Das Spiel kann grundsätzlich auf zwei Arten gestartet werden:
 
 **Vorteile / Nachteile des direkten Aufrufs (`index.html`):**
 - **Vorteil:** Es ist kein Setup oder Terminalbefehl nötig. Jeder Nutzer kann das Spiel sofort im Browser öffnen.
-- **Nachteil (CORS & Fetch):** Da moderne Browser strenge Sicherheitsrichtlinien (CORS) für das `file://`-Protokoll haben, können keine Dateien dynamisch per `fetch()` (z.B. eine `words.json`) nachgeladen werden. Da die Vokabeln in diesem Projekt aktuell fest in der `js/vocabs.js` als JavaScript-Variable (`const VOCABULARY`) eingebunden sind, funktioniert das Spiel reibungslos auch ohne Server.
+- **Nachteil (CORS & Fetch):** Da moderne Browser strenge Sicherheitsrichtlinien (CORS) für das `file://`-Protokoll haben, können keine Dateien dynamisch per `fetch()` (z.B. externe JSON-Dateien) nachgeladen werden. Da die Vokabeln in diesem Projekt aktuell fest in der `js/vocabs.js` als JavaScript-Variable (`const VOCABULARY`) eingebunden sind, funktioniert das Spiel reibungslos auch ohne Server.
 - **Nachteil (ES Modules):** Falls das Projekt zukünftig auf ES Modules (`<script type="module">`) umgestellt wird, blockiert der Browser dies unter `file://`.
 - **Audio-Dateien:** Das Abspielen lokaler Audio-Dateien (`assets/audio/`) über `new Audio(...)` funktioniert im `file://` Kontext meistens problemlos, kann aber in manchen extrem restriktiven Browser-Umgebungen blockiert werden.
 

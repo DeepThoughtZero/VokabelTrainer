@@ -522,7 +522,10 @@ select {
     font-size: 3.6rem;
     font-weight: bold;
     margin-bottom: 15px;
-    white-space: nowrap;
+    white-space: normal;
+    max-width: 600px;
+    width: max-content;
+    text-align: center;
     position: relative;
     box-shadow: 0 6px 15px rgba(0,0,0,0.6);
 }
@@ -546,8 +549,8 @@ select {
 }
 
 #zombie.bubble-left .word-bubble::after {
-    bottom: 20px;
-    top: auto;
+    top: 20px;
+    bottom: auto;
     left: auto;
     right: -12px;
     transform: none;
@@ -1000,7 +1003,9 @@ select {
 }
 
 /* Pulsating glow for top right buttons on start screen */
-#show-leaderboard-start-btn, #info-btn {
+#show-leaderboard-start-btn, #info-btn,
+#show-leaderboard-hunter-btn, #info-hunter-btn,
+#show-leaderboard-city-btn, #info-city-btn {
     font-size: 4.5rem;
     animation: pulseGlow 2s infinite alternate;
 }
@@ -1010,7 +1015,9 @@ select {
     100% { filter: drop-shadow(0 0 15px var(--accent-color)) drop-shadow(0 0 35px var(--accent-color)); transform: scale(1.1); }
 }
 
-#show-leaderboard-start-btn:hover, #info-btn:hover {
+#show-leaderboard-start-btn:hover, #info-btn:hover,
+#show-leaderboard-hunter-btn:hover, #info-hunter-btn:hover,
+#show-leaderboard-city-btn:hover, #info-city-btn:hover {
     animation: none; /* stop pulse on hover */
     transform: rotate(20deg) scale(1.2);
     filter: drop-shadow(0 0 20px var(--accent-color)) drop-shadow(0 0 50px var(--accent-color));
@@ -1224,3 +1231,106 @@ select {
 .carousel-item[data-element="lightning"].active { --accent-color: #ffff00; border-color: #ffff00; box-shadow: 0 0 30px rgba(255, 255, 0, 0.4); }
 .carousel-item[data-element="fuchsia"].active { --accent-color: #ff00ff; border-color: #ff00ff; box-shadow: 0 0 30px rgba(255, 0, 255, 0.4); }
 .carousel-item[data-element="pink"].active { --accent-color: #ff66b2; border-color: #ff66b2; box-shadow: 0 0 30px rgba(255, 102, 178, 0.4); }
+
+/* Writing Mode UI */
+.writing-mode-ui {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 95%;
+    max-width: 1000px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+}
+
+.letter-target, .letter-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    min-height: 80px;
+    padding: 15px;
+    border-radius: 15px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--glass-border);
+    width: 100%;
+}
+
+.letter-target {
+    border-color: rgba(0, 255, 136, 0.5);
+    min-height: 100px;
+    background: rgba(10, 40, 20, 0.85);
+}
+
+.fixed-token {
+    font-size: 2.5rem;
+    font-family: 'Roboto', sans-serif;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    user-select: none;
+}
+
+.fixed-token.space-token {
+    width: 20px;
+}
+
+.letter-slot {
+    width: 50px;
+    height: 60px;
+    border-bottom: 4px solid rgba(0, 255, 136, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.letter-slot[data-filled="true"] {
+    border-bottom-color: transparent;
+}
+
+.letter-slot .letter-btn {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.letter-btn {
+    background: rgba(20, 20, 25, 0.8);
+    border: 2px solid var(--accent-color);
+    color: white;
+    font-size: 2.5rem;
+    font-family: 'Creepster', cursive;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    user-select: none;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+}
+
+.letter-btn:hover {
+    transform: scale(1.1);
+    background: rgba(0, 255, 136, 0.2);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+}
+
+.letter-btn.wrong-anim {
+    animation: wrongShake 0.4s;
+    border-color: #ff3333;
+    color: #ff3333;
+}
+

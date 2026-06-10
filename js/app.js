@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.settingsPending = false;
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
-        showCityScreen();
+        showHunterScreen();
     });
 
     const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
             carousel.style.cursor = 'grab';
             
             // Programmatically find the closest and explicitly snap to it to ensure perfect centering
-            const items = document.querySelectorAll('.carousel-item');
+            const items = carousel.querySelectorAll('.carousel-item');
             let closest = 0;
             let minDistance = Infinity;
             const containerCenter = carousel.scrollLeft + carousel.clientWidth / 2;
@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         carousel.addEventListener('scroll', () => {
             clearTimeout(carousel.scrollTimeout);
             carousel.scrollTimeout = setTimeout(() => {
-                const items = document.querySelectorAll('.carousel-item');
+                const items = carousel.querySelectorAll('.carousel-item');
                 let closest = 0;
                 let minDistance = Infinity;
                 const containerCenter = carousel.scrollLeft + carousel.clientWidth / 2;
@@ -403,7 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function focusHunter(index, scrollTo = true, smooth = true) {
         currentHunterIndex = index;
-        const items = document.querySelectorAll('.carousel-item');
+        const carousel = document.getElementById('hunter-carousel');
+        const items = carousel.querySelectorAll('.carousel-item');
         
         items.forEach((item, i) => {
             if (i === index) {
@@ -419,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.hunterType = hunter.id;
         
         if (scrollTo) {
-            const carousel = document.getElementById('hunter-carousel');
             const targetItem = items[index];
             if (targetItem) {
                 carousel.scrollTo({
@@ -854,6 +854,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             state.kategorie = "Englisch: " + formattedUnits.join(', ');
         }
+        
+        if (state.direction === 'de-en-write') {
+            state.kategorie += ", schreiben";
+        }
 
         // Reset State
         state.hearts = 3;
@@ -913,14 +917,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Dynamische Schwierigkeit: Zombie wird kontinuierlich schneller bis 100 Vokabeln (2 Sekunden)
-        let progress = Math.min(state.correctAttempts / CONFIG.maxVocabsForMaxSpeed, 1.0);
-        let currentDuration = CONFIG.maxZombieDuration - (progress * (CONFIG.maxZombieDuration - CONFIG.minZombieDuration));
-        let startX = canvas.clientWidth;
-        let distance = startX - 200; // 200 ist der Hit-Bereich
-        let framesNeeded = currentDuration * 60; // Geht von 60fps aus
-        state.zombieSpeed = distance / framesNeeded;
-        
         state.wrongAttemptsForCurrentWord = 0;
         state.zombieDead = false;
 
@@ -931,8 +927,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.direction === 'mixed') {
             isEnToDe = Math.random() > 0.5;
         }
+        if (state.direction === 'de-en-write') {
+            isEnToDe = false;
+        }
 
         state.currentWord = getQuestionAndAnswer(vocab, isEnToDe);
+
+        // Dynamische Schwierigkeit: Zombie wird kontinuierlich schneller bis 100 Vokabeln
+        let progress = Math.min(state.correctAttempts / CONFIG.maxVocabsForMaxSpeed, 1.0);
+        let maxDuration = CONFIG.maxZombieDuration;
+        let minDuration = CONFIG.minZombieDuration;
+        
+        if (state.direction === 'de-en-write') {
+            // Schreibmodus: Zeit basiert auf der Wortlänge. Zu Beginn 5.0s pro Buchstabe (Faktor 10 langsamer).
+            let letters = state.currentWord.a.replace(/\s+/g, '').length;
+            maxDuration = Math.max(10.0, letters * 3.0);
+            minDuration = Math.max(3.0, letters * 1.0);
+        }
+
+        let currentDuration = maxDuration - (progress * (maxDuration - minDuration));
+        let startX = canvas.clientWidth;
+        let distance = startX - 200; // 200 ist der Hit-Bereich
+        let framesNeeded = currentDuration * 60; // Geht von 60fps aus
+        state.zombieSpeed = distance / framesNeeded;
 
         zombieWordEl.textContent = state.currentWord.q;
         state.zombiePosition = canvas.clientWidth; 
@@ -949,7 +966,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
 
-        generateOptions(vocab, isEnToDe);
+        if (state.direction === 'de-en-write') {
+            document.getElementById('options-container').classList.add('hidden');
+            document.getElementById('writing-container').classList.remove('hidden');
+            generateWritingUI(vocab);
+        } else {
+            document.getElementById('options-container').classList.remove('hidden');
+            document.getElementById('writing-container').classList.add('hidden');
+            generateOptions(vocab, isEnToDe);
+        }
     }
 
     function generateOptions(correctVocab, isEnToDe) {
@@ -1034,6 +1059,191 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function tokenizeAnswer(answer) {
+        let tokens = [];
+        let i = 0;
+        while (i < answer.length) {
+            let matchedFiller = false;
+            const fillers = ['sb.', 'sth.', 'sb', 'sth', '...'];
+            for (const f of fillers) {
+                if (answer.startsWith(f, i)) {
+                    const nextChar = answer[i + f.length];
+                    if (!nextChar || !/[a-zA-Z]/.test(nextChar)) {
+                        tokens.push({ type: 'fixed', text: f });
+                        i += f.length;
+                        matchedFiller = true;
+                        break;
+                    }
+                }
+            }
+            if (matchedFiller) continue;
+
+            if (answer[i] === '(') {
+                let end = answer.indexOf(')', i);
+                if (end !== -1) {
+                    tokens.push({ type: 'fixed', text: answer.substring(i, end + 1) });
+                    i = end + 1;
+                    continue;
+                }
+            }
+
+            if (!/[a-zA-Z]/.test(answer[i])) {
+                tokens.push({ type: 'fixed', text: answer[i] });
+                i++;
+                continue;
+            }
+
+            tokens.push({ type: 'letter', text: answer[i] });
+            i++;
+        }
+        return tokens;
+    }
+
+    function generateWritingUI(vocab) {
+        const pool = document.getElementById('writing-pool');
+        const target = document.getElementById('writing-target');
+        pool.innerHTML = '';
+        target.innerHTML = '';
+
+        let answer = state.currentWord.a;
+        // Strip plural extensions like ", pl strawberries"
+        answer = answer.replace(/,\s*pl[\s\S]*/i, '');
+        
+        const tokens = tokenizeAnswer(answer);
+        
+        const lettersToType = tokens.filter(t => t.type === 'letter').map(t => t.text);
+        let shuffled = [...lettersToType].sort(() => Math.random() - 0.5);
+
+        let currentWordGroup = document.createElement('div');
+        currentWordGroup.className = 'word-group';
+        currentWordGroup.style.display = 'flex';
+        currentWordGroup.style.flexWrap = 'wrap';
+        currentWordGroup.style.justifyContent = 'center';
+        currentWordGroup.style.gap = '10px';
+
+        tokens.forEach((token) => {
+            const el = document.createElement('div');
+            let isWordBoundary = false;
+
+            if (token.type === 'fixed') {
+                el.className = 'fixed-token';
+                if (token.text === ' ') {
+                    el.classList.add('space-token');
+                    isWordBoundary = true;
+                } else if (token.text === '/' || token.text === '|') {
+                    el.textContent = token.text;
+                    isWordBoundary = true;
+                } else {
+                    el.textContent = token.text;
+                }
+            } else {
+                el.className = 'letter-slot';
+                el.dataset.expectedChar = token.text;
+                el.dataset.filled = 'false';
+            }
+
+            if (isWordBoundary) {
+                if (currentWordGroup.children.length > 0) {
+                    target.appendChild(currentWordGroup);
+                }
+                target.appendChild(el);
+                
+                currentWordGroup = document.createElement('div');
+                currentWordGroup.className = 'word-group';
+                currentWordGroup.style.display = 'flex';
+                currentWordGroup.style.flexWrap = 'wrap';
+                currentWordGroup.style.justifyContent = 'center';
+                currentWordGroup.style.gap = '10px';
+            } else {
+                currentWordGroup.appendChild(el);
+            }
+        });
+
+        if (currentWordGroup.children.length > 0) {
+            target.appendChild(currentWordGroup);
+        }
+
+        shuffled.forEach((char) => {
+            const btn = document.createElement('div');
+            btn.className = 'letter-btn';
+            btn.textContent = char;
+            btn.dataset.char = char;
+            
+            btn.addEventListener('click', () => {
+                if (state.zombieDead || btn.classList.contains('disabled')) return;
+                
+                if (btn.parentElement === pool) {
+                    const firstEmptySlot = target.querySelector('.letter-slot[data-filled="false"]');
+                    if (firstEmptySlot) {
+                        firstEmptySlot.dataset.filled = 'true';
+                        firstEmptySlot.appendChild(btn);
+                        checkWritingAnswer();
+                    }
+                } else {
+                    const slot = btn.parentElement;
+                    if (slot.classList.contains('letter-slot')) {
+                        slot.dataset.filled = 'false';
+                    }
+                    pool.appendChild(btn);
+                }
+            });
+            
+            pool.appendChild(btn);
+        });
+    }
+
+    function checkWritingAnswer() {
+        const pool = document.getElementById('writing-pool');
+        const target = document.getElementById('writing-target');
+        
+        if (pool.children.length === 0) {
+            let isCorrect = true;
+            const slots = Array.from(target.querySelectorAll('.letter-slot'));
+            
+            slots.forEach(slot => {
+                const btn = slot.firstChild;
+                if (!btn || btn.dataset.char !== slot.dataset.expectedChar) {
+                    isCorrect = false;
+                }
+            });
+            
+            const dummyBtn = document.createElement('button');
+            
+            if (isCorrect) {
+                Array.from(target.querySelectorAll('.letter-btn')).forEach(btn => {
+                    btn.classList.add('disabled');
+                    btn.style.pointerEvents = 'none';
+                });
+                handleAnswer(state.currentWord.a, dummyBtn);
+            } else {
+                slots.forEach(slot => {
+                    const btn = slot.firstChild;
+                    if (btn && btn.dataset.char !== slot.dataset.expectedChar) {
+                        btn.classList.add('wrong-anim');
+                        setTimeout(() => {
+                            btn.classList.remove('wrong-anim');
+                            slot.dataset.filled = 'false';
+                            pool.appendChild(btn);
+                        }, 400);
+                    }
+                });
+                
+                handleAnswer('wrong-answer-trigger', dummyBtn);
+                
+                if (state.wrongAttemptsForCurrentWord >= 3) {
+                    Array.from(target.querySelectorAll('.letter-btn')).forEach(btn => {
+                        btn.classList.add('disabled');
+                        btn.style.pointerEvents = 'none';
+                    });
+                    Array.from(pool.children).forEach(btn => {
+                        btn.classList.add('disabled');
+                        btn.style.pointerEvents = 'none';
+                    });
+                }
+            }
+        }
+    }
+
     function handleAnswer(selectedOption, btn) {
         if (state.zombieDead) return;
         state.totalAttempts++;
@@ -1093,8 +1303,8 @@ document.addEventListener('DOMContentLoaded', () => {
             projectile.style.left = startX + 'px';
             projectile.style.width = '0px';
             
-            // Zielpunkt in der horizontalen Mitte des Zombies
-            const targetX = state.zombiePosition + (zombieEl.offsetWidth / 2);
+            // Zielpunkt 20% links von der horizontalen Mitte des Zombies (bei 30% der Breite)
+            const targetX = state.zombiePosition + (zombieEl.offsetWidth * 0.3);
             const distanceX = Math.max(10, targetX - startX);
             
             // Zielpunkt auf der Y-Achse: Lasse 20% oben und unten frei, treffe also die mittleren 60%

@@ -193,6 +193,7 @@ function renderLeaderboard(entries) {
         let safeKategorie = escapeHtml(entry.kategorie || '-');
         safeKategorie = safeKategorie.replace('Englisch: ', 'Englisch:<br>');
         safeKategorie = safeKategorie.replace('Englisch - ', 'Englisch<br>- ');
+        safeKategorie = safeKategorie.replace(', schreiben', '<br>schreiben');
         let quoteVal = entry.trefferquote;
         if (typeof quoteVal === 'number') {
             // Google Sheets converted 35% to 0.35
