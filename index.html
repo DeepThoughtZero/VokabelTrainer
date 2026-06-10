@@ -60,9 +60,31 @@
             </div>
         </section>
 
+        <!-- City Selection Screen -->
+        <section id="city-selection-screen" class="screen">
+            <button id="back-to-hunter-from-city-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Jägerauswahl">⬅ Zurück</button>
+            <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+                <button id="show-leaderboard-city-btn" class="gear-btn" title="Weltrangliste">🏆</button>
+                <button id="info-city-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
+            </div>
+            
+            <h1 class="title">Ort auswählen</h1>
+            <div class="carousel-container" style="margin-top: 20px;">
+                <button id="city-carousel-prev" class="carousel-nav-btn">◀</button>
+                <div id="city-carousel" class="hunter-carousel">
+                    <!-- Cities injected via JS -->
+                </div>
+                <button id="city-carousel-next" class="carousel-nav-btn">▶</button>
+            </div>
+
+            <div class="hunter-action-box" style="text-align: center; margin-top: 20px;">
+                <button id="confirm-city-btn" class="btn-primary pulse-anim">Diese Stadt will ich retten.</button>
+            </div>
+        </section>
+
         <!-- Start Screen (Settings) -->
         <section id="start-screen" class="screen">
-            <button id="back-to-hunter-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Jägerauswahl">⬅ Zurück</button>
+            <button id="back-to-city-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Stadtauswahl">⬅ Zurück</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
                 <button id="show-leaderboard-start-btn" class="gear-btn" title="Weltrangliste">🏆</button>
                 <button id="info-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>

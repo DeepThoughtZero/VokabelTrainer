@@ -31,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         zombieDead: false,
         maxStreak: 0,
         settingsPending: false,
-        kategorie: ''
+        kategorie: '',
+        city: 'london'
     };
 
     function recordWeakness(q, a, vocabObj) {
@@ -85,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         terms: document.getElementById('terms-screen'),
         login: document.getElementById('login-screen'),
         hunter: document.getElementById('hunter-selection-screen'),
+        city: document.getElementById('city-selection-screen'),
         start: document.getElementById('start-screen'),
         game: document.getElementById('game-screen'),
         end: document.getElementById('end-screen')
@@ -153,9 +155,21 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'pink', name: 'Pinky Pump', desc: 'Mit der Pumpgun auf Zombiejagd.', img: 'assets/hunter_pinkypump.png', element: 'pink' }
     ];
 
+    const CITIES = [
+        { id: 'london', name: 'London', img: 'assets/background_london.png' },
+        { id: 'brighton', name: 'Brighton', img: 'assets/background_brighton.png' },
+        { id: 'buehl', name: 'Bühl', img: 'assets/background_buehl.png' },
+        { id: 'capetown', name: 'Cape Town', img: 'assets/background_capetown.png' },
+        { id: 'istanbul', name: 'Istanbul', img: 'assets/background_istanbul.png' },
+        { id: 'rio', name: 'Rio', img: 'assets/background_rio.png' },
+        { id: 'sf', name: 'San Francisco', img: 'assets/background_sf.png' }
+    ];
+
     let currentHunterIndex = 0;
+    let currentCityIndex = 0;
     const CAROUSEL_SETS = 30;
     const TOTAL_ITEMS = CAROUSEL_SETS * HUNTERS.length;
+    const TOTAL_CITY_ITEMS = CAROUSEL_SETS * CITIES.length;
 
     const zombieImages = [
         'assets/zombie01.png',
@@ -171,11 +185,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Init
     initFilters();
     initCarousel();
+    initCityCarousel();
     startBtn.addEventListener('click', startGame);
     restartBtn.addEventListener('click', showHunterScreen);
 
-    document.getElementById('back-to-hunter-btn').addEventListener('click', showHunterScreen);
-    document.getElementById('confirm-hunter-btn').addEventListener('click', showStartScreen);
+    document.getElementById('back-to-hunter-from-city-btn').addEventListener('click', showHunterScreen);
+    document.getElementById('confirm-hunter-btn').addEventListener('click', showCityScreen);
+    document.getElementById('back-to-city-btn').addEventListener('click', showCityScreen);
+    document.getElementById('confirm-city-btn').addEventListener('click', showStartScreen);
 
     settingsBtn.addEventListener('click', () => {
         state.settingsPending = true;
@@ -191,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Leaderboard logic for hunter screen
     const showLeaderboardHunterBtn = document.getElementById('show-leaderboard-hunter-btn');
+    const showLeaderboardCityBtn = document.getElementById('show-leaderboard-city-btn');
     const showLeaderboardStartBtn = document.getElementById('show-leaderboard-start-btn');
     const handleLeaderboardClick = () => {
         if (typeof window.openLeaderboardDialog === 'function') {
@@ -202,6 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showLeaderboardHunterBtn) {
         showLeaderboardHunterBtn.addEventListener('click', handleLeaderboardClick);
     }
+    if (showLeaderboardCityBtn) {
+        showLeaderboardCityBtn.addEventListener('click', handleLeaderboardClick);
+    }
     if (showLeaderboardStartBtn) {
         showLeaderboardStartBtn.addEventListener('click', handleLeaderboardClick);
     }
@@ -209,6 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const infoBtnStart = document.getElementById('info-btn');
     if (infoBtnStart) {
         infoBtnStart.addEventListener('click', () => {
+            infoDialog.classList.remove('hidden');
+        });
+    }
+    
+    const infoCityBtn = document.getElementById('info-city-btn');
+    if (infoCityBtn) {
+        infoCityBtn.addEventListener('click', () => {
             infoDialog.classList.remove('hidden');
         });
     }
@@ -233,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.settingsPending = false;
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
-        showHunterScreen();
+        showCityScreen();
     });
 
     const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
@@ -402,6 +430,156 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function initCityCarousel() {
+        const carousel = document.getElementById('city-carousel');
+        carousel.innerHTML = '';
+        
+        let isDown = false;
+        let isDragging = false;
+        let startX;
+        let scrollLeft;
+        
+        for(let s = 0; s < CAROUSEL_SETS; s++) {
+            CITIES.forEach((city, i) => {
+                const index = s * CITIES.length + i;
+                const item = document.createElement('div');
+                item.className = 'carousel-item';
+                item.dataset.index = index;
+                item.dataset.realIndex = i;
+                item.dataset.cityId = city.id;
+                
+                const img = document.createElement('img');
+                img.src = city.img;
+                img.alt = city.name;
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '10px';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'hunter-name';
+                nameSpan.textContent = city.name;
+                
+                item.appendChild(img);
+                item.appendChild(nameSpan);
+                carousel.appendChild(item);
+                
+                item.addEventListener('click', (e) => {
+                    if (isDragging) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    focusCity(index);
+                });
+            });
+        }
+        
+        carousel.addEventListener('mousedown', (e) => {
+            isDown = true;
+            isDragging = false;
+            carousel.style.scrollSnapType = 'none';
+            carousel.style.cursor = 'grabbing';
+            startX = e.pageX - carousel.offsetLeft;
+            scrollLeft = carousel.scrollLeft;
+        });
+
+        carousel.addEventListener('mouseleave', () => {
+            if (!isDown) return;
+            isDown = false;
+            carousel.style.scrollSnapType = 'x mandatory';
+            carousel.style.cursor = 'grab';
+        });
+
+        carousel.addEventListener('mouseup', () => {
+            if (!isDown) return;
+            isDown = false;
+            carousel.style.scrollSnapType = 'x mandatory';
+            carousel.style.cursor = 'grab';
+            
+            const items = carousel.querySelectorAll('.carousel-item');
+            let closest = 0;
+            let minDistance = Infinity;
+            const containerCenter = carousel.scrollLeft + carousel.clientWidth / 2;
+            
+            items.forEach((item, index) => {
+                const itemCenter = item.offsetLeft + item.clientWidth / 2;
+                const dist = Math.abs(containerCenter - itemCenter);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closest = index;
+                }
+            });
+            focusCity(closest, true, true);
+        });
+
+        carousel.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - carousel.offsetLeft;
+            const walk = (x - startX) * 1.5;
+            if (Math.abs(walk) > 5) isDragging = true;
+            carousel.scrollLeft = scrollLeft - walk;
+        });
+        
+        document.getElementById('city-carousel-prev').addEventListener('click', () => {
+            focusCity((currentCityIndex - 1 + TOTAL_CITY_ITEMS) % TOTAL_CITY_ITEMS);
+        });
+        
+        document.getElementById('city-carousel-next').addEventListener('click', () => {
+            focusCity((currentCityIndex + 1) % TOTAL_CITY_ITEMS);
+        });
+        
+        carousel.addEventListener('scroll', () => {
+            clearTimeout(carousel.scrollTimeout);
+            carousel.scrollTimeout = setTimeout(() => {
+                const items = carousel.querySelectorAll('.carousel-item');
+                let closest = 0;
+                let minDistance = Infinity;
+                const containerCenter = carousel.scrollLeft + carousel.clientWidth / 2;
+                
+                items.forEach((item, index) => {
+                    const itemCenter = item.offsetLeft + item.clientWidth / 2;
+                    const dist = Math.abs(containerCenter - itemCenter);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closest = index;
+                    }
+                });
+                
+                if (currentCityIndex !== closest) {
+                    focusCity(closest, false);
+                }
+            }, 300);
+        });
+    }
+
+    function focusCity(index, scrollTo = true, smooth = true) {
+        currentCityIndex = index;
+        const carousel = document.getElementById('city-carousel');
+        const items = carousel.querySelectorAll('.carousel-item');
+        
+        items.forEach((item, i) => {
+            if (i === index) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        const realIndex = index % CITIES.length;
+        const city = CITIES[realIndex];
+        state.city = city.id;
+        
+        if (scrollTo) {
+            const targetItem = items[index];
+            if (targetItem) {
+                carousel.scrollTo({
+                    left: targetItem.offsetLeft - carousel.clientWidth / 2 + targetItem.clientWidth / 2,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+            }
+        }
+    }
+
     function initFilters() {
         const container = document.getElementById('learning-path-container');
         
@@ -554,6 +732,16 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => focusHunter(targetIndex, true, false), 50);
     }
 
+    function showCityScreen() {
+        showScreen('city');
+        // Falls noch keine Stadt zentriert ist, zentriere eine zufällige oder die erste.
+        const middleStartIndex = Math.floor(CAROUSEL_SETS / 2) * CITIES.length;
+        // Wähle entweder den zuvor ausgewählten oder random, falls init
+        const randomOffset = Math.floor(Math.random() * CITIES.length);
+        const targetIndex = middleStartIndex + randomOffset;
+        setTimeout(() => focusCity(targetIndex, true, false), 50);
+    }
+
     function showStartScreen() {
         showScreen('start');
     }
@@ -689,6 +877,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const selectedHunter = HUNTERS.find(h => h.id === state.hunterType) || HUNTERS[0];
         hunterEl.src = selectedHunter.img;
+        
+        const selectedCity = CITIES.find(c => c.id === state.city) || CITIES[0];
+        document.body.style.backgroundImage = `url('${selectedCity.img}')`;
 
         updateHeartsUI();
         scoreEl.textContent = state.score;
