@@ -923,11 +923,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const randomIndex = Math.floor(Math.random() * state.vocabPool.length);
         const vocab = state.vocabPool[randomIndex];
         
-        let isEnToDe = state.direction === 'en-de';
+        let currentMode = state.direction;
         if (state.direction === 'mixed') {
-            isEnToDe = Math.random() > 0.5;
+            const modes = ['en-de', 'de-en', 'de-en-write'];
+            currentMode = modes[Math.floor(Math.random() * modes.length)];
         }
-        if (state.direction === 'de-en-write') {
+
+        let isEnToDe = currentMode === 'en-de';
+        if (currentMode === 'de-en-write') {
             isEnToDe = false;
         }
 
@@ -938,7 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let maxDuration = CONFIG.maxZombieDuration;
         let minDuration = CONFIG.minZombieDuration;
         
-        if (state.direction === 'de-en-write') {
+        if (currentMode === 'de-en-write') {
             // Schreibmodus: Zeit basiert auf der Wortlänge. Zu Beginn 5.0s pro Buchstabe (Faktor 10 langsamer).
             let letters = state.currentWord.a.replace(/\s+/g, '').length;
             maxDuration = Math.max(10.0, letters * 3.0);
@@ -966,7 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
 
-        if (state.direction === 'de-en-write') {
+        if (currentMode === 'de-en-write') {
             document.getElementById('options-container').classList.add('hidden');
             document.getElementById('writing-container').classList.remove('hidden');
             generateWritingUI(vocab);
