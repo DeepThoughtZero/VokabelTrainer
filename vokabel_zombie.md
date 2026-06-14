@@ -21,6 +21,24 @@ Da die manuelle Eingabe ineffizient wäre, wurde ein **KI-Vision-Subagent** genu
 Die Bilder der Buchseiten liegen thematisch sortiert in Ordnern (z.B. `pictures/Englisch_Klasse5/Unit3u4`). Der Subagent durchläuft diese Bilder systematisch. Für jedes Bild extrahiert er die englischen Begriffe, die deutschen Übersetzungen sowie strukturelle Meta-Informationen aus dem Kontext der Buchseite (z.B. "Unit 3", "Part A", oder die Seitenzahl, sofern sichtbar oder aus der Reihenfolge ableitbar). 
 Diese Meta-Informationen sind essenziell, damit später im Spiel präzise gefiltert werden kann. Sie fließen direkt als Eigenschaften (`unit`, `part`, `page`) in das JSON-Objekt jedes Vokabel-Paares ein.
 
+### 🧰 Helfer-Skripte zur Datenextraktion (`scripts/vocab_parsers/`)
+
+Damit das Hauptverzeichnis aufgeräumt bleibt, liegen alle bisher genutzten Python-Skripte im Ordner `scripts/vocab_parsers/`. 
+Diese Skripte dienen zukünftigen KI-Agenten als exzellente Vorlage (Boilerplate), wenn neue Units (z.B. Unit 5, Unit 6) in das Spiel integriert werden sollen.
+
+#### 1. Strukturierte Bild-für-Bild-Extraktion (Best Practice)
+Wenn Vokabeln abfotografiert vorliegen, hat sich folgendes schrittweises Vorgehen als äußerst effizient und fehlerfrei erwiesen:
+1. Ein Bild aus dem entsprechenden Ordner wird betrachtet und die sichtbaren Vokabeln (inkl. Metadaten wie Seite, Unit, Part) manuell durch die KI transkribiert.
+2. Ein neues Python-Skript wird erstellt (hierzu kann z.B. `scripts/vocab_parsers/add_unit2_img5.py` kopiert und angepasst werden). Das Skript definiert die extrahierten Vokabeln als JSON-Array und fügt sie per Regex gezielt an der richtigen Stelle in `vocabs.js` ein.
+3. Das Skript wird ausgeführt und fügt die Daten fehlerfrei ein.
+Dieses Vorgehen verhindert Überlastungen des KI-Kontexts, erlaubt eine einfache Überprüfung pro Seite und stellt sicher, dass keine Vokabeln übersehen oder vermischt werden.
+
+#### 2. DOCX-basierte Extraktion (Best Practice für Fließtext)
+Wenn Vokabeln aus strukturierten Word-Dokumenten (.docx) bereitgestellt werden:
+1. Das `.docx`-Dokument wird mittels eines Python-Skripts direkt eingelesen und der Plain-Text extrahiert (siehe Vorlage: `scripts/vocab_parsers/extract_docx.py`).
+2. Der Text (oft in einem konsistenten "Englisch – Deutsch" Format) wird skriptbasiert verarbeitet. Sektionsüberschriften (z.B. "Seite 231", "Part A") werden abgefangen, um die Metadaten `unit`, `part` und `page` zuzuordnen (siehe Vorlage: `scripts/vocab_parsers/append_docx_vocabs.py`).
+3. Die formatierten JSON-Objekte werden per Skript präzise in `vocabs.js` eingefügt.
+
 ### Datenstruktur in `vocabs.js`
 ```javascript
 const VOCABULARY = [
@@ -49,6 +67,13 @@ mogrify -fuzz 5% -transparent white -trim +repage zombie.png
 # Bild horizontal spiegeln (falls der Zombie fälschlicherweise nach rechts lief)
 mogrify -flop zombie.png
 ```
+
+## 🔒 Sicherheit & Geheime Daten (API-Keys, Passwörter)
+
+Falls im Zuge der Entwicklung geheime Informationen wie Passwörter, API-Keys (z.B. für externe TTS- oder Bild-Generierungs-Dienste) oder andere sensitive Konfigurationen benötigt werden, dürfen diese **niemals** direkt in den Quellcode (z.B. in Shell-Skripte oder JavaScript-Dateien) geschrieben werden.
+- Solche Informationen sind ausschließlich in einer lokalen `.env`-Datei abzulegen.
+- Die `.env`-Datei ist in der `.gitignore` eingetragen und wird somit nicht in öffentliche Repositories (wie GitHub) hochgeladen.
+- Jede neue geheime Variable muss von zukünftigen KI-Agenten oder Entwicklern zwingend nach diesem Prinzip gehandhabt werden.
 
 ## ⚙️ Wichtige Mechaniken & Fallstricke
 

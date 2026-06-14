@@ -741,7 +741,17 @@ document.addEventListener('DOMContentLoaded', () => {
             partCell.className = 'filter-cell part-cell';
             partCell.style.gridRow = `${row}`;
             partCell.style.gridColumn = '3';
-            const unitParts = Array.from(parts.get(u) || []).sort();
+            const unitParts = Array.from(parts.get(u) || []).sort((a, b) => {
+                const getRank = (name) => {
+                    if (name.toLowerCase().includes('welcome')) return 1;
+                    if (name.toLowerCase().includes('story')) return 3;
+                    return 2;
+                };
+                const rankA = getRank(a);
+                const rankB = getRank(b);
+                if (rankA !== rankB) return rankA - rankB;
+                return a.localeCompare(b);
+            });
             unitParts.forEach(p => partCell.appendChild(createCheckbox(`part:${p}`, p)));
             container.appendChild(partCell);
 
