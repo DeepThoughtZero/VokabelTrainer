@@ -87,7 +87,14 @@ Die Kollision findet auf der horizontalen X-Achse statt. Da der Jäger bei `left
 
 ### Schuss-Animation
 Die Projektile sind reine CSS-Animationen (`.proj-laser`, `.proj-water`, etc.). 
-Damit der Schuss direkt aus der Waffe kommt, startet er bei `left: 320px`. Anstatt den Schuss nach links zu verschieben, **wird per JS dynamisch seine Breite (`width`) animiert**, sodass er sich von der Mündung bis zum aktuellen Standort des Zombies (`state.zombiePosition`) streckt.
+Dammit der Schuss direkt aus der Waffe kommt, startet er bei `left: 320px`. Anstatt den Schuss nach links zu verschieben, **wird per JS dynamisch seine Breite (`width`) animiert**, sodass er sich von der Mündung bis zum aktuellen Standort des Zombies (`state.zombiePosition`) streckt.
+
+### Boss-Zombies
+Die Boss-Mechanik überschreibt das klassische "Ein-Wort-Ein-Kill"-System. Ein Boss-Zombie:
+- Wird alle 10 bis 15 Vokabeln (Zufall) gespawnt (`state.bossActive`).
+- Erhält 2 bis 3 Hitpoints (`state.bossHealth`).
+- Wird bei einem korrekten Wort nur beschädigt: Er erleidet einen Knockback (wird ein Stück nach rechts zurückgeworfen, maximal an den Canvas-Rand), blitzt rot auf (`.boss-hit`) und fordert **sofort** ein neues Vokabelwort (`generateNewWordForBoss()`).
+- Wird erst zerstört und gewährt die extra hohen Punkte, wenn die Hitpoints auf 0 sinken.
 
 ### Quota-Limits (API)
 Bei der Massen-Generierung von Bildern (z.B. 10 Zombies am Stück) schlägt die Bild-API schnell in einen `429 Too Many Requests` (Quota Limit).
@@ -147,24 +154,17 @@ Dieser Abschnitt dokumentiert alle geplanten, aber noch nicht umgesetzten Ideen 
 - **Performance-Bewertung:** Visuelle Rang-Bewertung auf dem End-Screen (S/A/B/C-Rang basierend auf Trefferquote).
 - **Persönliche Bestleistungen:** localStorage-basierte Speicherung und Anzeige von persönlichen Rekorden (Highscore, längster Streak, beste Trefferquote).
 
-### 🔮 Geplant – Motivationssysteme & Langzeitbindung
-**⚠️ Persistenz-Problem:** Das Spiel wird über GitHub Pages gehostet (statisches Hosting). Es gibt keine serverseitige Speicherung. `localStorage` ist browser- und gerätegebunden. Für spielerübergreifende Persistenz müsste das bestehende Google Sheets Backend erweitert werden, was komplex ist. Vorerst reicht `localStorage` für persönliche Daten aus.
+### ✅ Umgesetzt (Welle 2 – Gamification & Boss-Zombies)
+- **XP-System & Levelaufstieg:** Persistentes XP-System über alle Spiele hinweg. Level-Stufen: Rekrut → Kadett → Jäger → Veteran → Elitejäger → Zombiebezwinger → Legende. Visueller Level-Up im Profil.
+- **Tagesstreak:** Zähler für aufeinanderfolgende Spieltage. Prominent auf dem Startscreen und im Profil angezeigt mit 🔥-Symbol.
+- **Achievements / Abzeichen:** 9 freischaltbare Erfolge im 3x3-Raster (Scharfschütze, Flammenstreif, Centurion, Weltreisender, Allrounder, Schreibkünstler, Blitzschnell, Zombie-Meister, Ausdauernd).
+- **Spaced Repetition System (SRS):** Vokabel-Wiederholungslogik über Spielsitzungen hinweg. `localStorage` speichert pro Vokabel Fehler-Raten (`vokabelzombie_srs`). Schwache Vokabeln erhalten höheres Gewicht bei der Zufallsauswahl.
+- **Boss-Zombies:** Alle 10–15 Vokabeln erscheint ein Boss-Zombie (`zombie10.png`) mit eigener Lebensleiste (2–3 HP). Bei Treffern wird er zurückgestoßen, leuchtet rot auf und ein neues Wort muss eingegeben werden. Bei Sieg gibt es einen massiven Bonuspunkte-Regen (50x MaxHP).
 
-- **XP-System & Levelaufstieg:** Persistentes XP-System über alle Spiele hinweg. Level-Stufen: Rekrut → Kadett → Jäger → Veteran → Elitejäger → Zombiebezwinger → Legende. Visueller Level-Up mit Konfetti.
-- **Tagesstreak:** Zähler für aufeinanderfolgende Spieltage. Prominent auf dem Startscreen angezeigt mit 🔥-Symbol.
-- **Achievements / Abzeichen:** Freischaltbare Erfolge wie:
-  - 🎯 Scharfschütze (>90% Trefferquote)
-  - 🔥 Flammenstreif (50er Streak)
-  - 💯 Centurion (100 Vokabeln richtig in einer Runde)
-  - 🌍 Weltreisender (alle 7 Städte gespielt)
-  - 🦸 Allrounder (alle 6 Jäger verwendet)
-  - 📝 Schreibkünstler (50 Vokabeln im Schreibmodus richtig)
-  - ⚡ Blitzschnell (Ø Antwortzeit < 2s)
-  - 🧟 Zombie-Meister (500 Zombies insgesamt besiegt)
-- **Spaced Repetition Light:** Vokabel-Wiederholungslogik über Spielsitzungen hinweg. `localStorage` speichert pro Vokabel: `{ timesCorrect, timesFailed, lastSeen }`. Schwache Vokabeln werden priorisiert.
+### 🔮 Geplant – Motivationssysteme & Langzeitbindung
+**⚠️ Persistenz-Problem:** Das Spiel wird über GitHub Pages gehostet (statisches Hosting). Es gibt keine serverseitige Speicherung. `localStorage` ist browser- und gerätegebunden. Für spielerübergreifende Persistenz müsste das bestehende Google Sheets Backend erweitert werden, was komplex ist. Vorerst reicht `localStorage` für persönliche Daten (`vokabelzombie_profile`, `vokabelzombie_srs`, `vokabelzombie_personal_bests`) aus.
 
 ### 🔮 Geplant – Gameplay-Erweiterungen
-- **Boss-Zombies:** Alle 10–15 Vokabeln ein Boss-Zombie (1.5x größer, langsamer, braucht 2–3 richtige Antworten, Bonus-Score).
 - **Power-Ups:**
   - ⏳ Zeitstop (Zombie friert 5s ein, Streak 15)
   - 💖 Extra-Herz (+1 Herz, max 5, Streak 100)
@@ -172,11 +172,13 @@ Dieser Abschnitt dokumentiert alle geplanten, aber noch nicht umgesetzten Ideen 
   - 🎯 Eliminierung (2 falsche Antworten verschwinden, Streak 8)
 - **Schwierigkeitsmodi:** Übungsmodus (langsam, 5 Herzen, 0.5x Score), Normal (Standard), Herausforderung (schnell, 2 Herzen, 2x Score), Hardcore (sehr schnell, 1 Herz, 3x Score). **Wichtig:** Der Schwierigkeitsgrad muss in der Weltrangliste berücksichtigt werden (eigene Kategorie oder Multiplikator im Leaderboard-Eintrag).
 
+### ✅ Umgesetzt (Welle 3 – Visuelles Polish)
+- **Partikeleffekte bei Zombie-Tod:** Element-spezifische Partikel (Laser → Cyan-Funken, Feuer → Flammen, Wasser → Tropfen, Blitz → Blitzfragmente).
+- **Hintergrund-Parallaxe & Atmosphäre:** Parallax-Scroll, roter Vignette-Effekt bei niedrigem Leben, goldener Glow bei hohem Streak.
+- **Animierte Bildschirmübergänge:** Nebel/Slide-Transitions statt einfacher Opacity-Fades.
+- **Dynamische Hintergrund-Effekte:** Zufälliger Regeneffekt in allen Außenleveln (40% Chance, außer in der Halle in Bühl).
+
 ### 🔮 Geplant – Visuelles Polish
-- **Partikeleffekte bei Zombie-Tod:** Element-spezifische Partikel (Laser → Cyan-Funken, Feuer → Flammen, Wasser → Tropfen, Blitz → Blitzfragmente). Canvas-Overlay oder CSS-Partikel.
-- **Hintergrund-Parallaxe & Atmosphäre:** Parallax-Scroll, roter Vignette-Effekt bei niedrigem Leben, grüner/goldener Glow bei hohem Streak.
-- **Animierte Bildschirmübergänge:** Slide-Animationen oder Nebel-Transitions statt einfacher Opacity-Fades.
-- **Dynamische Hintergrund-Effekte:** Animierter Nebel, fallende Blätter/Regen je nach Stadt, subtile Beleuchtungswechsel.
 - **Onboarding-Tutorial:** Interaktives Tutorial beim allerersten Spiel mit Spotlight-Effekten.
 
 ### 🔮 Geplant – Sound & Atmosphäre

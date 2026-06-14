@@ -6,7 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
         maxZombieDuration: 15.0,
         streakForExtraOption: 3,
         streakForHeart: 10,
-        bubbleOnLeft: true // Schalter: Setze auf false, um die Sprechblase wieder oben anzuzeigen
+        bubbleOnLeft: true, // Schalter: Setze auf false, um die Sprechblase wieder oben anzuzeigen
+        enableParallax: false // Schalter: Deaktiviert, da die Bildübergänge aktuell nicht nahtlos sind
     };
 
     // Game State
@@ -32,7 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
         maxStreak: 0,
         settingsPending: false,
         kategorie: '',
-        city: 'london'
+        city: 'london',
+        wordsSinceLastBoss: 0,
+        bossActive: false,
+        bossHealth: 0,
+        bossMaxHealth: 0
     };
 
     function recordWeakness(q, a, vocabObj) {
@@ -490,6 +495,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!overlay) return;
         if (state.hearts === 1) {
             overlay.className = 'vignette-danger';
+        } else if (state.streak >= 10) {
+            overlay.className = 'vignette-streak';
         } else {
             overlay.className = '';
         }
@@ -630,8 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'assets/zombie04.png',
         'assets/zombie05.png',
         'assets/zombie06.png',
-        'assets/zombie07.png',
-        'assets/zombie08.png'
+        'assets/zombie07.png'
     ];
 
     // Init
@@ -1473,6 +1479,10 @@ document.addEventListener('DOMContentLoaded', () => {
         state.lastTimestamp = performance.now();
         state.wrongAttemptsForCurrentWord = 0;
         state.settingsPending = false;
+        state.wordsSinceLastBoss = 0;
+        state.bossActive = false;
+        state.bossHealth = 0;
+        state.bossMaxHealth = 0;
         settingsBtn.classList.remove('pending');
         
         updateBoostUI();
@@ -1482,6 +1492,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const selectedCity = CITIES.find(c => c.id === state.city) || CITIES[0];
         document.body.style.backgroundImage = `url('${selectedCity.img}')`;
+
+        // Initialize weather overlay
+        const weatherOverlay = document.getElementById('weather-overlay');
+        if (weatherOverlay) {
+            weatherOverlay.className = '';
+            // 40% chance of rain, but never in Bühl (indoors)
+            if (state.city !== 'buehl' && Math.random() < 0.4) {
+                weatherOverlay.classList.add('weather-rain');
+            }
+        }
 
         updateHeartsUI();
         scoreEl.textContent = state.score;
@@ -1518,6 +1538,34 @@ document.addEventListener('DOMContentLoaded', () => {
         state.wrongAttemptsForCurrentWord = 0;
         state.zombieDead = false;
 
+        state.wordsSinceLastBoss++;
+        
+        let isBoss = false;
+        if (state.wordsSinceLastBoss >= 10 && Math.random() > 0.5 || state.wordsSinceLastBoss >= 15) {
+            isBoss = true;
+            state.wordsSinceLastBoss = 0;
+        }
+
+        if (isBoss) {
+            state.bossActive = true;
+            state.bossHealth = Math.floor(Math.random() * 2) + 2; // 2 or 3
+            state.bossMaxHealth = state.bossHealth;
+            zombieEl.classList.add('boss');
+            
+            const hb = document.getElementById('boss-health-bar');
+            hb.innerHTML = '';
+            hb.classList.remove('hidden');
+            for(let i=0; i<state.bossHealth; i++) {
+                const hp = document.createElement('div');
+                hp.className = 'boss-hp';
+                hb.appendChild(hp);
+            }
+        } else {
+            state.bossActive = false;
+            zombieEl.classList.remove('boss');
+            document.getElementById('boss-health-bar').classList.add('hidden');
+        }
+
         const randomIndex = Math.floor(Math.random() * state.vocabPool.length);
         const vocab = state.vocabPool[randomIndex];
         
@@ -1550,6 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let startX = canvas.clientWidth;
         let distance = startX - 200; // 200 ist der Hit-Bereich
         let framesNeeded = currentDuration * 60; // Geht von 60fps aus
+
         state.zombieSpeed = distance / framesNeeded;
 
         zombieWordEl.textContent = state.currentWord.q;
@@ -1565,8 +1614,42 @@ document.addEventListener('DOMContentLoaded', () => {
             zombieEl.classList.remove('bubble-left');
         }
         
-        zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
+        if (state.bossActive) {
+            zombieImgEl.src = 'assets/zombie10.png';
+        } else {
+            zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
+        }
 
+        if (currentMode === 'de-en-write') {
+            document.getElementById('options-container').classList.add('hidden');
+            document.getElementById('writing-container').classList.remove('hidden');
+            generateWritingUI(vocab);
+        } else {
+            document.getElementById('options-container').classList.remove('hidden');
+            document.getElementById('writing-container').classList.add('hidden');
+            generateOptions(vocab, isEnToDe);
+        }
+    }
+
+    function generateNewWordForBoss() {
+        const randomIndex = Math.floor(Math.random() * state.vocabPool.length);
+        const vocab = state.vocabPool[randomIndex];
+        
+        let currentMode = state.direction;
+        if (state.direction === 'mixed') {
+            const modes = ['en-de', 'de-en', 'de-en-write'];
+            currentMode = modes[Math.floor(Math.random() * modes.length)];
+        }
+
+        let isEnToDe = currentMode === 'en-de';
+        if (currentMode === 'de-en-write') {
+            isEnToDe = false;
+        }
+
+        state.currentWord = getQuestionAndAnswer(vocab, isEnToDe);
+        zombieWordEl.textContent = state.currentWord.q;
+        state.wrongAttemptsForCurrentWord = 0; // Fehlerzähler für neues Wort zurücksetzen
+        
         if (currentMode === 'de-en-write') {
             document.getElementById('options-container').classList.add('hidden');
             document.getElementById('writing-container').classList.remove('hidden');
@@ -1942,7 +2025,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 projectile.style.width = shootDistance + 'px';
                 setTimeout(() => {
                     projectile.className = 'hidden';
-                    killZombie();
+                    if (state.bossActive && state.bossHealth > 1) {
+                        state.bossHealth--;
+                        zombieEl.classList.add('boss-hit');
+                        setTimeout(() => zombieEl.classList.remove('boss-hit'), 100);
+                        
+                        const hps = document.querySelectorAll('.boss-hp');
+                        if (hps[state.bossHealth]) {
+                            hps[state.bossHealth].classList.add('lost');
+                        }
+                        
+                        // Boss um halbe Strecke zurückwerfen, maximal bis zum rechten Rand
+                        const newPos = Math.min(canvas.clientWidth, state.zombiePosition + (canvas.clientWidth / 2));
+                        state.zombiePosition = newPos;
+                        
+                        zombieEl.classList.add('knockback');
+                        zombieEl.style.left = newPos + 'px';
+                        
+                        generateNewWordForBoss();
+                        
+                        setTimeout(() => {
+                            zombieEl.classList.remove('knockback');
+                            state.zombieDead = false;
+                        }, 400);
+                    } else {
+                        if (state.bossActive) {
+                            // Bonus score for defeating boss
+                            const bossBonus = 50 * state.bossMaxHealth;
+                            state.score += bossBonus;
+                            scoreEl.textContent = state.score;
+                            showScorePopup(bossBonus, state.zombiePosition, 200);
+                        }
+                        killZombie();
+                    }
                 }, 300);
             }, 50);
             
@@ -1982,6 +2097,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function killZombie() {
         zombieEl.classList.remove('walking');
         zombieEl.classList.add('dead');
+        
+        spawnParticles(state.zombiePosition + (zombieEl.offsetWidth / 2), zombieEl.offsetTop + (zombieEl.offsetHeight / 2), state.hunterType);
         
         setTimeout(() => {
             showSolutionDialog(spawnZombie);
@@ -2093,6 +2210,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const frameSpeed = state.zombieSpeed * (delta / 16.66);
             state.zombiePosition -= frameSpeed;
         }
+        
+        // Parallax Scroll
+        if (CONFIG.enableParallax) {
+            const bgPos = (timestamp * 0.02) % 2000;
+            document.body.style.backgroundPositionX = `-${bgPos}px`;
+        }
+        
+        updateParticles();
         
         if (state.zombiePosition <= 200 && !state.zombieDead) { 
             takeDamage();
@@ -2290,5 +2415,76 @@ document.addEventListener('DOMContentLoaded', () => {
         
         animEl.innerHTML = `❤️ +1 <br> <span style="font-size: 0.8em">${streak}x STREAK!</span>`;
         animEl.classList.add('streak-anim', 'animate');
+    }
+    // ========== PARTICLE SYSTEM ==========
+    const fxCanvas = document.getElementById('fx-canvas');
+    const fxCtx = fxCanvas ? fxCanvas.getContext('2d') : null;
+    let particles = [];
+
+    window.addEventListener('resize', () => {
+        if (fxCanvas) {
+            fxCanvas.width = window.innerWidth;
+            fxCanvas.height = window.innerHeight;
+        }
+    });
+    if (fxCanvas) {
+        fxCanvas.width = window.innerWidth;
+        fxCanvas.height = window.innerHeight;
+    }
+
+    function spawnParticles(x, y, element) {
+        if (!fxCanvas || !fxCtx) return;
+        const count = 40;
+        let baseColor = '#00ff88';
+        if (element === 'laser' || element === 'fuchsia') baseColor = '#00ffff';
+        else if (element === 'fire') baseColor = '#ff5500';
+        else if (element === 'water' || element === 'pink') baseColor = '#0088ff';
+        else if (element === 'lightning') baseColor = '#ffff00';
+
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 8 + 2;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed + (element === 'fire' ? -4 : 0),
+                life: 1.0,
+                decay: Math.random() * 0.02 + 0.015,
+                color: baseColor,
+                size: Math.random() * 5 + 2,
+                element: element
+            });
+        }
+    }
+
+    function updateParticles() {
+        if (!fxCanvas || !fxCtx) return;
+        fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+        
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= p.decay;
+            
+            if (p.element === 'water' || p.element === 'pink') p.vy += 0.3; // gravity
+            if (p.element === 'fire') p.vy -= 0.15; // rise
+
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            } else {
+                fxCtx.globalAlpha = p.life;
+                fxCtx.fillStyle = p.color;
+                if (p.element === 'lightning') {
+                    fxCtx.fillRect(p.x, p.y, p.size, p.size * 2);
+                } else {
+                    fxCtx.beginPath();
+                    fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    fxCtx.fill();
+                }
+            }
+        }
+        fxCtx.globalAlpha = 1.0;
     }
 });

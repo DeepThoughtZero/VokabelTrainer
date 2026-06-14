@@ -10,6 +10,7 @@
 <body>
     <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></canvas>
     <div id="vignette-overlay"></div>
+    <div id="weather-overlay"></div>
     <div id="app-container">
         <!-- Terms Screen -->
         <section id="terms-screen" class="screen active">
@@ -161,6 +162,7 @@
             </div>
 
             <div id="game-canvas">
+                <canvas id="fx-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:15;"></canvas>
                 <div id="solution-dialog" class="hidden glass">
                     <h2 id="solution-en">English</h2>
                     <h3 id="solution-de">Deutsch</h3>
@@ -177,6 +179,7 @@
                     <img src="assets/hunter_commanderneon.png" alt="Hunter" class="sprite-img" id="hunter-img">
                 </div>
                 <div id="zombie" class="entity">
+                    <div id="boss-health-bar" class="hidden"></div>
                     <div id="zombie-word" class="word-bubble">Word</div>
                     <img src="assets/zombie01.png" alt="Zombie" class="sprite-img" id="zombie-img">
                 </div>

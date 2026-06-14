@@ -50,13 +50,17 @@ body {
     padding-bottom: 120px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.5s ease;
+    transform: scale(1.05) translateY(20px);
+    filter: blur(10px);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.6s ease;
 }
 
 .screen.active {
     opacity: 1;
     pointer-events: all;
     z-index: 10;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
 }
 
 .title {
@@ -677,6 +681,40 @@ select {
 
 .walking .sprite-img {
     animation: walk 1.5s infinite ease-in-out;
+}
+
+.boss-hit .sprite-img {
+    filter: brightness(2) drop-shadow(0 0 30px #ff0000);
+    transform: scale(0.95) rotate(10deg);
+    transition: all 0.1s;
+}
+
+.knockback {
+    transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+#boss-health-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+#boss-health-bar .boss-hp {
+    width: 40px;
+    height: 15px;
+    background: var(--danger-color);
+    border: 2px solid #fff;
+    border-radius: 5px;
+    box-shadow: 0 0 10px var(--danger-color);
+    transition: all 0.3s;
+}
+
+#boss-health-bar .boss-hp.lost {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: none;
 }
 
 .dead {
@@ -1584,4 +1622,79 @@ select {
 
 .achievement-icon {
     font-size: 2rem;
+}
+
+/* ========== VISUAL POLISH ENHANCEMENTS ========== */
+
+/* 1. Golden Streak Glow Vignette */
+.vignette-streak {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9998;
+    background: radial-gradient(ellipse at center, transparent 70%, rgba(255, 215, 0, 0.3) 120%);
+    animation: streakGlowPulse 3s ease-in-out infinite;
+    box-shadow: inset 0 0 50px rgba(255, 215, 0, 0.4);
+}
+
+@keyframes streakGlowPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* 2. Weather Overlays */
+#weather-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9997;
+    overflow: hidden;
+}
+
+
+
+/* Rain Effect (Istanbul, Bühl) */
+.weather-rain {
+    background: transparent;
+}
+.weather-rain::before,
+.weather-rain::after {
+    content: '';
+    position: absolute;
+    width: 200vw;
+    height: 200vh;
+    top: -50vh;
+    left: -50vw;
+    pointer-events: none;
+}
+.weather-rain::before {
+    background: transparent url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><line x1="20" y1="0" x2="20" y2="30" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" stroke-linecap="round"/><line x1="80" y1="50" x2="80" y2="70" stroke="rgba(255,255,255,0.2)" stroke-width="0.8" stroke-linecap="round"/><line x1="140" y1="20" x2="140" y2="60" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/><line x1="180" y1="100" x2="180" y2="130" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" stroke-linecap="round"/><line x1="50" y1="140" x2="50" y2="160" stroke="rgba(255,255,255,0.2)" stroke-width="0.8" stroke-linecap="round"/><line x1="110" y1="150" x2="110" y2="190" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round"/></svg>');
+    background-size: 200px 200px;
+    animation: rainfall-layer1 0.6s linear infinite, wind-sway 5s ease-in-out infinite alternate;
+    opacity: 0.55;
+}
+.weather-rain::after {
+    background: transparent url('data:image/svg+xml;utf8,<svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="10" x2="10" y2="40" stroke="rgba(255,255,255,0.3)" stroke-width="0.8" stroke-linecap="round"/><line x1="60" y1="60" x2="60" y2="80" stroke="rgba(255,255,255,0.2)" stroke-width="0.6" stroke-linecap="round"/><line x1="110" y1="30" x2="110" y2="70" stroke="rgba(255,255,255,0.25)" stroke-width="1" stroke-linecap="round"/><line x1="130" y1="110" x2="130" y2="140" stroke="rgba(255,255,255,0.35)" stroke-width="0.8" stroke-linecap="round"/></svg>');
+    background-size: 150px 150px;
+    animation: rainfall-layer2 0.45s linear infinite, wind-sway 7s ease-in-out infinite alternate-reverse;
+    opacity: 0.4;
+}
+
+@keyframes rainfall-layer1 {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 400px; }
+}
+@keyframes rainfall-layer2 {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 300px; }
+}
+@keyframes wind-sway {
+    0% { transform: rotate(10deg); }
+    100% { transform: rotate(20deg); }
 }
