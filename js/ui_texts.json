@@ -1,0 +1,24 @@
+{
+  "story_intro": "Ein mysteriöser Nebel hat die Welt in einen Ort der Untoten verwandelt! Nur ihr, die tapfersten Schüler der Akademie, könnt die Zombie-Invasion stoppen. Mit jedem richtig übersetzten Wort feuert ihr eure Elementarwaffen ab und drängt die Horde zurück. Kämpft gemeinsam und rettet eure Stadt!",
+  "hunter_male": [
+    "Ich bin bereit.",
+    "Ready for action.",
+    "Lass uns losziehen.",
+    "Die Zombies haben keine Chance.",
+    "Zeit für ein bisschen Magie."
+  ],
+  "hunter_female": [
+    "Ich bin bereit.",
+    "Ready for action.",
+    "Lass uns losziehen.",
+    "Die Zombies haben keine Chance.",
+    "Zeit für ein bisschen Magie."
+  ],
+  "city_select": [
+    "Diese Stadt wird nicht fallen!",
+    "Wir retten die Stadt!",
+    "Auf in den Kampf!",
+    "Los geht's, keine Zeit zu verlieren!",
+    "Die Rettung naht!"
+  ]
+}

@@ -48,6 +48,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let animationId;
     let lastFrameTime = 0;
     
+    let currentUIAudio = null;
+
+    function playUIAudio(filename) {
+        if (currentUIAudio) {
+            currentUIAudio.pause();
+            currentUIAudio.currentTime = 0;
+        }
+        currentUIAudio = new Audio('assets/audio/ui/' + filename);
+        currentUIAudio.play().catch(e => console.log('UI audio playback failed:', e));
+    }
+
+    function stopUIAudio() {
+        if (currentUIAudio) {
+            currentUIAudio.pause();
+            currentUIAudio.currentTime = 0;
+            currentUIAudio = null;
+        }
+    }
+
     // Audio Context for retro sound effects
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -190,19 +209,37 @@ document.addEventListener('DOMContentLoaded', () => {
     restartBtn.addEventListener('click', showHunterScreen);
 
     document.getElementById('back-to-hunter-from-city-btn').addEventListener('click', showHunterScreen);
-    document.getElementById('confirm-hunter-btn').addEventListener('click', showCityScreen);
+    document.getElementById('confirm-hunter-btn').addEventListener('click', () => {
+        const isFemale = state.hunterType === 'fuchsia' || state.hunterType === 'pink';
+        const phraseIndex = Math.floor(Math.random() * 5);
+        if (isFemale) {
+            playUIAudio(`hunter_female_${phraseIndex}.mp3`);
+        } else {
+            playUIAudio(`hunter_male_${phraseIndex}.mp3`);
+        }
+        showCityScreen();
+    });
     document.getElementById('back-to-city-btn').addEventListener('click', showCityScreen);
-    document.getElementById('confirm-city-btn').addEventListener('click', showStartScreen);
+    document.getElementById('confirm-city-btn').addEventListener('click', () => {
+        const phraseIndex = Math.floor(Math.random() * 5);
+        playUIAudio(`city_select_${phraseIndex}.mp3`);
+        showStartScreen();
+    });
 
     settingsBtn.addEventListener('click', () => {
         state.settingsPending = true;
         settingsBtn.classList.add('pending');
     });
 
+    function openInfoDialog() {
+        infoDialog.classList.remove('hidden');
+        playUIAudio('story_intro.mp3');
+    }
+
     const infoHunterBtn = document.getElementById('info-hunter-btn');
     if (infoHunterBtn) {
         infoHunterBtn.addEventListener('click', () => {
-            infoDialog.classList.remove('hidden');
+            openInfoDialog();
         });
     }
 
@@ -230,20 +267,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const infoBtnStart = document.getElementById('info-btn');
     if (infoBtnStart) {
         infoBtnStart.addEventListener('click', () => {
-            infoDialog.classList.remove('hidden');
+            openInfoDialog();
         });
     }
     
     const infoCityBtn = document.getElementById('info-city-btn');
     if (infoCityBtn) {
         infoCityBtn.addEventListener('click', () => {
-            infoDialog.classList.remove('hidden');
+            openInfoDialog();
         });
     }
 
     if (closeInfoBtn) {
         closeInfoBtn.addEventListener('click', () => {
             infoDialog.classList.add('hidden');
+            stopUIAudio();
         });
     }
 
