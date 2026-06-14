@@ -115,6 +115,286 @@ document.addEventListener('DOMContentLoaded', () => {
         osc.stop(audioCtx.currentTime + 0.05);
     }
 
+    // ========== GAMIFICATION & SRS ==========
+    const PROFILE_KEY = 'vokabelzombie_profile';
+    const SRS_KEY = 'vokabelzombie_srs';
+
+    const ACHIEVEMENTS = [
+        { id: 'scharfschuetze', title: 'Scharfschütze', desc: '>95% Trefferquote in einer Runde', icon: '🎯' },
+        { id: 'flammenstreif', title: 'Flammenstreif', desc: 'Ingame-Streak von 50 erreicht', icon: '🔥' },
+        { id: 'centurion', title: 'Centurion', desc: '100 Vokabeln richtig in einer Runde', icon: '💯' },
+        { id: 'weltreisender', title: 'Weltreisender', desc: 'Alle 7 Städte gespielt', icon: '🌍' },
+        { id: 'allrounder', title: 'Allrounder', desc: 'Alle 6 Jäger verwendet', icon: '🦸' },
+        { id: 'schreibkuenstler', title: 'Schreibkünstler', desc: '50 Vokabeln im Schreibmodus richtig', icon: '📝' },
+        { id: 'blitzschnell', title: 'Blitzschnell', desc: 'Ø Antwortzeit < 4s in einer Runde', icon: '⚡' },
+        { id: 'zombiemeister', title: 'Zombie-Meister', desc: '500 Zombies besiegt', icon: '🧟' },
+        { id: 'ausdauernd', title: 'Ausdauernd', desc: '7 Tage in Folge gespielt', icon: '🗓️' }
+    ];
+
+    const LEVELS = [
+        { xp: 0, name: 'Rekrut' },
+        { xp: 1000, name: 'Kadett' },
+        { xp: 4000, name: 'Jäger' },
+        { xp: 10000, name: 'Veteran' },
+        { xp: 20000, name: 'Elitejäger' },
+        { xp: 50000, name: 'Zombiebezwinger' },
+        { xp: 100000, name: 'Legende' }
+    ];
+
+    function getLevelInfo(xp) {
+        let currentLevel = LEVELS[0];
+        let nextLevel = LEVELS[1];
+        for (let i = 0; i < LEVELS.length; i++) {
+            if (xp >= LEVELS[i].xp) {
+                currentLevel = LEVELS[i];
+                nextLevel = LEVELS[i + 1] || null;
+            } else {
+                break;
+            }
+        }
+        return { currentLevel, nextLevel };
+    }
+
+    function loadProfile() {
+        try {
+            const data = localStorage.getItem(PROFILE_KEY);
+            if (data) return JSON.parse(data);
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+        }
+        return {
+            xp: 0,
+            dailyStreak: 0,
+            lastPlayDate: null,
+            achievements: [], // list of unlocked ids
+            stats: {
+                totalZombies: 0,
+                citiesPlayed: [],
+                huntersUsed: [],
+                totalRounds: 0,
+                writeModeCorrect: 0
+            }
+        };
+    }
+
+    function saveProfile(profile) {
+        try {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+        }
+    }
+
+    function loadSRS() {
+        try {
+            const data = localStorage.getItem(SRS_KEY);
+            if (data) return JSON.parse(data);
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+        }
+        return {};
+    }
+
+    function saveSRS(srs) {
+        try {
+            localStorage.setItem(SRS_KEY, JSON.stringify(srs));
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+        }
+    }
+
+    let playerProfile = loadProfile();
+    let srsData = loadSRS();
+
+    function checkDailyStreak() {
+        const today = new Date().toDateString();
+        if (playerProfile.lastPlayDate !== today) {
+            if (playerProfile.lastPlayDate) {
+                const lastDate = new Date(playerProfile.lastPlayDate);
+                const currentDate = new Date(today);
+                const diffTime = Math.abs(currentDate - lastDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                
+                if (diffDays === 1) {
+                    playerProfile.dailyStreak++;
+                } else if (diffDays > 1) {
+                    playerProfile.dailyStreak = 1;
+                }
+            } else {
+                playerProfile.dailyStreak = 1;
+            }
+            playerProfile.lastPlayDate = today;
+            saveProfile(playerProfile);
+        }
+    }
+
+    function updateProfileUI() {
+        const { currentLevel, nextLevel } = getLevelInfo(playerProfile.xp);
+        
+        const profileLevelName = document.getElementById('profile-level-name');
+        const profileXpText = document.getElementById('profile-xp-text');
+        const profileXpFill = document.getElementById('profile-xp-fill');
+        const achievementsContainer = document.getElementById('achievements-container');
+        
+        if (profileLevelName) profileLevelName.textContent = currentLevel.name;
+        
+        if (nextLevel) {
+            const progress = ((playerProfile.xp - currentLevel.xp) / (nextLevel.xp - currentLevel.xp)) * 100;
+            if (profileXpFill) profileXpFill.style.width = Math.min(progress, 100) + '%';
+            if (profileXpText) profileXpText.textContent = `${playerProfile.xp} / ${nextLevel.xp} XP`;
+        } else {
+            if (profileXpFill) profileXpFill.style.width = '100%';
+            if (profileXpText) profileXpText.textContent = `${playerProfile.xp} XP (Max Level)`;
+        }
+
+        if (achievementsContainer) {
+            achievementsContainer.innerHTML = '';
+            ACHIEVEMENTS.forEach(ach => {
+                const isUnlocked = playerProfile.achievements.includes(ach.id);
+                const card = document.createElement('div');
+                card.className = 'achievement-card' + (isUnlocked ? '' : ' locked');
+                card.innerHTML = `
+                    <div class="achievement-icon">${ach.icon}</div>
+                    <h4>${ach.title}</h4>
+                    <p>${ach.desc}</p>
+                `;
+                achievementsContainer.appendChild(card);
+            });
+        }
+        
+        const streakDisplay = document.getElementById('daily-streak-display');
+        const streakCount = document.getElementById('daily-streak-count');
+        const profileStreakDisplay = document.getElementById('profile-daily-streak-display');
+        const profileStreakCount = document.getElementById('profile-daily-streak-count');
+
+        if (playerProfile.dailyStreak > 0) {
+            if (streakDisplay && streakCount) {
+                streakDisplay.style.display = 'block';
+                streakCount.textContent = playerProfile.dailyStreak;
+            }
+            if (profileStreakDisplay && profileStreakCount) {
+                profileStreakDisplay.style.display = 'block';
+                profileStreakCount.textContent = playerProfile.dailyStreak;
+            }
+        } else {
+            if (streakDisplay) streakDisplay.style.display = 'none';
+            if (profileStreakDisplay) profileStreakDisplay.style.display = 'none';
+        }
+    }
+
+    function fireConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        const colors = ['#00ff88', '#00ffff', '#ff00ff', '#ffff00', '#ff5500', '#0088ff'];
+        
+        for (let i = 0; i < 150; i++) {
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                r: Math.random() * 6 + 4,
+                dx: Math.random() * 20 - 10,
+                dy: Math.random() * -20 - 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.floor(Math.random() * 10) - 10,
+                tiltAngleIncrement: (Math.random() * 0.07) + 0.05,
+                tiltAngle: 0
+            });
+        }
+        
+        let frameCount = 0;
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+            
+            for (let i = 0; i < particles.length; i++) {
+                let p = particles[i];
+                p.tiltAngle += p.tiltAngleIncrement;
+                p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2;
+                p.x += Math.sin(p.tiltAngle) * 2;
+                p.dy += 0.2; // gravity
+                p.x += p.dx;
+                p.y += p.dy;
+                
+                if (p.y <= canvas.height) active = true;
+                
+                ctx.beginPath();
+                ctx.lineWidth = p.r;
+                ctx.strokeStyle = p.color;
+                ctx.moveTo(p.x + p.tilt + p.r, p.y);
+                ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                ctx.stroke();
+            }
+            
+            frameCount++;
+            if (active && frameCount < 300) {
+                requestAnimationFrame(render);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+        render();
+    }
+
+    function addXP(amount) {
+        const prevLevel = getLevelInfo(playerProfile.xp).currentLevel;
+        playerProfile.xp += amount;
+        saveProfile(playerProfile);
+        
+        const newLevel = getLevelInfo(playerProfile.xp).currentLevel;
+        if (newLevel.xp > prevLevel.xp) {
+            // Level Up!
+            playUIAudio('story_intro.mp3'); // Play a nice sound
+            fireConfetti();
+        }
+    }
+
+    function checkAchievements(roundStats) {
+        let newlyUnlocked = [];
+        
+        if (roundStats.totalWords >= 20 && (roundStats.correctWords / roundStats.totalWords) >= 0.95) {
+            if (!playerProfile.achievements.includes('scharfschuetze')) newlyUnlocked.push('scharfschuetze');
+        }
+        if (state.maxStreak >= 50) {
+            if (!playerProfile.achievements.includes('flammenstreif')) newlyUnlocked.push('flammenstreif');
+        }
+        if (roundStats.correctWords >= 100) {
+            if (!playerProfile.achievements.includes('centurion')) newlyUnlocked.push('centurion');
+        }
+        if (playerProfile.stats.citiesPlayed.length >= 7) {
+            if (!playerProfile.achievements.includes('weltreisender')) newlyUnlocked.push('weltreisender');
+        }
+        if (playerProfile.stats.huntersUsed.length >= 6) {
+            if (!playerProfile.achievements.includes('allrounder')) newlyUnlocked.push('allrounder');
+        }
+        if (playerProfile.stats.writeModeCorrect >= 50) {
+            if (!playerProfile.achievements.includes('schreibkuenstler')) newlyUnlocked.push('schreibkuenstler');
+        }
+        if (roundStats.totalWords >= 20 && roundStats.avgTime < 4000) { // < 4s
+            if (!playerProfile.achievements.includes('blitzschnell')) newlyUnlocked.push('blitzschnell');
+        }
+        if (playerProfile.stats.totalZombies >= 500) {
+            if (!playerProfile.achievements.includes('zombiemeister')) newlyUnlocked.push('zombiemeister');
+        }
+        if (playerProfile.dailyStreak >= 7) {
+            if (!playerProfile.achievements.includes('ausdauernd')) newlyUnlocked.push('ausdauernd');
+        }
+        
+        if (newlyUnlocked.length > 0) {
+            playerProfile.achievements.push(...newlyUnlocked);
+            saveProfile(playerProfile);
+            // We could show a toast here, but we will just fire confetti on the end screen
+            fireConfetti();
+        }
+    }
+
+    // Call checkDailyStreak on startup
+    checkDailyStreak();
+
     // ========== PERSONAL BESTS (localStorage) ==========
     const PB_KEY = 'vokabelzombie_personal_bests';
 
@@ -153,6 +433,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hsEl) hsEl.textContent = pb.highscore;
         if (stEl) stEl.textContent = pb.maxStreak;
         if (acEl) acEl.textContent = pb.bestAccuracy > 0 ? pb.bestAccuracy + '%' : '\u2013';
+        
+        const pbLevelEl = document.getElementById('pb-level-display');
+        if (pbLevelEl) {
+            const { currentLevel } = getLevelInfo(playerProfile.xp);
+            pbLevelEl.textContent = currentLevel.name;
+        }
     }
 
     // ========== SCORE POPUP ==========
@@ -429,6 +715,27 @@ document.addEventListener('DOMContentLoaded', () => {
         closeInfoBtn.addEventListener('click', () => {
             infoDialog.classList.add('hidden');
             stopUIAudio();
+        });
+    }
+
+    const profileHunterBtn = document.getElementById('profile-hunter-btn');
+    const profileCityBtn = document.getElementById('profile-city-btn');
+    const profileStartBtn = document.getElementById('profile-start-btn');
+    const closeProfileBtn = document.getElementById('close-profile-btn');
+    const profileDialog = document.getElementById('profile-dialog');
+
+    const handleProfileClick = () => {
+        updateProfileUI();
+        profileDialog.classList.remove('hidden');
+    };
+
+    if (profileHunterBtn) profileHunterBtn.addEventListener('click', handleProfileClick);
+    if (profileCityBtn) profileCityBtn.addEventListener('click', handleProfileClick);
+    if (profileStartBtn) profileStartBtn.addEventListener('click', handleProfileClick);
+    
+    if (closeProfileBtn) {
+        closeProfileBtn.addEventListener('click', () => {
+            profileDialog.classList.add('hidden');
         });
     }
 
@@ -787,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!pages.has(v.unit)) pages.set(v.unit, new Set());
 
                 if (v.part && v.part.trim() !== '') {
-                    parts.get(v.unit).add(`${v.unit} - ${v.part}`);
+                    parts.get(v.unit).add(v.part);
                 }
                 if (v.page) {
                     pages.get(v.unit).add(v.page);
@@ -809,36 +1116,85 @@ document.addEventListener('DOMContentLoaded', () => {
             lbl.appendChild(document.createTextNode(label));
 
             inp.addEventListener('change', () => {
-                if (isAll) {
-                    if (inp.checked) {
-                        document.querySelectorAll('.filter-checkbox').forEach(cb => {
-                            if (cb !== inp) {
-                                cb.checked = false;
-                                cb.parentElement.classList.remove('active');
-                            }
-                        });
-                        lbl.classList.add('active');
-                    } else {
-                        inp.checked = true; // All can't be unchecked directly
-                    }
+                const isChecked = inp.checked;
+                if (isChecked) {
+                    lbl.classList.add('active');
                 } else {
-                    if (inp.checked) {
-                        lbl.classList.add('active');
-                        const allCb = document.querySelector('input[value="all"]');
-                        if (allCb && allCb.checked) {
-                            allCb.checked = false;
-                            allCb.parentElement.classList.remove('active');
+                    lbl.classList.remove('active');
+                }
+
+                if (!isChecked && !isAll && value.startsWith('part:')) {
+                    const unitStr = value.split(':')[1];
+                    document.querySelectorAll('.filter-checkbox').forEach(cb => {
+                        if (cb.value.startsWith(`page:${unitStr}:`)) {
+                            cb.checked = false;
+                            cb.parentElement.classList.remove('active');
+                        }
+                    });
+                } else if (!isChecked && !isAll && value.startsWith('page:')) {
+                    const unitStr = value.split(':')[1];
+                    document.querySelectorAll('.filter-checkbox').forEach(cb => {
+                        if (cb.value.startsWith(`part:${unitStr}:`)) {
+                            cb.checked = false;
+                            cb.parentElement.classList.remove('active');
+                        }
+                    });
+                }
+
+                if (isAll) {
+                    document.querySelectorAll('.filter-checkbox').forEach(cb => {
+                        if (cb !== inp) {
+                            cb.checked = isChecked;
+                            if (isChecked) cb.parentElement.classList.add('active');
+                            else cb.parentElement.classList.remove('active');
+                        }
+                    });
+                } else if (value.startsWith('unit:')) {
+                    const unitStr = value.split(':')[1];
+                    const children = Array.from(document.querySelectorAll('.filter-checkbox'))
+                        .filter(cb => cb.value.startsWith(`part:${unitStr}:`) || cb.value.startsWith(`page:${unitStr}:`));
+                    children.forEach(cb => {
+                        cb.checked = isChecked;
+                        if (isChecked) cb.parentElement.classList.add('active');
+                        else cb.parentElement.classList.remove('active');
+                    });
+                }
+
+                const allUnitCbs = Array.from(document.querySelectorAll('.filter-checkbox')).filter(cb => cb.value.startsWith('unit:'));
+                allUnitCbs.forEach(uCb => {
+                    const unitStr = uCb.value.split(':')[1];
+                    const parts = Array.from(document.querySelectorAll('.filter-checkbox')).filter(cb => cb.value.startsWith(`part:${unitStr}:`));
+                    const pages = Array.from(document.querySelectorAll('.filter-checkbox')).filter(cb => cb.value.startsWith(`page:${unitStr}:`));
+                    
+                    const allPartsChecked = parts.length > 0 && parts.every(cb => cb.checked);
+                    const allPagesChecked = pages.length > 0 && pages.every(cb => cb.checked);
+                    
+                    if (allPartsChecked || allPagesChecked) {
+                        if (!uCb.checked) {
+                            uCb.checked = true;
+                            uCb.parentElement.classList.add('active');
+                            parts.forEach(cb => { cb.checked = true; cb.parentElement.classList.add('active'); });
+                            pages.forEach(cb => { cb.checked = true; cb.parentElement.classList.add('active'); });
                         }
                     } else {
-                        lbl.classList.remove('active');
-                        const anyChecked = Array.from(document.querySelectorAll('.filter-checkbox')).some(cb => cb.checked && cb.value !== 'all');
-                        if (!anyChecked) {
-                            const allCb = document.querySelector('input[value="all"]');
-                            if(allCb) {
-                                allCb.checked = true;
-                                allCb.parentElement.classList.add('active');
-                            }
+                        if (uCb.checked) {
+                            uCb.checked = false;
+                            uCb.parentElement.classList.remove('active');
                         }
+                    }
+                });
+
+                const allCb = document.querySelector('input[value="all"]');
+                if (allCb && !isAll) {
+                    const otherCbs = Array.from(document.querySelectorAll('.filter-checkbox')).filter(cb => cb.value !== 'all');
+                    const allOthersChecked = otherCbs.length > 0 && otherCbs.every(cb => cb.checked);
+                    
+                    if (allOthersChecked) {
+                        allCb.checked = true;
+                        allCb.parentElement.classList.add('active');
+                    } else {
+                        allCb.checked = false;
+                        allCb.parentElement.classList.remove('active');
                     }
                 }
             });
@@ -846,7 +1202,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return lbl;
         }
 
-        const unitList = Array.from(units).sort();
+        const unitList = Array.from(units).sort((a, b) => {
+            if (a === 'Welcome') return -1;
+            if (b === 'Welcome') return 1;
+            return a.localeCompare(b);
+        });
         const numUnits = unitList.length;
 
         // Header Row
@@ -899,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (rankA !== rankB) return rankA - rankB;
                 return a.localeCompare(b);
             });
-            unitParts.forEach(p => partCell.appendChild(createCheckbox(`part:${p}`, p)));
+            unitParts.forEach(p => partCell.appendChild(createCheckbox(`part:${u}:${p}`, p)));
             container.appendChild(partCell);
 
             // Page Cell
@@ -911,6 +1271,12 @@ document.addEventListener('DOMContentLoaded', () => {
             unitPages.forEach(p => pageCell.appendChild(createCheckbox(`page:${u}:${p}`, `${p}`)));
             container.appendChild(pageCell);
         });
+
+        // Trigger initial sync to check all boxes
+        const allCb = document.querySelector('input[value="all"]');
+        if (allCb) {
+            allCb.dispatchEvent(new Event('change'));
+        }
     }
 
     function showScreen(screenName) {
@@ -962,7 +1328,13 @@ document.addEventListener('DOMContentLoaded', () => {
             state.vocabPool = validVocabs.filter(v => {
                 return paths.some(path => {
                     if (path.startsWith('unit:')) return v.unit === path.split(':')[1];
-                    if (path.startsWith('part:')) return `${v.unit} - ${v.part}` === path.split(':')[1];
+                    if (path.startsWith('part:')) {
+                        const partsArr = path.split(':');
+                        if (partsArr.length === 3) {
+                            return v.unit === partsArr[1] && v.part === partsArr[2];
+                        }
+                        return false;
+                    }
                     if (path.startsWith('page:')) {
                         const parts = path.split(':');
                         if (parts.length === 3) {
@@ -979,6 +1351,37 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Keine Vokabeln für diesen Pfad gefunden!');
             return;
         }
+
+        // GAMIFICATION: Apply SRS weights
+        // Wir duplizieren Vokabeln im Pool basierend auf SRS-Daten
+        let srsWeightedPool = [];
+        state.vocabPool.forEach(vocab => {
+            const engWord = vocab.english;
+            let weight = 1; // Standard-Gewicht
+            
+            if (srsData[engWord]) {
+                const srs = srsData[engWord];
+                // Berechne ein Fehler-Ratio
+                const totalAttempts = srs.timesCorrect + srs.timesFailed;
+                if (totalAttempts > 0) {
+                    const failRate = srs.timesFailed / totalAttempts;
+                    if (failRate > 0.5) weight = 3; // Sehr schwach
+                    else if (failRate > 0.3) weight = 2; // Etwas schwach
+                    
+                    // Füge Gewichtung für Vokabeln hinzu, die wir lange nicht gesehen haben
+                    const daysSinceLastSeen = (Date.now() - srs.lastSeen) / (1000 * 60 * 60 * 24);
+                    if (daysSinceLastSeen > 7) weight += 1;
+                }
+            } else {
+                // Neue Vokabel, höheres Gewicht am Anfang
+                weight = 2;
+            }
+            
+            for (let i = 0; i < weight; i++) {
+                srsWeightedPool.push(vocab);
+            }
+        });
+        state.vocabPool = srsWeightedPool;
 
         let unitStatus = new Map();
 
@@ -999,9 +1402,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
                     unitStatus.get(u).full = true;
                 } else if (p.startsWith('part:')) {
-                    const name = p.split(':')[1];
-                    const match = name.match(/Unit\s*\d+/i);
-                    const u = match ? match[0] : name;
+                    const partsArr = p.split(':');
+                    const u = partsArr[1];
                     if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
                     unitStatus.get(u).partial = true;
                 } else if (p.startsWith('page:')) {
@@ -1449,6 +1851,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const correct = selectedOption === state.currentWord.a;
 
         if (correct) {
+            // GAMIFICATION: Add XP and Update SRS
+            addXP(10);
+            playerProfile.stats.totalZombies++;
+            if (state.direction === 'de-en-write') playerProfile.stats.writeModeCorrect++;
+            const engWord = state.currentWord.vocab.english;
+            if (!srsData[engWord]) srsData[engWord] = { timesCorrect: 0, timesFailed: 0, lastSeen: 0 };
+            if (state.wrongAttemptsForCurrentWord === 0) srsData[engWord].timesCorrect++;
+            srsData[engWord].lastSeen = Date.now();
+            saveSRS(srsData);
+            saveProfile(playerProfile);
+
             const allBtns = document.querySelectorAll('.option-btn');
             allBtns.forEach(b => b.disabled = true);
             // Wenn die Vokabel mehrmals im Pool ist, ein Exemplar entfernen (bis auf 1)
@@ -1534,6 +1947,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 50);
             
         } else {
+            // GAMIFICATION: Update SRS failed
+            const engWord = state.currentWord.vocab.english;
+            if (!srsData[engWord]) srsData[engWord] = { timesCorrect: 0, timesFailed: 0, lastSeen: 0 };
+            srsData[engWord].timesFailed++;
+            srsData[engWord].lastSeen = Date.now();
+            saveSRS(srsData);
+
             btn.classList.add('wrong');
             btn.disabled = true;
 
@@ -1697,6 +2117,15 @@ document.addEventListener('DOMContentLoaded', () => {
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
         
+        // GAMIFICATION: Update stats & check achievements
+        playerProfile.stats.totalRounds++;
+        if (!playerProfile.stats.citiesPlayed.includes(state.city)) {
+            playerProfile.stats.citiesPlayed.push(state.city);
+        }
+        if (!playerProfile.stats.huntersUsed.includes(state.hunterType)) {
+            playerProfile.stats.huntersUsed.push(state.hunterType);
+        }
+        
         // Vignette entfernen
         const vignetteOverlay = document.getElementById('vignette-overlay');
         if (vignetteOverlay) vignetteOverlay.className = '';
@@ -1704,6 +2133,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const accuracy = state.totalAttempts > 0 ? Math.round((state.correctAttempts / state.totalAttempts) * 100) : 0;
         const totalTimeSeconds = (Date.now() - state.startTime) / 1000;
         const timePerWord = state.totalAttempts > 0 ? (totalTimeSeconds / state.totalAttempts).toFixed(1) : 0;
+        const avgTimeMs = state.totalAttempts > 0 ? (totalTimeSeconds * 1000) / state.totalAttempts : 0;
+
+        checkAchievements({
+            totalWords: state.totalAttempts,
+            correctWords: state.correctAttempts,
+            avgTime: avgTimeMs
+        });
+        saveProfile(playerProfile);
 
         const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
         if (showLeaderboardBtn) {

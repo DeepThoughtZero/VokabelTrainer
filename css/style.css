@@ -175,7 +175,7 @@ select {
 .custom-filter-grid {
     display: grid;
     grid-template-columns: max-content max-content 1fr 1fr;
-    gap: 15px;
+    gap: 5px 15px;
     margin-top: 10px;
     align-items: stretch;
 }
@@ -239,9 +239,12 @@ select {
 
 .filter-cell {
     display: flex;
-    gap: 10px;
+    gap: 5px;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     padding-right: 15px;
+    padding-bottom: 5px;
+    padding-top: 5px;
 }
 
 .filter-cell.page-cell {
@@ -268,13 +271,13 @@ select {
     display: flex;
     align-items: center;
     background: rgba(255, 255, 255, 0.05);
-    padding: 8px 15px;
+    padding: 4px 10px;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
 }
 
 .filter-checkbox-label:hover {
@@ -1005,7 +1008,8 @@ select {
 /* Pulsating glow for top right buttons on start screen */
 #show-leaderboard-start-btn, #info-btn,
 #show-leaderboard-hunter-btn, #info-hunter-btn,
-#show-leaderboard-city-btn, #info-city-btn {
+#show-leaderboard-city-btn, #info-city-btn,
+#profile-start-btn, #profile-hunter-btn, #profile-city-btn {
     font-size: 4.5rem;
     animation: pulseGlow 2s infinite alternate;
 }
@@ -1017,7 +1021,8 @@ select {
 
 #show-leaderboard-start-btn:hover, #info-btn:hover,
 #show-leaderboard-hunter-btn:hover, #info-hunter-btn:hover,
-#show-leaderboard-city-btn:hover, #info-city-btn:hover {
+#show-leaderboard-city-btn:hover, #info-city-btn:hover,
+#profile-start-btn:hover, #profile-hunter-btn:hover, #profile-city-btn:hover {
     animation: none; /* stop pulse on hover */
     transform: rotate(20deg) scale(1.2);
     filter: drop-shadow(0 0 20px var(--accent-color)) drop-shadow(0 0 50px var(--accent-color));
@@ -1544,4 +1549,39 @@ select {
 @keyframes vignettePulse {
     0%, 100% { opacity: 0.5; }
     50% { opacity: 1; }
+}
+
+/* Achievements */
+.achievement-card {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.achievement-card.locked {
+    filter: grayscale(100%) opacity(0.5);
+}
+
+.achievement-card h4 {
+    color: var(--accent-color);
+    margin: 5px 0 2px 0;
+    font-size: 1.1rem;
+}
+
+.achievement-card p {
+    font-size: 0.9rem !important;
+    color: #ccc;
+    margin: 0 !important;
+    line-height: 1.1 !important;
+}
+
+.achievement-icon {
+    font-size: 2rem;
 }

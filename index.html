@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/fonts.css">
 </head>
 <body>
+    <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></canvas>
     <div id="vignette-overlay"></div>
     <div id="app-container">
         <!-- Terms Screen -->
@@ -44,6 +45,7 @@
         <!-- Hunter Selection Screen -->
         <section id="hunter-selection-screen" class="screen">
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+                <button id="profile-hunter-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-hunter-btn" class="gear-btn" title="Weltrangliste">🏆</button>
                 <button id="info-hunter-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
             </div>
@@ -60,18 +62,21 @@
                 <button id="confirm-hunter-btn" class="btn-primary pulse-anim">Das bin ich.</button>
             </div>
 
-            <div id="personal-bests-bar" class="personal-bests-bar">
-                <div class="pb-item">
-                    <span class="pb-label">Highscore</span>
-                    <span class="pb-value" id="pb-highscore">0</span>
-                </div>
-                <div class="pb-item">
-                    <span class="pb-label">Bester Streak</span>
-                    <span class="pb-value" id="pb-streak">0</span>
-                </div>
-                <div class="pb-item">
-                    <span class="pb-label">Beste Quote</span>
-                    <span class="pb-value" id="pb-accuracy">–</span>
+            <div id="personal-bests-bar" class="personal-bests-bar" style="flex-direction: column; align-items: center; gap: 8px; padding-top: 8px;">
+                <div id="pb-level-display" style="color: var(--accent-color); font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 5px var(--accent-color);">Rekrut</div>
+                <div style="display: flex; gap: 30px;">
+                    <div class="pb-item">
+                        <span class="pb-label">Highscore</span>
+                        <span class="pb-value" id="pb-highscore">0</span>
+                    </div>
+                    <div class="pb-item">
+                        <span class="pb-label">Bester Streak</span>
+                        <span class="pb-value" id="pb-streak">0</span>
+                    </div>
+                    <div class="pb-item">
+                        <span class="pb-label">Beste Quote</span>
+                        <span class="pb-value" id="pb-accuracy">–</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -80,6 +85,7 @@
         <section id="city-selection-screen" class="screen">
             <button id="back-to-hunter-from-city-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Jägerauswahl">⬅ Zurück</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+                <button id="profile-city-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-city-btn" class="gear-btn" title="Weltrangliste">🏆</button>
                 <button id="info-city-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
             </div>
@@ -102,10 +108,12 @@
         <section id="start-screen" class="screen">
             <button id="back-to-city-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Stadtauswahl">⬅ Zurück</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+                <button id="profile-start-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-start-btn" class="gear-btn" title="Weltrangliste">🏆</button>
                 <button id="info-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
             </div>
             <h1 class="title">Lernpfad Einstellen</h1>
+            <div id="daily-streak-display" style="text-align: center; margin-top: -10px; margin-bottom: 15px; font-size: 1.8rem; color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.5); font-weight: bold; display: none;">🔥 <span id="daily-streak-count">0</span></div>
             
             <div class="menu-box glass">
                 <div class="form-group">
@@ -306,6 +314,30 @@
             </div>
             <div class="modal-actions">
                 <button id="close-info-btn" class="btn-primary">Kämpfen!</button>
+            </div>
+        </div>
+
+        <!-- Profile & Achievements Dialog -->
+        <div id="profile-dialog" class="hidden glass modal-dialog" style="max-width: 900px; width: 95%; max-height: 95vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0; color: var(--accent-color);">Spielerprofil</h2>
+                <button id="close-profile-btn" class="btn-secondary" style="padding: 5px 15px;">X</button>
+            </div>
+            
+            <div class="profile-header" style="text-align: center; margin-bottom: 25px;">
+                <h3 id="profile-level-name" style="font-size: 2.2rem; color: #fff; margin-bottom: 5px;">Rekrut</h3>
+                <div class="xp-bar-container" style="width: 80%; margin: 0 auto; background: rgba(0,0,0,0.5); border-radius: 10px; height: 20px; position: relative; overflow: hidden; border: 1px solid var(--glass-border);">
+                    <div id="profile-xp-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00ff88, #00cc66); transition: width 0.5s ease;"></div>
+                </div>
+                <div style="margin-top: 5px; font-size: 1.2rem; color: #ccc;">
+                    <span id="profile-xp-text">0 / 1000 XP</span>
+                </div>
+                <div id="profile-daily-streak-display" style="margin-top: 10px; font-size: 1.4rem; color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.5); font-weight: bold; display: none;">🔥 Daily Streak: <span id="profile-daily-streak-count">0</span></div>
+            </div>
+
+            <h3 style="color: var(--accent-color); border-bottom: 1px solid rgba(0, 255, 136, 0.3); padding-bottom: 5px; margin-bottom: 15px;">Abzeichen</h3>
+            <div id="achievements-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <!-- Achievements will be injected here via JS -->
             </div>
         </div>
     </div>
