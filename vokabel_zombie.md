@@ -135,3 +135,64 @@ Das Spiel kann grundsätzlich auf zwei Arten gestartet werden:
 - **Audio-Dateien:** Das Abspielen lokaler Audio-Dateien (`assets/audio/`) über `new Audio(...)` funktioniert im `file://` Kontext meistens problemlos, kann aber in manchen extrem restriktiven Browser-Umgebungen blockiert werden.
 
 **Fazit:** Solange die Architektur so bleibt (JS direkt eingebunden, keine asynchronen Datenabfragen), hat der direkte Aufruf der `index.html` keine gravierenden Nachteile und kann bequem genutzt werden.
+
+## 🗺️ Zukünftige Verbesserungen (Roadmap)
+
+Dieser Abschnitt dokumentiert alle geplanten, aber noch nicht umgesetzten Ideen zur Verbesserung der GUI und des Spielerlebnisses.
+
+### ✅ Umgesetzt (Welle 1 – „Quick Wins")
+- **Score-Popups:** Animierter Score-Text (+10, +25 🔥) schwebt bei richtiger Antwort von der Zombie-Position nach oben. Farbe und Größe skalieren mit dem Streak-Bonus.
+- **Screen-Shake:** Kurzes Bildschirmzittern bei Treffer (leicht) und bei Schaden durch Zombie (stark).
+- **Animierter Score-Counter:** Auf dem End-Screen zählt der Score animiert von 0 hoch (statt sofort angezeigt zu werden).
+- **Performance-Bewertung:** Visuelle Rang-Bewertung auf dem End-Screen (S/A/B/C-Rang basierend auf Trefferquote).
+- **Persönliche Bestleistungen:** localStorage-basierte Speicherung und Anzeige von persönlichen Rekorden (Highscore, längster Streak, beste Trefferquote).
+
+### 🔮 Geplant – Motivationssysteme & Langzeitbindung
+**⚠️ Persistenz-Problem:** Das Spiel wird über GitHub Pages gehostet (statisches Hosting). Es gibt keine serverseitige Speicherung. `localStorage` ist browser- und gerätegebunden. Für spielerübergreifende Persistenz müsste das bestehende Google Sheets Backend erweitert werden, was komplex ist. Vorerst reicht `localStorage` für persönliche Daten aus.
+
+- **XP-System & Levelaufstieg:** Persistentes XP-System über alle Spiele hinweg. Level-Stufen: Rekrut → Kadett → Jäger → Veteran → Elitejäger → Zombiebezwinger → Legende. Visueller Level-Up mit Konfetti.
+- **Tagesstreak:** Zähler für aufeinanderfolgende Spieltage. Prominent auf dem Startscreen angezeigt mit 🔥-Symbol.
+- **Achievements / Abzeichen:** Freischaltbare Erfolge wie:
+  - 🎯 Scharfschütze (>90% Trefferquote)
+  - 🔥 Flammenstreif (50er Streak)
+  - 💯 Centurion (100 Vokabeln richtig in einer Runde)
+  - 🌍 Weltreisender (alle 7 Städte gespielt)
+  - 🦸 Allrounder (alle 6 Jäger verwendet)
+  - 📝 Schreibkünstler (50 Vokabeln im Schreibmodus richtig)
+  - ⚡ Blitzschnell (Ø Antwortzeit < 2s)
+  - 🧟 Zombie-Meister (500 Zombies insgesamt besiegt)
+- **Spaced Repetition Light:** Vokabel-Wiederholungslogik über Spielsitzungen hinweg. `localStorage` speichert pro Vokabel: `{ timesCorrect, timesFailed, lastSeen }`. Schwache Vokabeln werden priorisiert.
+
+### 🔮 Geplant – Gameplay-Erweiterungen
+- **Boss-Zombies:** Alle 10–15 Vokabeln ein Boss-Zombie (1.5x größer, langsamer, braucht 2–3 richtige Antworten, Bonus-Score).
+- **Power-Ups:**
+  - ⏳ Zeitstop (Zombie friert 5s ein, Streak 15)
+  - 💖 Extra-Herz (+1 Herz, max 5, Streak 100)
+  - 2️⃣x Doppel-XP (30s doppelte Punkte, 5% Zufallschance)
+  - 🎯 Eliminierung (2 falsche Antworten verschwinden, Streak 8)
+- **Schwierigkeitsmodi:** Übungsmodus (langsam, 5 Herzen, 0.5x Score), Normal (Standard), Herausforderung (schnell, 2 Herzen, 2x Score), Hardcore (sehr schnell, 1 Herz, 3x Score). **Wichtig:** Der Schwierigkeitsgrad muss in der Weltrangliste berücksichtigt werden (eigene Kategorie oder Multiplikator im Leaderboard-Eintrag).
+
+### 🔮 Geplant – Visuelles Polish
+- **Partikeleffekte bei Zombie-Tod:** Element-spezifische Partikel (Laser → Cyan-Funken, Feuer → Flammen, Wasser → Tropfen, Blitz → Blitzfragmente). Canvas-Overlay oder CSS-Partikel.
+- **Hintergrund-Parallaxe & Atmosphäre:** Parallax-Scroll, roter Vignette-Effekt bei niedrigem Leben, grüner/goldener Glow bei hohem Streak.
+- **Animierte Bildschirmübergänge:** Slide-Animationen oder Nebel-Transitions statt einfacher Opacity-Fades.
+- **Dynamische Hintergrund-Effekte:** Animierter Nebel, fallende Blätter/Regen je nach Stadt, subtile Beleuchtungswechsel.
+- **Onboarding-Tutorial:** Interaktives Tutorial beim allerersten Spiel mit Spotlight-Effekten.
+
+### 🔮 Geplant – Sound & Atmosphäre
+**Quellen für lizenzfreie Sounds/Musik:**
+- Lizenzfreie Loop-Bibliotheken (z.B. freesound.org, Pixabay Audio)
+- Prozedural generierte Sounds via Web Audio API (für einfache Effekte wie Streak-Aufbau-Töne)
+- Die bestehende lokale TTS-Engine kann kreativ für Narrations-Stinger genutzt werden
+
+**Geplante Features:**
+- **Hintergrundmusik:** Atmosphärische Loops die sich dem Spielgeschehen anpassen (ruhig → treibend → intensiv). Sehr leise (10–20%), per Toggle ein/ausschaltbar.
+- **Erweiterte Sound-Effekte:** Aufsteigende Töne bei Streak-Aufbau, Power-Up-Sounds, Boss-Stinger, Level-Up-Fanfare, Achievement-Unlock-Sound.
+
+### 🔮 Geplant – End-Screen Verbesserungen
+- **Vergleich mit eigenem Rekord:** „Neuer Rekord! 🎉" oder „Noch 120 Punkte bis zum Rekord!"
+- **Konfetti bei gutem Ergebnis:** Canvas-basierte Konfetti-Animation bei S-Rang.
+
+### 🔮 Geplant – Mobile/Touch
+- **Touch-Optimierung:** Swipe-Gesten für Karusselle, Vibration-API für haptisches Feedback.
+- **Responsive:** Größere Touch-Targets, Touch-Events zusätzlich zu Mouse-Events.

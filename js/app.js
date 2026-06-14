@@ -100,6 +100,153 @@ document.addEventListener('DOMContentLoaded', () => {
         osc.stop(audioCtx.currentTime + 0.3);
     }
 
+    function playCountSound() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.05);
+        gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    // ========== PERSONAL BESTS (localStorage) ==========
+    const PB_KEY = 'vokabelzombie_personal_bests';
+
+    function loadPersonalBests() {
+        try {
+            const data = localStorage.getItem(PB_KEY);
+            return data ? JSON.parse(data) : { highscore: 0, maxStreak: 0, bestAccuracy: 0 };
+        } catch (e) {
+            return { highscore: 0, maxStreak: 0, bestAccuracy: 0 };
+        }
+    }
+
+    function savePersonalBests(pb) {
+        try {
+            localStorage.setItem(PB_KEY, JSON.stringify(pb));
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+        }
+    }
+
+    function checkAndUpdatePersonalBests(score, maxStreak, accuracy) {
+        const pb = loadPersonalBests();
+        let isNewRecord = false;
+        if (score > pb.highscore) { pb.highscore = score; isNewRecord = true; }
+        if (maxStreak > pb.maxStreak) { pb.maxStreak = maxStreak; isNewRecord = true; }
+        if (accuracy > pb.bestAccuracy) { pb.bestAccuracy = accuracy; isNewRecord = true; }
+        savePersonalBests(pb);
+        return isNewRecord;
+    }
+
+    function updatePersonalBestsUI() {
+        const pb = loadPersonalBests();
+        const hsEl = document.getElementById('pb-highscore');
+        const stEl = document.getElementById('pb-streak');
+        const acEl = document.getElementById('pb-accuracy');
+        if (hsEl) hsEl.textContent = pb.highscore;
+        if (stEl) stEl.textContent = pb.maxStreak;
+        if (acEl) acEl.textContent = pb.bestAccuracy > 0 ? pb.bestAccuracy + '%' : '\u2013';
+    }
+
+    // ========== SCORE POPUP ==========
+    function showScorePopup(points, x, y) {
+        const popup = document.createElement('div');
+        popup.className = 'score-popup';
+        
+        let text = '+' + points;
+        let fontSize = 3;
+        let color = '#00ff88';
+        
+        if (state.streak >= 10) {
+            text += ' \uD83D\uDC80'; // 💀
+            fontSize = 4.5;
+            color = '#ff3300';
+        } else if (state.streak >= 5) {
+            text += ' \uD83D\uDD25'; // 🔥
+            fontSize = 4;
+            color = '#ffaa00';
+        } else if (state.streak >= 3) {
+            fontSize = 3.5;
+            color = '#ffcc00';
+        }
+        
+        popup.textContent = text;
+        popup.style.left = x + 'px';
+        popup.style.top = y + 'px';
+        popup.style.fontSize = fontSize + 'rem';
+        popup.style.color = color;
+        
+        canvas.appendChild(popup);
+        popup.addEventListener('animationend', () => popup.remove());
+    }
+
+    // ========== SCREEN SHAKE ==========
+    function triggerScreenShake(intensity) {
+        const cls = intensity === 'heavy' ? 'shake-heavy' : 'shake-light';
+        canvas.classList.remove('shake-light', 'shake-heavy');
+        void canvas.offsetWidth; // reflow to retrigger
+        canvas.classList.add(cls);
+        canvas.addEventListener('animationend', () => {
+            canvas.classList.remove(cls);
+        }, { once: true });
+    }
+
+    // ========== VIGNETTE FOR LOW HEALTH ==========
+    function updateVignetteUI() {
+        const overlay = document.getElementById('vignette-overlay');
+        if (!overlay) return;
+        if (state.hearts === 1) {
+            overlay.className = 'vignette-danger';
+        } else {
+            overlay.className = '';
+        }
+    }
+
+    // ========== RANK CALCULATION ==========
+    function calculateRank(accuracy) {
+        if (accuracy >= 95) return { rank: 'S', label: '\u2B50\u2B50\u2B50 Legendär!', css: 'rank-s' };
+        if (accuracy >= 80) return { rank: 'A', label: '\u2B50\u2B50 Ausgezeichnet', css: 'rank-a' };
+        if (accuracy >= 60) return { rank: 'B', label: '\u2B50 Gut gemacht', css: 'rank-b' };
+        return { rank: 'C', label: 'Weiter üben!', css: 'rank-c' };
+    }
+
+    // ========== ANIMATED SCORE COUNTER ==========
+    function animateScoreCounter(targetScore, element, callback) {
+        const duration = 2000; // 2 seconds
+        const startTime = performance.now();
+        element.classList.add('score-counting');
+        element.textContent = '0';
+        
+        function tick(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease out cubic for satisfying deceleration
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const currentValue = Math.round(eased * targetScore);
+            element.textContent = currentValue;
+            
+            if (progress < 1) {
+                // Play tick sound every ~80ms
+                if (Math.floor(elapsed / 80) !== Math.floor((elapsed - 16) / 80)) {
+                    playCountSound();
+                }
+                requestAnimationFrame(tick);
+            } else {
+                element.textContent = targetScore;
+                element.classList.remove('score-counting');
+                if (callback) callback();
+            }
+        }
+        requestAnimationFrame(tick);
+    }
+
     // DOM Elements
     const screens = {
         terms: document.getElementById('terms-screen'),
@@ -773,6 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showHunterScreen() {
         showScreen('hunter');
+        updatePersonalBestsUI();
         // Wähle jedes Mal einen zufälligen Jäger in der Mitte des unendlichen Karussells
         const middleStartIndex = Math.floor(CAROUSEL_SETS / 2) * HUNTERS.length;
         const randomOffset = Math.floor(Math.random() * HUNTERS.length);
@@ -1344,6 +1492,12 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreEl.textContent = state.score;
             btn.classList.add('correct');
             
+            // Score-Popup anzeigen
+            showScorePopup(points, state.zombiePosition + 50, 250);
+            
+            // Leichter Screen-Shake bei Treffer
+            triggerScreenShake('light');
+            
             updateBoostUI();
             
             playShootSound();
@@ -1478,6 +1632,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.hearts--;
         updateHeartsUI();
         
+        // Schwerer Screen-Shake bei Schaden
+        triggerScreenShake('heavy');
+        
         hunterContainer.classList.add('wrong');
         setTimeout(() => hunterContainer.classList.remove('wrong'), 400);
         
@@ -1503,6 +1660,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 h.classList.add('lost');
             }
         });
+        updateVignetteUI();
     }
 
     function gameLoop(timestamp) {
@@ -1539,6 +1697,10 @@ document.addEventListener('DOMContentLoaded', () => {
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
         
+        // Vignette entfernen
+        const vignetteOverlay = document.getElementById('vignette-overlay');
+        if (vignetteOverlay) vignetteOverlay.className = '';
+        
         const accuracy = state.totalAttempts > 0 ? Math.round((state.correctAttempts / state.totalAttempts) * 100) : 0;
         const totalTimeSeconds = (Date.now() - state.startTime) / 1000;
         const timePerWord = state.totalAttempts > 0 ? (totalTimeSeconds / state.totalAttempts).toFixed(1) : 0;
@@ -1548,7 +1710,37 @@ document.addEventListener('DOMContentLoaded', () => {
             showLeaderboardBtn.style.display = 'inline-block';
         }
 
-        document.getElementById('stat-final-score').textContent = state.score;
+        // Animated Score Counter (statt sofortige Anzeige)
+        const scoreEl2 = document.getElementById('stat-final-score');
+        scoreEl2.textContent = '0';
+        
+        // Rang berechnen und anzeigen
+        const rankInfo = calculateRank(accuracy);
+        const rankBadge = document.getElementById('rank-badge');
+        const rankLabel = document.getElementById('rank-label');
+        if (rankBadge) {
+            rankBadge.className = 'rank-badge ' + rankInfo.css;
+            rankBadge.textContent = rankInfo.rank;
+            // Retrigger animation
+            rankBadge.style.animation = 'none';
+            void rankBadge.offsetWidth;
+            rankBadge.style.animation = '';
+        }
+        if (rankLabel) {
+            rankLabel.textContent = rankInfo.label;
+        }
+        
+        // Persönliche Bestleistungen prüfen
+        const isNewRecord = checkAndUpdatePersonalBests(state.score, state.maxStreak, accuracy);
+        const newRecordEl = document.getElementById('new-record-indicator');
+        if (newRecordEl) {
+            if (isNewRecord) {
+                newRecordEl.classList.remove('hidden');
+            } else {
+                newRecordEl.classList.add('hidden');
+            }
+        }
+
         document.getElementById('stat-max-streak-text').textContent = state.maxStreak;
 
         document.getElementById('stat-accuracy-text').textContent = accuracy + '%';
@@ -1588,9 +1780,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.appendChild(tr);
         }
 
-
         showScreen('end');
+        
+        // Score-Animation nach Screen-Transition starten
+        setTimeout(() => {
+            animateScoreCounter(state.score, scoreEl2);
+        }, 300);
     }
+
 
     // Resize Logic
     function resizeApp() {

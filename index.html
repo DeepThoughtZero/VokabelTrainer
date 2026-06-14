@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/fonts.css">
 </head>
 <body>
+    <div id="vignette-overlay"></div>
     <div id="app-container">
         <!-- Terms Screen -->
         <section id="terms-screen" class="screen active">
@@ -57,6 +58,21 @@
 
             <div class="hunter-action-box" style="text-align: center; margin-top: 20px;">
                 <button id="confirm-hunter-btn" class="btn-primary pulse-anim">Das bin ich.</button>
+            </div>
+
+            <div id="personal-bests-bar" class="personal-bests-bar">
+                <div class="pb-item">
+                    <span class="pb-label">Highscore</span>
+                    <span class="pb-value" id="pb-highscore">0</span>
+                </div>
+                <div class="pb-item">
+                    <span class="pb-label">Bester Streak</span>
+                    <span class="pb-value" id="pb-streak">0</span>
+                </div>
+                <div class="pb-item">
+                    <span class="pb-label">Beste Quote</span>
+                    <span class="pb-value" id="pb-accuracy">–</span>
+                </div>
             </div>
         </section>
 
@@ -167,6 +183,7 @@
                 <div class="final-score-display">
                     <h3>Score</h3>
                     <div id="stat-final-score">0</div>
+                    <div id="new-record-indicator" class="new-record hidden">🎉 Neuer Rekord!</div>
                     <button id="show-leaderboard-btn" class="btn-secondary" style="margin-top: 15px; font-size: 1.5rem; padding: 10px 20px; font-family: 'Roboto', sans-serif;">Trage dich in die Weltrangliste ein</button>
                 </div>
                 <div class="visual-stats">
