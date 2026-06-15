@@ -683,7 +683,18 @@ select {
     animation: walk 1.5s infinite ease-in-out;
 }
 
-.boss-hit .sprite-img {
+.boss.walking .sprite-img {
+    animation: none;
+}
+
+#zombie-sprite-canvas {
+    height: 500px;
+    width: auto;
+    filter: drop-shadow(0 0 15px rgba(0,0,0,0.8));
+}
+
+.boss-hit .sprite-img,
+.boss-hit #zombie-sprite-canvas {
     filter: brightness(2) drop-shadow(0 0 30px #ff0000);
     transform: scale(0.95) rotate(10deg);
     transition: all 0.1s;

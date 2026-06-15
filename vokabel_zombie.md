@@ -77,6 +77,89 @@ Dafür gibt es ein Automatisierungs-Skript. Wenn ein neues Bild (z.B. aus einem 
 ./scripts/resize_background.sh assets/background_neues_bild.png
 ```
 
+## 🎬 Sprite Sheet Animationen
+
+### Übersicht
+Ausgewählte Zombies (aktuell: Boss-Zombie `zombie10`) verwenden **animierte Laufbewegungen** anstelle statischer Bilder. Der Workflow basiert auf Videos, die mit **Google Flow** (KI-Videoerstellung) im 9:16-Format vor einem **Greenscreen** erzeugt wurden.
+
+### Workflow: Video → Sprite Sheet → Animation
+
+```
+MP4-Video (Google Flow, 9:16, Greenscreen)
+    ↓  scripts/mp4_to_spritesheet.sh (ffmpeg)
+Sprite Sheet PNG (6 Spalten, N Zeilen, transparenter Hintergrund)
+    ↓  In assets/ abgelegt
+Canvas-Animation im Browser (Frame-basiert im Game Loop)
+```
+
+### 1. Sprite Sheet erzeugen (`scripts/mp4_to_spritesheet.sh`)
+
+Das Bash-Skript konvertiert ein MP4-Video in ein Sprite Sheet:
+
+```bash
+# Einzelnes Video konvertieren (Output nach assets/)
+./scripts/mp4_to_spritesheet.sh --output-dir assets assets/spritesheets/zombie10_video.mp4
+
+# Mit angepassten Parametern
+./scripts/mp4_to_spritesheet.sh --fps 12 --height 400 --cols 8 --output-dir assets mein_video.mp4
+
+# Batch-Modus: Alle MP4s im aktuellen Ordner
+./scripts/mp4_to_spritesheet.sh --batch
+```
+
+**Was das Skript tut:**
+1. Liest Videodauer per `ffprobe`
+2. Entfernt den Greenscreen per **Chromakey** (`0x00FF00`, Similarity 0.25, Blend 0.08) + Despill
+3. Skaliert Frames auf die gewünschte Höhe (Standard: **360px**, passend zur CSS-Klasse `.sprite-img`)
+4. Berechnet Framerate → Gesamtframes → Raster-Zeilen
+5. Fügt Frames per `tile`-Filter in ein einziges PNG zusammen (Standard: **6 Spalten**, **8 FPS**)
+
+**Beispiel-Output:** `zombie10_video_sheet.png` → 1218×3960px, 6×11 Raster, 64 Frames
+
+**Wichtige Hinweise:**
+- Videos aus Google Flow sind im 9:16-Format. Die Figur ist typischerweise in der unteren Hälfte, der obere Bereich ist grüner Hintergrund. Dieser wird automatisch transparent.
+- Die Greenscreen-Chromakey-Parameter (`KEY_SIMILARITY`, `KEY_BLEND`) können je nach Video angepasst werden.
+- Ausgabedatei: `{videoname}_sheet.png` – muss ggf. umbenannt werden (z.B. `zombie10_sheet.png`).
+
+### 2. Animation in der App (Canvas-basiert)
+
+**Dateien:**
+- **`index.html`**: Enthält ein `<canvas id="zombie-sprite-canvas">` im `#zombie`-Container (neben dem statischen `<img>`)
+- **`js/app.js`**: Frame-Steuerung und Canvas-Rendering
+- **`css/style.css`**: Canvas-Styling und Deaktivierung der CSS-Walk-Animation für Bosse
+
+**Ablauf im Code:**
+1. Beim App-Start wird das Sprite Sheet (`zombie10_sheet.png`) als `Image()`-Objekt **vorgeladen**
+2. Wenn ein Boss-Zombie spawnt (`spawnZombie()`):
+   - Statisches `<img>` wird versteckt
+   - `<canvas>` wird eingeblendet
+   - Frame-Counter auf 0 gesetzt
+3. Im **Game Loop** (`gameLoop()`):
+   - Alle `1000 / BOSS_FPS` ms wird der Frame-Index hochgezählt
+   - `renderBossFrame()` zeichnet den aktuellen Frame per `drawImage()` mit Source-Clipping auf das Canvas
+4. Bei normalem Zombie: Canvas wird versteckt, `<img>` wird wieder gezeigt
+
+**Konfiguration (in `app.js`):**
+```javascript
+const BOSS_SHEET_COLS = 6;      // Spalten im Sprite Sheet
+const BOSS_SHEET_ROWS = 11;     // Zeilen im Sprite Sheet
+const BOSS_FRAME_COUNT = 64;    // Tatsächliche Anzahl Frames (letzte Zeile ggf. nicht voll)
+const BOSS_FPS = 8;             // Animations-Framerate
+```
+
+### 3. Neuen animierten Zombie hinzufügen
+
+Wenn zukünftig weitere Zombies animiert werden sollen:
+
+1. **Video erstellen** (Google Flow, 9:16, Greenscreen)
+2. **Video in `assets/spritesheets/` ablegen**
+3. **Sprite Sheet generieren:**
+   ```bash
+   ./scripts/mp4_to_spritesheet.sh --output-dir assets assets/spritesheets/zombieXX_video.mp4
+   mv assets/zombieXX_video_sheet.png assets/zombieXX_sheet.png
+   ```
+4. **Code anpassen:** Die Sprite-Sheet-Konstanten und Canvas-Logik in `app.js` verallgemeinern (pro Zombie eigene Sheet-Referenz)
+
 ## 🔒 Sicherheit & Geheime Daten (API-Keys, Passwörter)
 
 Falls im Zuge der Entwicklung geheime Informationen wie Passwörter, API-Keys (z.B. für externe TTS- oder Bild-Generierungs-Dienste) oder andere sensitive Konfigurationen benötigt werden, dürfen diese **niemals** direkt in den Quellcode (z.B. in Shell-Skripte oder JavaScript-Dateien) geschrieben werden.
