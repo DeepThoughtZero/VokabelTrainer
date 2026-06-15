@@ -68,6 +68,15 @@ mogrify -fuzz 5% -transparent white -trim +repage zombie.png
 mogrify -flop zombie.png
 ```
 
+### 3. Hintergrundbilder anpassen (Seitenverhältnis & Dateigröße)
+Alle Hintergrundbilder (`background_*.png`) müssen auf ein einheitliches 16:9-Format (`1024x576` Pixel) zugeschnitten werden. Dies stellt sicher, dass sie im Spiel korrekt formatiert sind und die Dateigröße klein bleibt (möglichst < 1 MB).
+Dafür gibt es ein Automatisierungs-Skript. Wenn ein neues Bild (z.B. aus einem KI-Generator) hinzugefügt wird, muss es durch dieses Skript verarbeitet werden:
+
+```bash
+# Bild auf 1024x576 skalieren und zuschneiden
+./scripts/resize_background.sh assets/background_neues_bild.png
+```
+
 ## 🔒 Sicherheit & Geheime Daten (API-Keys, Passwörter)
 
 Falls im Zuge der Entwicklung geheime Informationen wie Passwörter, API-Keys (z.B. für externe TTS- oder Bild-Generierungs-Dienste) oder andere sensitive Konfigurationen benötigt werden, dürfen diese **niemals** direkt in den Quellcode (z.B. in Shell-Skripte oder JavaScript-Dateien) geschrieben werden.

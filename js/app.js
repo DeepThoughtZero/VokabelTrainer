@@ -353,7 +353,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const newLevel = getLevelInfo(playerProfile.xp).currentLevel;
         if (newLevel.xp > prevLevel.xp) {
             // Level Up!
-            playUIAudio('story_intro.mp3'); // Play a nice sound
+            const levelNameLower = newLevel.name.toLowerCase();
+            let audioFile = '';
+            if (levelNameLower === 'kadett') audioFile = 'levelup_kadett.mp3';
+            else if (levelNameLower === 'jäger') audioFile = 'levelup_jaeger.mp3';
+            else if (levelNameLower === 'veteran') audioFile = 'levelup_veteran.mp3';
+            else if (levelNameLower === 'elitejäger') audioFile = 'levelup_elitejaeger.mp3';
+            else if (levelNameLower === 'zombiebezwinger') audioFile = 'levelup_zombiebezwinger.mp3';
+            else if (levelNameLower === 'legende') audioFile = 'levelup_legende.mp3';
+            
+            if (audioFile) {
+                playUIAudio(audioFile);
+            }
             fireConfetti();
         }
     }
@@ -2035,8 +2046,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             hps[state.bossHealth].classList.add('lost');
                         }
                         
-                        // Boss um halbe Strecke zurückwerfen, maximal bis zum rechten Rand
-                        const newPos = Math.min(canvas.clientWidth, state.zombiePosition + (canvas.clientWidth / 2));
+                        // Boss um halbe Strecke zurückwerfen, aber so, dass er noch gut sichtbar bleibt.
+                        const maxRight = canvas.clientWidth - 150;
+                        let targetPos = state.zombiePosition + (canvas.clientWidth / 2);
+                        
+                        // Wenn er schon weiter rechts als maxRight ist, werfen wir ihn nicht weiter zurück, 
+                        // um ihn nicht aus dem Bild zu schieben.
+                        const newPos = Math.min(Math.max(state.zombiePosition, maxRight), targetPos);
+                        
                         state.zombiePosition = newPos;
                         
                         zombieEl.classList.add('knockback');
