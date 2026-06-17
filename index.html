@@ -17,7 +17,7 @@
             <h1 class="title">Zombie Hunter</h1>
             <div class="glass login-box" style="max-width: 1200px; width: 95%; padding: 30px;">
                 <h2 style="color: var(--accent-color); margin-bottom: 20px; font-size: 2.2rem;">Überlebensregeln (AGBs & Datenschutz)</h2>
-                <div style="text-align: left; font-size: 1.6rem; margin-bottom: 25px; line-height: 1.6; max-height: 65vh; overflow-y: auto; padding-right: 15px;">
+                <div style="text-align: left; font-size: 1.6rem; margin-bottom: 25px; line-height: 1.6; max-height: 700px; overflow-y: auto; padding-right: 15px;">
                     <p><strong>1. Altersempfehlung:</strong> Du musst mindestens 6 Jahre alt sein. Warum? Weil die Zombies wirklich böse und gruselig aussehen und dir sonst Alpträume bereiten könnten! 🧟‍♂️</p>
                     <br>
                     <p><strong>2. Datenschutz:</strong> Wenn du erfolgreich auf Zombiejagd gehst und dich in der Weltrangliste eintragen möchtest, speichern wir deinen gewählten Namen, deinen Score sowie das aktuelle Datum. Wenn du magst, verwende gerne nur deinen Vornamen oder einen coolen Spitznamen. Weitere personenbezogene Daten werden nicht erfasst.</p>
@@ -51,7 +51,8 @@
                 <button id="info-hunter-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
             </div>
             
-            <div class="carousel-container">
+            <h1 class="title">Charakter auswählen</h1>
+            <div class="carousel-container" style="margin-top: 20px;">
                 <button id="carousel-prev" class="carousel-nav-btn">◀</button>
                 <div id="hunter-carousel" class="hunter-carousel">
                     <!-- Hunters injected via JS -->
@@ -242,7 +243,7 @@
                         <tbody id="stat-weaknesses-body"></tbody>
                     </table>
                 </div>
-                <button id="restart-btn" class="btn-primary" style="margin-top: 30px;">Neue Jagd</button>
+                <button id="restart-btn" class="btn-primary" style="margin-top: 15px;">Neue Jagd</button>
             </div>
         </section>
 
@@ -322,7 +323,7 @@
         </div>
 
         <!-- Profile & Achievements Dialog -->
-        <div id="profile-dialog" class="hidden glass modal-dialog" style="max-width: 900px; width: 95%; max-height: 95vh; overflow-y: auto;">
+        <div id="profile-dialog" class="hidden glass modal-dialog" style="max-width: 900px; width: 95%; max-height: 1000px; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin:0; color: var(--accent-color);">Spielerprofil</h2>
                 <button id="close-profile-btn" class="btn-secondary" style="padding: 5px 15px;">X</button>

@@ -21,6 +21,7 @@ body {
     background-position: center bottom;
     color: var(--text-color);
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
     margin: 0;
     overflow: hidden;
@@ -767,14 +768,19 @@ select {
 }
 
 /* END SCREEN */
+#end-screen {
+    padding: 15px;
+    padding-bottom: 30px;
+}
+
 .stats-box {
     text-align: center;
     font-size: 1.2rem;
 }
 
 .final-score-display {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--glass-border);
 }
 
@@ -799,8 +805,8 @@ select {
     justify-content: space-around;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 30px;
-    gap: 20px;
+    margin-bottom: 15px;
+    gap: 15px;
 }
 
 .stat-item {
@@ -976,7 +982,7 @@ select {
 }
 
 .weaknesses {
-    margin-top: 30px;
+    margin-top: 15px;
     text-align: left;
 }
 .weaknesses h3 {
@@ -993,7 +999,7 @@ select {
     overflow: hidden;
 }
 .weakness-table th, .weakness-table td {
-    padding: 15px 20px;
+    padding: 8px 15px;
     text-align: left;
     border-bottom: 1px solid var(--glass-border);
     font-size: 1.5rem;
@@ -1589,6 +1595,7 @@ select {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     pointer-events: none;
     z-index: 9999;
     background: radial-gradient(ellipse at center, transparent 50%, rgba(255, 0, 0, 0.6) 120%);
@@ -1644,6 +1651,7 @@ select {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     pointer-events: none;
     z-index: 9998;
     background: radial-gradient(ellipse at center, transparent 70%, rgba(255, 215, 0, 0.3) 120%);
@@ -1663,6 +1671,7 @@ select {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     pointer-events: none;
     z-index: 9997;
     overflow: hidden;
