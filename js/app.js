@@ -1927,7 +1927,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             slots.forEach(slot => {
                 const btn = slot.firstChild;
-                if (!btn || btn.dataset.char !== slot.dataset.expectedChar) {
+                if (!btn || btn.dataset.char.toLowerCase() !== slot.dataset.expectedChar.toLowerCase()) {
                     isCorrect = false;
                 }
             });
@@ -1943,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 slots.forEach(slot => {
                     const btn = slot.firstChild;
-                    if (btn && btn.dataset.char !== slot.dataset.expectedChar) {
+                    if (btn && btn.dataset.char.toLowerCase() !== slot.dataset.expectedChar.toLowerCase()) {
                         btn.classList.add('wrong-anim');
                         setTimeout(() => {
                             btn.classList.remove('wrong-anim');
@@ -2497,13 +2497,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', () => {
         if (fxCanvas) {
-            fxCanvas.width = window.innerWidth;
-            fxCanvas.height = window.innerHeight;
+            fxCanvas.width = fxCanvas.offsetWidth;
+            fxCanvas.height = fxCanvas.offsetHeight;
         }
     });
     if (fxCanvas) {
-        fxCanvas.width = window.innerWidth;
-        fxCanvas.height = window.innerHeight;
+        fxCanvas.width = fxCanvas.offsetWidth;
+        fxCanvas.height = fxCanvas.offsetHeight;
     }
 
     function spawnParticles(x, y, element) {
