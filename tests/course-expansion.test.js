@@ -104,6 +104,30 @@ test('legacy English leaderboard categories normalize to English 5', () => {
     assert.equal(context.getCourseFromCategory('Englisch 6: Unit 1'), 'Englisch 6');
 });
 
+test('leaderboard learning paths are compact and sorted by class before path', () => {
+    const context = evaluateScripts(['js/leaderboard.js'], {
+        document: {
+            addEventListener() {},
+            getElementById() { return null; }
+        }
+    });
+    assert.equal(context.getGradeFromCategory('Englisch: Unit 3'), '5');
+    assert.equal(context.getGradeFromCategory('Englisch 6: Unit 1'), '6');
+    assert.equal(
+        context.formatLearningPathLabel('Englisch 6: Unit 1, Unit 2, Unit 3 - Mix, Welcome back to Brighton'),
+        'U1 · U2 · U3 (Mix) · Welcome back'
+    );
+    const categories = [
+        'Englisch 6: Unit 1',
+        'Englisch 5: Unit 4',
+        'Englisch 5: Unit 2'
+    ];
+    assert.deepEqual(
+        Array.from(categories.sort(context.compareLeaderboardCategories)),
+        ['Englisch 5: Unit 2', 'Englisch 5: Unit 4', 'Englisch 6: Unit 1']
+    );
+});
+
 test('photo manifest maps exactly 39 photos to pages 285 through 318', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/vocab_import/class6_pages.json'), 'utf8'));
     assert.deepEqual(manifest.pages.map(item => item.page), Array.from({ length: 34 }, (_, i) => 285 + i));

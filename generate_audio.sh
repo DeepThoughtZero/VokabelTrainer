@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Erzeugt MP3-Dateien für Shintaro Battles über die lokale TTS-API.
+# Erzeugt MP3-Dateien für Vokabel Zombie über eine lokale TTS-API.
 #
 # Verwendung:
 #   ./generate_audio.sh                  # Alle Audios neu generieren (Standard-Engine)
@@ -16,7 +16,8 @@ set -Eeuo pipefail
 #
 # Konfigurierbar per Umgebungsvariablen:
 #   ENGINE, VOICE, OUTPUT_DIR, API_URL, MODEL, SPEED
-#   Nur für qwen3: REF_AUDIO, REF_TEXT, LANGUAGE
+#   Für chatterbox muss VOICE explizit gesetzt werden.
+#   Für qwen3 müssen REF_AUDIO und REF_TEXT explizit gesetzt werden.
 
 # ── Argumente parsen ──
 ONLY_MISSING=false
@@ -81,14 +82,26 @@ fi
 if [[ "$ENGINE" == "chatterbox" ]]; then
   API_URL="${API_URL:-http://127.0.0.1:4123/v1/audio/speech}"
   MODEL="${MODEL:-tts-1}"
-  VOICE="${VOICE:-Ninjago_MeisterWu03}"
+  VOICE="${VOICE:-}"
   SPEED="${SPEED:-1.0}"
+  [[ -n "$VOICE" ]] || {
+    echo "Fehler: Für ENGINE=chatterbox muss VOICE gesetzt oder mit --voice übergeben werden." >&2
+    exit 1
+  }
 elif [[ "$ENGINE" == "qwen3" ]]; then
   API_URL="${API_URL:-http://127.0.0.1:8880/v1/audio/speech/upload}"
-  REF_AUDIO="${REF_AUDIO:-/home/bigbrain/AiStack/qwen3-tts/voices/Ninjago_MeisterWu03.wav}"
-  REF_TEXT="${REF_TEXT:-Nach Garmadons Fall war das Gleichgewicht der Elemente wiederhergestellt und Ninjago genoss viele Jahre des Friedens.}"
+  REF_AUDIO="${REF_AUDIO:-}"
+  REF_TEXT="${REF_TEXT:-}"
   LANGUAGE="${LANGUAGE:-German}"
   SPEED="${SPEED:-1.0}"
+  [[ -n "$REF_AUDIO" ]] || {
+    echo "Fehler: Für ENGINE=qwen3 muss REF_AUDIO auf eine lokale Referenz-Audiodatei zeigen." >&2
+    exit 1
+  }
+  [[ -n "$REF_TEXT" ]] || {
+    echo "Fehler: Für ENGINE=qwen3 muss REF_TEXT den exakten Inhalt der Referenzaufnahme enthalten." >&2
+    exit 1
+  }
   [[ -f "$REF_AUDIO" ]] || {
     echo "Fehler: Referenz-Audio nicht gefunden: $REF_AUDIO" >&2
     exit 1

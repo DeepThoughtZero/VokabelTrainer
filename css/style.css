@@ -1262,6 +1262,156 @@ select {
     box-shadow: 0 0 20px var(--danger-color);
 }
 
+/* Leaderboard: filters deliberately stacked so long learning paths never
+   squeeze labels or sorting controls out of the dialog. */
+.leaderboard-dialog {
+    z-index: 100;
+    width: 95%;
+    max-width: 1050px;
+    max-height: 92vh;
+    max-height: 92dvh;
+    padding: clamp(18px, 3vw, 32px);
+    gap: 14px;
+    overflow: hidden;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 100vw rgba(0,0,0,0.95), 0 0 30px rgba(0,0,0,0.9), 0 0 15px rgba(0,255,136,0.4);
+}
+
+.leaderboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.leaderboard-dialog .leaderboard-header h2 {
+    margin: 0;
+    color: var(--accent-color);
+}
+
+.leaderboard-close-btn {
+    flex: 0 0 auto;
+    padding: 3px 13px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+.leaderboard-entry-form {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.leaderboard-entry-form #player-name {
+    width: min(100%, 260px);
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 7px;
+    background: rgba(0,0,0,0.65);
+    color: white;
+    font-size: 1.2rem;
+}
+
+.leaderboard-entry-form #submit-score-btn {
+    width: auto;
+    padding: 10px 20px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.2rem;
+}
+
+.leaderboard-filters {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid rgba(0, 255, 136, 0.25);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.38);
+    box-sizing: border-box;
+}
+
+.leaderboard-filter-field {
+    display: grid;
+    grid-template-columns: minmax(135px, 180px) minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.leaderboard-filter-field label {
+    margin: 0;
+    color: var(--accent-color);
+    font-size: 1.15rem;
+    font-weight: bold;
+    text-align: left;
+}
+
+.leaderboard-filter-field select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 7px;
+    background: rgba(0,0,0,0.75);
+    color: white;
+    font-size: 1.05rem;
+    text-overflow: ellipsis;
+}
+
+.leaderboard-filter-field select option,
+.leaderboard-filter-field select optgroup {
+    background: #17191c;
+    color: white;
+}
+
+.leaderboard-table-container {
+    width: 100%;
+    min-height: 150px;
+    max-height: min(42vh, 380px);
+    overflow: auto;
+    border-radius: 8px;
+}
+
+.leaderboard-table-container .weakness-table {
+    min-width: 780px;
+    margin-top: 0;
+}
+
+.leaderboard-table-container thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #101416;
+}
+
+@media (max-width: 640px) {
+    .leaderboard-dialog {
+        width: 96%;
+        padding: 16px;
+    }
+
+    .leaderboard-filter-field {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+
+    .leaderboard-entry-form {
+        flex-direction: column;
+    }
+
+    .leaderboard-entry-form #player-name,
+    .leaderboard-entry-form #submit-score-btn {
+        width: 100%;
+        max-width: none;
+    }
+}
+
 /* HUNTER CAROUSEL */
 .carousel-container {
     display: flex;

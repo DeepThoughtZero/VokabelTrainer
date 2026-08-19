@@ -3,9 +3,11 @@ set -Eeuo pipefail
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 cd "$PROJECT_ROOT"
-if git ls-files | rg -q '(^|/)(__pycache__/|[^/]+\.py[co]$|[^/]+\.tmp\.mp3$)'; then
+GENERATED_PATTERN='(^|/)(__pycache__/|[^/]+\.py[co]$|[^/]+\.tmp\.mp3$)'
+tracked_generated_files=$(git ls-files | grep -E "$GENERATED_PATTERN" || true)
+if [[ -n "$tracked_generated_files" ]]; then
   printf 'Commit blockiert: generierte Cache- oder temporäre Dateien liegen noch im Git-Index.\n' >&2
-  git ls-files | rg '(^|/)(__pycache__/|[^/]+\.py[co]$|[^/]+\.tmp\.mp3$)' >&2
+  printf '%s\n' "$tracked_generated_files" >&2
   exit 1
 fi
 exec "$PROJECT_ROOT/scripts/verify.sh" --quick

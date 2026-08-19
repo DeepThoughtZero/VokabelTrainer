@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vokabel Zombie – dichter Antwortblock</title>
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/fonts.css">
+</head>
+<body style="background-image: url('../../assets/background_brighton.png');">
+    <main id="app">
+        <section id="game-screen" class="screen active">
+            <div class="top-bar">
+                <div id="hearts-container"><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span></div>
+                <button class="gear-btn" aria-label="Einstellungen">⚙️</button>
+                <div id="score-container">Score: <span>855</span></div>
+            </div>
+            <div id="options-container" class="options">
+                <button class="option-btn">(to) blow, blew, blown</button>
+                <button class="option-btn">awful</button>
+                <button class="option-btn">(to) forget</button>
+                <button class="option-btn">(to) throw</button>
+                <button class="option-btn">centre</button>
+                <button class="option-btn">(to) log out (of a website)</button>
+                <button class="option-btn">(to) understand, understood</button>
+            </div>
+            <div id="game-canvas">
+                <div id="hunter" class="entity"><img src="../../assets/hunter_commanderneon.png" alt="Hunter" class="sprite-img"></div>
+                <div id="zombie" class="entity">
+                    <div class="word-bubble">vergessen</div>
+                    <img src="../../assets/zombie01.png" alt="Zombie" class="sprite-img">
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="../../js/vocab_utils.js"></script>
+    <script>
+        const container = document.getElementById('options-container');
+        const labels = Array.from(container.querySelectorAll('.option-btn'), button => button.textContent);
+        const density = window.VocabUtils.getOptionDensity(labels);
+        if (density === 'dense') container.classList.add('options-dense');
+        if (density === 'very-dense') container.classList.add('options-very-dense');
+        document.documentElement.dataset.optionDensity = density;
+    </script>
+</body>
+</html>

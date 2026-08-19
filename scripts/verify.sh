@@ -43,7 +43,7 @@ require_command() {
 }
 
 section "Werkzeuge"
-for command_name in git node python3 bash rg; do
+for command_name in git node python3 bash grep; do
   require_command "$command_name"
 done
 if [[ "$MODE" != "quick" ]]; then
@@ -64,22 +64,31 @@ while IFS= read -r tracked_file; do
   if [[ -e "$tracked_file" ]]; then
     tracked_generated_files+="${tracked_file}"$'\n'
   fi
-done < <(git ls-files | rg '(^|/)(__pycache__/|[^/]+\.py[co]$|[^/]+\.tmp\.mp3$)' || true)
+done < <(git ls-files | grep -E '(^|/)(__pycache__/|[^/]+\.py[co]$|[^/]+\.tmp\.mp3$)' || true)
 if [[ -n "$tracked_generated_files" ]]; then
   printf 'Generierte Cache- oder temporäre Dateien sind versioniert und vorhanden:\n' >&2
   printf '%s' "$tracked_generated_files" >&2
   exit 1
 fi
 
-if rg -n '^(<{7}|={7}|>{7})( |$)' \
-  --glob '!assets/audio/**' \
-  --glob '!pictures/**' \
-  --glob '!scripts/vocab_import/*.json' .; then
+conflict_markers=""
+while IFS= read -r -d '' file; do
+  matches=$(grep -nHIE '^(<{7}|={7}|>{7})( |$)' "$file" || true)
+  if [[ -n "$matches" ]]; then
+    conflict_markers+="${matches}"$'\n'
+  fi
+done < <(find . \
+  \( -path './.git' -o -path './assets/audio' -o -path './pictures' \) -prune -o \
+  -path './scripts/vocab_import/*.json' -prune -o \
+  -type f -print0)
+if [[ -n "$conflict_markers" ]]; then
+  printf '%s' "$conflict_markers"
   printf 'Nicht aufgelöste Merge-Konfliktmarker gefunden.\n' >&2
   exit 1
 fi
 
-if find assets/audio -type f -name '*.tmp.mp3' -print -quit | rg -q .; then
+temporary_audio=$(find assets/audio -type f -name '*.tmp.mp3' -print -quit)
+if [[ -n "$temporary_audio" ]]; then
   printf 'Temporäre Audio-Dateien gefunden.\n' >&2
   find assets/audio -type f -name '*.tmp.mp3' -print >&2
   exit 1

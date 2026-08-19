@@ -73,3 +73,38 @@ test('Google Apps Script stores category as free text without a class schema cha
     assert.doesNotMatch(script, /Englisch\s*[56]/);
     assert.match(script, /kategorie:\s*row\[2\]/);
 });
+
+test('leaderboard filters are stacked and separate class from learning path', () => {
+    const html = read('index.html');
+    const css = read('css/style.css');
+    assert.match(html, /class="leaderboard-filters"/);
+    assert.match(html, /<label for="klassen-filter">Klasse<\/label>/);
+    assert.match(html, /<label for="kategorie-filter">Lernpfad<\/label>/);
+    assert.match(html, /<label for="sort-filter">Sortieren nach<\/label>/);
+    assert.doesNotMatch(html, /id="kurs-filter"/);
+    assert.match(css, /\.leaderboard-filters\s*\{[\s\S]*?flex-direction:\s*column;/);
+    assert.match(css, /\.leaderboard-filter-field select\s*\{[\s\S]*?width:\s*100%;/);
+});
+
+test('visual dense-options fixture stays wired to the production styles and classifier', () => {
+    const fixture = read('tests/fixtures/options-density-preview.html');
+    assert.match(fixture, /\.\.\/\.\.\/css\/style\.css/);
+    assert.match(fixture, /\.\.\/\.\.\/js\/vocab_utils\.js/);
+    assert.equal((fixture.match(/class="option-btn"/g) || []).length, 7);
+    assert.match(fixture, /getOptionDensity\(labels\)/);
+});
+
+test('visual leaderboard fixture exercises class grouping with production code', () => {
+    const fixture = read('tests/fixtures/leaderboard-preview.html');
+    assert.match(fixture, /\.\.\/\.\.\/css\/style\.css/);
+    assert.match(fixture, /\.\.\/\.\.\/js\/leaderboard\.js/);
+    assert.match(fixture, /Englisch 5:/);
+    assert.match(fixture, /Englisch 6:/);
+    assert.match(fixture, /updateCategoryDropdown\(previewEntries\)/);
+});
+
+test('local Git verification does not depend on a Codex-only ripgrep binary', () => {
+    for (const file of ['.githooks/pre-commit', '.githooks/pre-push', 'scripts/verify.sh']) {
+        assert.doesNotMatch(read(file), /\brg\b/, `${file} must run in a regular user PATH`);
+    }
+});

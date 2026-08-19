@@ -15,7 +15,7 @@ let lastSavedEntry = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const filterSelect = document.getElementById('kategorie-filter');
-    const courseSelect = document.getElementById('kurs-filter');
+    const gradeSelect = document.getElementById('klassen-filter');
     const sortSelect = document.getElementById('sort-filter');
     
     if (filterSelect) {
@@ -23,8 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
             filterAndRenderLeaderboard();
         });
     }
-    if (courseSelect) {
-        courseSelect.addEventListener('change', () => {
+    if (gradeSelect) {
+        gradeSelect.addEventListener('change', () => {
+            updateLearningPathDropdown(allLeaderboardEntries);
             filterAndRenderLeaderboard();
         });
     }
@@ -44,42 +45,78 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function updateCategoryDropdown(entries) {
-    const filterSelect = document.getElementById('kategorie-filter');
-    const courseSelect = document.getElementById('kurs-filter');
-    if (!filterSelect) return;
-    
-    const categories = new Set(entries.map(e => normalizeCategory(e.kategorie)).filter(k => k));
-    
-    // Save current value
-    const currentVal = filterSelect.value;
-    
-    filterSelect.innerHTML = '<option value="">Alle Kategorien</option>';
-    categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        filterSelect.appendChild(opt);
+    const gradeSelect = document.getElementById('klassen-filter');
+    if (!gradeSelect) return;
+
+    const currentGrade = gradeSelect.value;
+    const grades = [...new Set(entries.map(entry => getGradeFromCategory(entry.kategorie)).filter(Boolean))]
+        .sort((a, b) => Number(a) - Number(b));
+
+    gradeSelect.innerHTML = '<option value="">Alle Klassen</option>';
+    grades.forEach(grade => {
+        const option = document.createElement('option');
+        option.value = grade;
+        option.textContent = `Klasse ${grade}`;
+        gradeSelect.appendChild(option);
     });
-    
-    // Restore value if exists
-    if (Array.from(filterSelect.options).some(o => o.value === currentVal)) {
-        filterSelect.value = currentVal;
+
+    if ([...gradeSelect.options].some(option => option.value === currentGrade)) {
+        gradeSelect.value = currentGrade;
+    }
+    updateLearningPathDropdown(entries);
+}
+
+function updateLearningPathDropdown(entries) {
+    const filterSelect = document.getElementById('kategorie-filter');
+    const gradeSelect = document.getElementById('klassen-filter');
+    if (!filterSelect) return;
+
+    const selectedGrade = gradeSelect ? gradeSelect.value : '';
+    const currentCategory = filterSelect.value;
+    const categories = [...new Set(entries.map(entry => normalizeCategory(entry.kategorie)).filter(Boolean))]
+        .filter(category => !selectedGrade || getGradeFromCategory(category) === selectedGrade)
+        .sort(compareLeaderboardCategories);
+
+    filterSelect.innerHTML = '<option value="">Alle Lernpfade</option>';
+    const courses = [...new Set(categories.map(getCourseFromCategory).filter(Boolean))];
+    const useGroups = !selectedGrade || courses.length > 1;
+
+    if (useGroups) {
+        courses.forEach(course => {
+            const group = document.createElement('optgroup');
+            const grade = getGradeFromCourseLabel(course);
+            const subject = course.replace(/\s*\d+\s*$/, '');
+            group.label = selectedGrade ? subject : `Klasse ${grade} · ${subject}`;
+            categories
+                .filter(category => getCourseFromCategory(category) === course)
+                .forEach(category => group.appendChild(createLearningPathOption(category)));
+            filterSelect.appendChild(group);
+        });
+    } else {
+        categories.forEach(category => filterSelect.appendChild(createLearningPathOption(category)));
     }
 
-    if (courseSelect) {
-        const currentCourse = courseSelect.value;
-        const courses = new Set(entries.map(entry => getCourseFromCategory(entry.kategorie)).filter(Boolean));
-        courseSelect.innerHTML = '<option value="">Alle Kurse</option>';
-        [...courses].sort().forEach(course => {
-            const option = document.createElement('option');
-            option.value = course;
-            option.textContent = course;
-            courseSelect.appendChild(option);
-        });
-        if ([...courseSelect.options].some(option => option.value === currentCourse)) {
-            courseSelect.value = currentCourse;
-        }
+    if ([...filterSelect.options].some(option => option.value === currentCategory)) {
+        filterSelect.value = currentCategory;
+    } else {
+        filterSelect.value = '';
     }
+}
+
+function createLearningPathOption(category) {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = formatLearningPathLabel(category);
+    option.title = category;
+    return option;
+}
+
+function compareLeaderboardCategories(left, right) {
+    const gradeDifference = Number(getGradeFromCategory(left) || 999) - Number(getGradeFromCategory(right) || 999);
+    if (gradeDifference) return gradeDifference;
+    const courseDifference = getCourseFromCategory(left).localeCompare(getCourseFromCategory(right), 'de');
+    if (courseDifference) return courseDifference;
+    return formatLearningPathLabel(left).localeCompare(formatLearningPathLabel(right), 'de', { numeric: true });
 }
 
 function getCourseFromCategory(category) {
@@ -92,22 +129,48 @@ function getCourseFromCategory(category) {
     return '';
 }
 
+function getGradeFromCourseLabel(courseLabel) {
+    const match = String(courseLabel || '').match(/\b(\d+)\s*$/);
+    return match ? match[1] : '';
+}
+
+function getGradeFromCategory(category) {
+    return getGradeFromCourseLabel(getCourseFromCategory(category));
+}
+
+function getLearningPathFromCategory(category) {
+    return normalizeCategory(category)
+        .replace(/^(?:Englisch|Französisch|Latein)\s*\d+\s*:\s*/i, '')
+        .trim();
+}
+
+function formatLearningPathLabel(category) {
+    return getLearningPathFromCategory(category)
+        .replace(/Welcome back to Brighton/gi, 'Welcome back')
+        .replace(/\bUnit\s*(\d+)\s*-\s*Mix\b/gi, 'U$1 (Mix)')
+        .replace(/\bUnit\s*(\d+)\b/gi, 'U$1')
+        .replace(/\s*-\s*Mix\b/gi, ' (Mix)')
+        .replace(/,\s*/g, ' · ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
 function normalizeCategory(category) {
     return String(category || '').trim().replace(/^Englisch\s*:/i, 'Englisch 5:');
 }
 
 function filterAndRenderLeaderboard() {
     const filterSelect = document.getElementById('kategorie-filter');
-    const courseSelect = document.getElementById('kurs-filter');
+    const gradeSelect = document.getElementById('klassen-filter');
     const sortSelect = document.getElementById('sort-filter');
     
     const categoryFilter = filterSelect ? filterSelect.value : '';
-    const courseFilter = courseSelect ? courseSelect.value : '';
+    const gradeFilter = gradeSelect ? gradeSelect.value : '';
     const sortBy = sortSelect ? sortSelect.value : 'score';
 
     let filtered = [...allLeaderboardEntries];
-    if (courseFilter) {
-        filtered = filtered.filter(entry => getCourseFromCategory(entry.kategorie) === courseFilter);
+    if (gradeFilter) {
+        filtered = filtered.filter(entry => getGradeFromCategory(entry.kategorie) === gradeFilter);
     }
     if (categoryFilter) {
         filtered = filtered.filter(entry => normalizeCategory(entry.kategorie) === categoryFilter);
@@ -293,13 +356,13 @@ window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStrea
     
     // Auto-filter by current category
     const filterSelect = document.getElementById('kategorie-filter');
-    const courseSelect = document.getElementById('kurs-filter');
+    const gradeSelect = document.getElementById('klassen-filter');
     if (filterSelect) {
         // Will be applied after loading
         filterSelect.dataset.pendingFilter = normalizeCategory(kategorie);
     }
-    if (courseSelect) {
-        courseSelect.dataset.pendingCourse = courseLabel || getCourseFromCategory(kategorie);
+    if (gradeSelect) {
+        gradeSelect.dataset.pendingGrade = getGradeFromCategory(kategorie) || getGradeFromCourseLabel(courseLabel);
     }
     
     if (score >= 0) {
@@ -355,12 +418,13 @@ window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStrea
     
     document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="7" style="text-align:center;">Lade Bestenliste...</td></tr>';
     loadLeaderboard().then(() => {
-        if (courseSelect && courseSelect.dataset.pendingCourse) {
-            const pendingCourse = courseSelect.dataset.pendingCourse;
-            if (Array.from(courseSelect.options).some(option => option.value === pendingCourse)) {
-                courseSelect.value = pendingCourse;
+        if (gradeSelect && gradeSelect.dataset.pendingGrade) {
+            const pendingGrade = gradeSelect.dataset.pendingGrade;
+            if (Array.from(gradeSelect.options).some(option => option.value === pendingGrade)) {
+                gradeSelect.value = pendingGrade;
             }
-            delete courseSelect.dataset.pendingCourse;
+            delete gradeSelect.dataset.pendingGrade;
+            updateLearningPathDropdown(allLeaderboardEntries);
         }
         if (filterSelect && filterSelect.dataset.pendingFilter) {
             const pending = filterSelect.dataset.pendingFilter;

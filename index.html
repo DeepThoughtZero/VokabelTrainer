@@ -273,37 +273,43 @@
         </section>
 
         <!-- Leaderboard Dialog -->
-        <div id="leaderboard-dialog" class="hidden glass modal-dialog" style="max-width: 1000px; width: 95%; z-index: 100; box-shadow: 0 0 0 100vw rgba(0,0,0,0.95), 0 0 30px rgba(0,0,0,0.9), 0 0 15px rgba(0,255,136,0.4);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin:0; color: var(--accent-color);">Weltrangliste</h2>
-                <button id="close-leaderboard-btn" class="btn-secondary" style="padding: 5px 15px;">X</button>
+        <div id="leaderboard-dialog" class="hidden glass modal-dialog leaderboard-dialog">
+            <div class="leaderboard-header">
+                <h2>Weltrangliste</h2>
+                <button id="close-leaderboard-btn" class="btn-secondary leaderboard-close-btn" aria-label="Weltrangliste schließen">×</button>
             </div>
             
-            <div id="leaderboard-entry-form" class="form-group" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <input type="text" id="player-name" placeholder="Dein Name..." maxlength="20" style="padding: 10px; border-radius: 5px; font-size: 1.2rem; max-width: 200px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.5); color: white;">
-                <button id="submit-score-btn" class="btn-primary" style="font-size: 1.2rem; padding: 10px 20px; font-family: 'Roboto', sans-serif;">Eintragen</button>
+            <div id="leaderboard-entry-form" class="form-group leaderboard-entry-form">
+                <input type="text" id="player-name" placeholder="Dein Name..." maxlength="20">
+                <button id="submit-score-btn" class="btn-primary">Eintragen</button>
             </div>
 
-            <div class="form-group" style="margin-bottom: 15px; display: flex; flex-direction: row; gap: 10px; align-items: center; justify-content: center; flex-wrap: nowrap;">
-                <label for="kurs-filter" style="margin: 0; font-size: 1.2rem;">Kurs:</label>
-                <select id="kurs-filter" style="padding: 5px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; width: auto;">
-                    <option value="">Alle Kurse</option>
-                </select>
+            <div class="leaderboard-filters" aria-label="Bestenliste filtern und sortieren">
+                <div class="leaderboard-filter-field">
+                    <label for="klassen-filter">Klasse</label>
+                    <select id="klassen-filter">
+                        <option value="">Alle Klassen</option>
+                    </select>
+                </div>
 
-                <label for="kategorie-filter" style="margin: 0; margin-left: 15px; font-size: 1.2rem;">Lernpfad:</label>
-                <select id="kategorie-filter" style="padding: 5px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; width: auto;">
-                    <option value="">Alle Kategorien</option>
-                </select>
-                
-                <label for="sort-filter" style="margin: 0; margin-left: 15px; font-size: 1.2rem;">Sortieren:</label>
-                <select id="sort-filter" style="padding: 5px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; width: auto;">
+                <div class="leaderboard-filter-field">
+                    <label for="kategorie-filter">Lernpfad</label>
+                    <select id="kategorie-filter">
+                        <option value="">Alle Lernpfade</option>
+                    </select>
+                </div>
+
+                <div class="leaderboard-filter-field">
+                    <label for="sort-filter">Sortieren nach</label>
+                    <select id="sort-filter">
                     <option value="score">Score</option>
                     <option value="trefferquote">Trefferquote</option>
                     <option value="maxStreak">Längster Streak</option>
                 </select>
+                </div>
             </div>
 
-            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+            <div class="table-container leaderboard-table-container">
                 <table class="weakness-table" style="width: 100%; border-collapse: collapse; text-align: left;">
                     <thead>
                         <tr style="border-bottom: 1px solid var(--glass-border);">

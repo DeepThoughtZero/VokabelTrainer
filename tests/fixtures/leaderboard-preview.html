@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vokabel Zombie – Ranglisten-Dialog</title>
+    <link rel="stylesheet" href="../../css/style.css?v=leaderboard-dialog-v2">
+    <link rel="stylesheet" href="../../css/fonts.css">
+</head>
+<body style="background-image: url('../../assets/background_brighton.png');">
+    <div id="leaderboard-dialog" class="glass modal-dialog leaderboard-dialog">
+        <div class="leaderboard-header">
+            <h2>Weltrangliste</h2>
+            <button id="close-leaderboard-btn" class="btn-secondary leaderboard-close-btn" aria-label="Weltrangliste schließen">×</button>
+        </div>
+        <div id="leaderboard-entry-form" class="form-group leaderboard-entry-form" style="display: none;">
+            <input type="text" id="player-name" placeholder="Dein Name..." maxlength="20">
+            <button id="submit-score-btn" class="btn-primary">Eintragen</button>
+        </div>
+        <div class="leaderboard-filters" aria-label="Bestenliste filtern und sortieren">
+            <div class="leaderboard-filter-field">
+                <label for="klassen-filter">Klasse</label>
+                <select id="klassen-filter"><option value="">Alle Klassen</option></select>
+            </div>
+            <div class="leaderboard-filter-field">
+                <label for="kategorie-filter">Lernpfad</label>
+                <select id="kategorie-filter"><option value="">Alle Lernpfade</option></select>
+            </div>
+            <div class="leaderboard-filter-field">
+                <label for="sort-filter">Sortieren nach</label>
+                <select id="sort-filter">
+                    <option value="score">Score</option>
+                    <option value="trefferquote">Trefferquote</option>
+                    <option value="maxStreak">Längster Streak</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-container leaderboard-table-container">
+            <table class="weakness-table">
+                <thead><tr><th>Rang</th><th>Name</th><th>Score</th><th>Kategorie</th><th>Trefferquote</th><th>max Streak</th><th>Datum</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+        </div>
+    </div>
+    <script src="../../js/leaderboard.js"></script>
+    <script>
+        const previewEntries = [
+            { name: 'Fox', score: 12476, kategorie: 'Englisch 6: Unit 1, Unit 2, Unit 3, Unit 4, Unit 5, Welcome back to Brighton', trefferquote: '93%', maxStreak: 43, date: '19.08.2026' },
+            { name: 'Neon', score: 83029, kategorie: 'Englisch 5: Unit 1, Unit 2, Unit 3, Unit 4, Welcome', trefferquote: '96%', maxStreak: 92, date: '18.08.2026' },
+            { name: 'Hydro', score: 48824, kategorie: 'Englisch 5: Unit 1, Unit 2, Unit 3 - Mix, Welcome', trefferquote: '95%', maxStreak: 76, date: '17.08.2026' },
+            { name: 'Volt', score: 9200, kategorie: 'Englisch 6: Unit 3 - Mix, Unit 4', trefferquote: '88%', maxStreak: 27, date: '16.08.2026' }
+        ];
+        allLeaderboardEntries = previewEntries;
+        updateCategoryDropdown(previewEntries);
+        filterAndRenderLeaderboard();
+    </script>
+</body>
+</html>
