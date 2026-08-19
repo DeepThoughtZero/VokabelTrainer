@@ -1,0 +1,160 @@
+# AGENTS.md
+
+## Zweck und Produktüberblick
+
+Vokabel Zombie ist ein statisches Browser-Lernspiel für Vokabeltraining unter Zeitdruck. Richtige Übersetzungen bekämpfen Zombies; Lernstand, Streaks, Bestleistungen und Erfolge werden lokal gespeichert. Ergebnisse können freiwillig über eine Google-Sheets-Bestenliste veröffentlicht werden.
+
+Der reguläre Ablauf ist:
+
+1. Passwort
+2. AGB und Datenschutz
+3. Klasse und Fach
+4. Spielfigur und Stadt
+5. Lernpfad und Abfragemodus
+6. Spiel, Auswertung und optionale Bestenliste
+
+Spielbereit sind Englisch 5 und Englisch 6. Französisch 6 und Latein 6 sind im Kursmodell bereits vorgesehen, bleiben aber deaktiviert, bis geprüfte Vokabeldaten vorliegen.
+
+## Technische Grundlage
+
+- Reines HTML, CSS und JavaScript ohne Bundler oder Frontend-Framework
+- Einstiegspunkt: `index.html`
+- Hauptlogik: `js/app.js`
+- Hosting: GitHub Pages; alle Pfade müssen relativ und statisch auslieferbar bleiben
+- Persistenz: `localStorage`, getrennt nach Kurs für SRS und persönliche Bestwerte
+- Bestenliste: Google Apps Script und Google Sheet über `js/leaderboard.js`
+- Automatisierte Tests: Node-eigener Test Runner, keine npm-Installation erforderlich
+- Hilfsskripte: Bash und Python 3; `jq`, `curl`, `ffmpeg` und `ffprobe` werden für Audio benötigt
+
+## Wichtige Ordner und Dateien
+
+- `index.html`: alle Screens und Dialoge sowie Script-Ladereihenfolge
+- `css/style.css`: vollständiges UI-Styling
+- `js/app.js`: Navigation, Kursaktivierung, Filter, Spiel, SRS, Bestwerte und Audio-Wiedergabe
+- `js/courses.js`: Kurskatalog und Verfügbarkeitsmatrix
+- `js/vocab_utils.js`: gemeinsame Filter- und Schreibmodus-Helfer
+- `js/vocabs.js`: historische Englisch-5-Daten; registriert sich als Kurs `en-5`
+- `js/vocabs_en_6.js`: generierte Englisch-6-Daten mit stabilen IDs und Audiopfaden
+- `js/leaderboard.js`: Laden, Speichern, Normalisieren und Filtern der Bestenliste
+- `scripts/apps-script.js`: serverseitiger Google-Sheets-Endpunkt
+- `pictures/Englisch_Klasse5` und `pictures/Englisch_Klasse6`: Quellfotos; durch `.gitignore` ausgeschlossen
+- `scripts/vocab_import`: reproduzierbare OCR-, Korrektur-, Build- und Audit-Daten für Englisch 6
+- `assets/audio`: bestehende Englisch-5-Audios
+- `assets/audio/vocab/en-6`: Englisch-6-Audios, Dateiname gleich stabiler Vokabel-ID
+- `tests/course-expansion.test.js`: Struktur-, Daten-, Migrations- und Filtertests
+
+## Kurs- und Vokabelvertrag
+
+Kurs-IDs folgen dem Muster `<fach>-<klasse>`, derzeit `en-5`, `en-6`, `fr-6` und `la-6`.
+
+Neue Vokabeldaten verwenden diese Felder:
+
+```text
+foreign, german, unit, part, page, id, audio
+```
+
+Englisch 5 besitzt aus historischen Gründen das Feld `english`; `js/app.js` normalisiert beide Formen intern auf `foreign`. IDs und Audiopfade von Englisch 6 sind dauerhaft. Einträge dürfen nicht umnummeriert werden, nur weil sich die Reihenfolge ändert, da SRS-Daten und Audios daran hängen.
+
+`js/vocabs_en_6.js` umfasst 869 geprüfte Einträge von Seite 285 bis 318. Änderungen sollen über `scripts/vocab_import/class6_corrections.json` und anschließend über `scripts/vocab_import/build_class6_vocabulary.py` reproduzierbar erfolgen. Extraktionsartefakte und echte Buchwiederholungen sind im Importbericht dokumentiert.
+
+Unit-Namen können Doppelpunkte enthalten. Filtersegmente deshalb immer über `VocabUtils.encodeFilterSegment` und `decodeFilterSegment` verarbeiten; niemals wieder mit einem ungeschützten `split(':')` auf Unit-Namen arbeiten.
+
+## Bestenliste und Google Sheet
+
+Neue Kategorien heißen beispielsweise `Englisch 5: Unit 1` und `Englisch 6: Unit 1`. Das Apps Script speichert `kategorie` als freien Text, daher ist für neue Klassen keine Scriptänderung nötig. `js/leaderboard.js` behandelt alte Werte wie `Englisch: Unit 1` automatisch als Englisch 5.
+
+Eine einmalige Ersetzung im Sheet ist nur Datenpflege, keine technische Voraussetzung. Das Sheet- oder Apps-Script-Schema nur ändern, wenn tatsächlich neue Spalten oder Serverfilter benötigt werden. Keine API-URLs oder Zugangsdaten in neue Dateien kopieren.
+
+## OCR- und Datenworkflow für Englisch 6
+
+1. Seitenzuordnung in `scripts/vocab_import/class6_pages.json` prüfen. `PXL_20260817_124608540.jpg` ist Seite 285; die führende 5 ist im Foto abgeschnitten.
+2. Fotos mit `preprocess_class6_images.py` vorbereiten.
+3. Bei Bedarf lokal mit Ollama/Qwen (`qwen3.8:27b`) extrahieren oder auditieren.
+4. Menschlich bestätigte Änderungen ausschließlich in `class6_corrections.json` festhalten.
+5. `build_class6_vocabulary.py` ausführen und `class6_import_report.json` kontrollieren.
+6. Tests ausführen und Seitenzahl, IDs, Dubletten sowie leere Felder prüfen.
+
+OCR-Vorschläge sind nie automatisch Wahrheit. Seitenbild, Kontext und Drucklayout gehen vor Modellvorschlägen.
+
+## Audioerzeugung und Qualitätskontrolle
+
+Der lokale Qwen3-TTS-Endpunkt läuft üblicherweise auf `http://127.0.0.1:8880` und nutzt die lokale Grafikkarte. Fehlende oder gezielt ausgewählte Audios werden so erzeugt:
+
+```bash
+./generate_audio.sh --course en-6 --only-missing --engine qwen3-builtin
+./generate_audio.sh --course en-6 --id en6-p289-041 --engine qwen3-builtin
+```
+
+Der Generator:
+
+- spricht Englisch mit einer klaren Einmal-Ausgabe-Anweisung,
+- normalisiert Lautheit mit `ffmpeg`,
+- prüft Dateigröße und echte Dauer relativ zur Wortzahl,
+- verwirft leere, beschädigte oder unplausibel lange Clips,
+- versucht fehlerhafte Ausgaben bis zu fünfmal,
+- beendet den Prozess bei verbleibenden Fehlern mit Exitcode 1.
+
+Größe und Dauer allein entdecken kein kurzes Lachen oder erfundene Wörter. Deshalb anschließend immer den lokalen SPEACHES-Whisper-Rücktest ausführen:
+
+```bash
+python3 scripts/verify_audio_speaches.py --course en-6 --workers 2
+```
+
+SPEACHES läuft üblicherweise auf Port 8000. Der API-Schlüssel kommt aus `SPEACHES_API_KEY`/`API_KEY` oder wird lokal aus dem Container `speaches` gelesen; nie ausgeben oder einchecken. Der Bericht liegt in `scripts/vocab_import/class6_audio_stt_report.json` und unterscheidet `pass`, `review`, `fail` und transparente Kontext-Sonderprüfungen.
+
+Markierte Clips lassen sich gesammelt neu erzeugen:
+
+```bash
+./generate_audio.sh --course en-6 \
+  --ids-from-report scripts/vocab_import/class6_audio_stt_report.json \
+  --engine qwen3-builtin
+```
+
+Whisper ist bei isolierten, sehr kurzen Wörtern und Homophonen keine perfekte Ausspracheinstanz. Solche Fälle kontextgestützt prüfen und jede Ausnahme in `audio_verification_overrides.json` mit Methode, Transkript und Wahrscheinlichkeit begründen. Keine pauschalen Ausnahmen hinzufügen.
+
+Für im Bericht verbleibende `fail`-/`review`-Kurzclips steht dafür der reproduzierbare Kontext-Crop-Lauf bereit:
+
+```bash
+python3 scripts/regenerate_audio_in_context.py
+```
+
+## Arbeitsweise für Änderungen
+
+- Bestehende Nutzeränderungen und nicht zugehörige Dateien nicht überschreiben.
+- Generierte Daten nur zusammen mit ihren Quellen, Korrekturen und Berichten ändern.
+- Kursabhängige Zustände stets über `state.courseId` trennen.
+- Englisch-5-`localStorage`-Migrationen erhalten; bestehende Lernstände dürfen nicht verloren gehen.
+- UI-Texte für Fach und Klasse aus dem aktiven Kurs ableiten, nicht hart auf Englisch verdrahten.
+- Französisch benötigt Unicode-fähige Buchstabenbehandlung; der Schreibmodus verwendet deshalb Unicode-Letter-Tokenisierung.
+- Bei neuen Units mit Satzzeichen Filterkodierung und Bestenlisten-Kategorien testen.
+- Secrets, `.env`, Quellfotos und temporäre OCR-/Audioartefakte nicht committen.
+- Keine erzeugten `__pycache__`, `*.tmp.mp3` oder Server-Logs im Repository lassen.
+
+## Verifikation vor Übergabe
+
+Mindestens ausführen:
+
+```bash
+node --check js/app.js
+node --check js/leaderboard.js
+node --check js/vocab_utils.js
+node --test tests/course-expansion.test.js
+bash -n generate_audio.sh
+python3 -m py_compile scripts/verify_audio_speaches.py
+git diff --check
+```
+
+Für UI-Änderungen zusätzlich lokal ausliefern und den echten Browserablauf testen:
+
+```bash
+python3 -m http.server 8765 --bind 127.0.0.1
+```
+
+Mindestens Passwort → AGB/Datenschutz → Klasse/Fach → Spielfigur → Stadt → Lernpfad → einzelne Unit → Spiel prüfen. Außerdem Browserkonsole, mobile Darstellung, Audio-Wiedergabe und Rücknavigation kontrollieren.
+
+Bei Audio- oder Datenänderungen zusätzlich sicherstellen:
+
+- exakt 869 Englisch-6-Datensätze und 869 erwartete MP3-Pfade,
+- keine fehlenden oder zusätzlichen Audio-IDs,
+- keine temporären MP3-Dateien,
+- abschließender SPEACHES-Bericht ohne ungeklärte grobe Halluzinationen.

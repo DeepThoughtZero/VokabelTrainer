@@ -1,0 +1,85 @@
+{
+  "en6-p289-041": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The bird is an owl.",
+    "sourceTranscript": "The bird is an owl.",
+    "sourceWordProbability": 0.98388671875,
+    "cropSeconds": [
+      1.84,
+      2.42
+    ],
+    "reason": "Whisper repeatedly confuses the isolated sub-second word with 'ow/how', so it was generated and verified in unambiguous context before cropping."
+  },
+  "en6-p285-008": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: queue.",
+    "sourceTranscript": "The vocabulary expression is Q.",
+    "targetTranscript": "Q.",
+    "sourceWordProbability": 0.158569,
+    "cropSeconds": [
+      2.0,
+      2.76
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p286-023": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: to meet.",
+    "sourceTranscript": "The vocabulary expression is to meet.",
+    "targetTranscript": "to meet.",
+    "sourceWordProbability": 0.614502,
+    "cropSeconds": [
+      3.28,
+      6.18
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p288-022": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: Dear ...,.",
+    "sourceTranscript": "The vocabulary expression is, dear.",
+    "targetTranscript": "dear.",
+    "sourceWordProbability": 0.359131,
+    "cropSeconds": [
+      2.24,
+      3.0
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p289-017": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: to lead, led.",
+    "sourceTranscript": "The vocabulary expression is to lead, led.",
+    "targetTranscript": "to lead, led.",
+    "sourceWordProbability": 0.635091,
+    "cropSeconds": [
+      3.08,
+      5.5
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p293-007": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: centre.",
+    "sourceTranscript": "The vocabulary expression is center.",
+    "targetTranscript": "center.",
+    "sourceWordProbability": 0.749512,
+    "cropSeconds": [
+      2.96,
+      4.14
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p294-003": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: gate.",
+    "sourceTranscript": "The vocabulary expression is gate.",
+    "targetTranscript": "gate.",
+    "sourceWordProbability": 0.384033,
+    "cropSeconds": [
+      2.3,
+      3.38
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  }
+}

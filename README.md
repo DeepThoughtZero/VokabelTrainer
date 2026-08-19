@@ -31,6 +31,12 @@ Klasse 6 verwendet stabile Audio-IDs im Ordner `assets/audio/vocab/en-6`. Fehlen
 
 Der Generator prüft die tatsächliche Audiodauer passend zur Wortzahl und wiederholt verdächtig lange Ausgaben automatisch.
 
+Der komplette Audioinhalt kann zusätzlich mit dem lokalen SPEACHES-Whisper rückgeprüft werden. Der JSON-Bericht trennt sichere Treffer, unsichere Kurzformen und klare Abweichungen:
+
+```bash
+python3 scripts/verify_audio_speaches.py --course en-6 --workers 2
+```
+
 ## 🦊 Entwickler
 
 Entwickelt mit ❤️ von **Magic Fox Studios**.

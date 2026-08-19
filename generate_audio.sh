@@ -21,6 +21,8 @@ set -Eeuo pipefail
 # ── Argumente parsen ──
 ONLY_MISSING=false
 PAGE_FILTER=""
+ID_FILTER=""
+IDS_REPORT=""
 COURSE_ID="en-5"
 
 while [[ $# -gt 0 ]]; do
@@ -31,6 +33,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --page)
       PAGE_FILTER="$2"
+      shift 2
+      ;;
+    --id)
+      ID_FILTER="$2"
+      shift 2
+      ;;
+    --ids-from-report)
+      IDS_REPORT="$2"
       shift 2
       ;;
     --course)
@@ -46,7 +56,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --help|-h)
-      echo "Verwendung: $0 [--course en-5|en-6] [--only-missing] [--page <seite>] [--engine <name>] [--voice <name>]"
+      echo "Verwendung: $0 [--course en-5|en-6] [--only-missing] [--page <seite>] [--id <audio-id>] [--ids-from-report <speaches-report.json>] [--engine <name>] [--voice <name>]"
       exit 0
       ;;
     *)
@@ -88,6 +98,7 @@ elif [[ "$ENGINE" == "qwen3-builtin" ]]; then
   MODEL="${MODEL:-qwen3-tts}"
   VOICE="${VOICE:-ryan}"
   LANGUAGE="${LANGUAGE:-english}"
+  INSTRUCT="${INSTRUCT:-Speak this English vocabulary expression clearly and exactly once. Do not add, omit, spell, or repeat any words. Use standard British English pronunciation.}"
   SPEED="${SPEED:-1.0}"
 else
   # Default to Voxtral
@@ -124,9 +135,10 @@ synthesize_json() {
       --arg input "$text" \
       --arg voice "$VOICE" \
       --arg language "$LANGUAGE" \
+      --arg instruct "$INSTRUCT" \
       --arg response_format "mp3" \
       --argjson speed "$SPEED" \
-      '{model: $model, input: $input, voice: $voice, language: $language, response_format: $response_format, speed: $speed}')
+      '{model: $model, input: $input, voice: $voice, language: $language, instruct: $instruct, response_format: $response_format, speed: $speed}')
   else
     payload=$(jq -n \
       --arg model "$MODEL" \
@@ -196,12 +208,29 @@ else
   jq_input=$(sed -e '/^\/\//d' -e "s/^window.VOCABULARIES\['en-6'\] = //" -e 's/;$//' "$VOCAB_FILE")
 fi
 
-if [[ -n "$PAGE_FILTER" ]]; then
+if [[ -n "$ID_FILTER" ]]; then
+  [[ "$COURSE_ID" == "en-6" ]] || {
+    echo "--id wird nur für Kurse mit stabilen Audio-IDs unterstützt." >&2
+    exit 1
+  }
+  jq_items=$(echo "$jq_input" | jq -c --arg id "$ID_FILTER" 'map(select(.id == $id))')
+elif [[ -n "$IDS_REPORT" ]]; then
+  [[ -f "$IDS_REPORT" ]] || {
+    echo "SPEACHES-Bericht nicht gefunden: $IDS_REPORT" >&2
+    exit 1
+  }
+  report_ids=$(jq -c '[.results[] | select(.status == "fail" or .status == "review") | .id]' "$IDS_REPORT")
+  jq_items=$(echo "$jq_input" | jq -c --argjson ids "$report_ids" 'map(select(.id as $id | $ids | index($id)))')
+elif [[ -n "$PAGE_FILTER" ]]; then
   jq_items=$(echo "$jq_input" | jq -c "map(select(.page == $PAGE_FILTER))")
 else
   jq_items="$jq_input"
 fi
 total_items=$(echo "$jq_items" | jq '. | length')
+if [[ "$total_items" -eq 0 ]]; then
+  echo "Keine passenden Vokabeln gefunden." >&2
+  exit 1
+fi
 count_current=0
 
 while IFS= read -r item; do
@@ -255,13 +284,30 @@ while IFS= read -r item; do
     text="${text}."
   fi
 
+  word_count=$(wc -w <<<"$text")
+  # Einzelwörter dürfen etwas Luft haben; längere Einträge erhalten ein zur
+  # Wortzahl passendes Limit. Zehn Sekunden sind für eine Vokabel immer genug.
+  max_duration=$(awk -v words="$word_count" 'BEGIN { limit = words * 0.75 + 2.5; if (limit < 4) limit = 4; if (limit > 10) limit = 10; printf "%.1f", limit }')
+
+  validate_audio() {
+    local candidate="$1"
+    [[ -s "$candidate" ]] || return 1
+    filesize=$(stat -c%s "$candidate" 2>/dev/null || echo 0)
+    duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$candidate" 2>/dev/null || echo 0)
+    awk -v bytes="$filesize" -v duration="$duration" -v maximum="$max_duration" \
+      'BEGIN { exit !(bytes >= 1000 && duration >= 0.2 && duration <= maximum) }'
+  }
+
   if $ONLY_MISSING && [[ -f "$filepath" ]]; then
-    echo "⏭️  Überspringe $filename (existiert bereits)"
-    count_skipped=$((count_skipped + 1))
-    continue
+    if validate_audio "$filepath"; then
+      printf '⏭️  Überspringe %s (geprüft: %d KB, %.1f s)\n' "$filename" "$((filesize/1024))" "$duration"
+      count_skipped=$((count_skipped + 1))
+      continue
+    fi
+    printf '♻️  Erzeuge %s neu (vorhandene Datei unplausibel: %.1f s)\n' "$filename" "$duration"
   fi
 
-  max_retries=3
+  max_retries=5
   attempt=1
   success=false
 
@@ -272,11 +318,7 @@ while IFS= read -r item; do
       ffmpeg -y -hide_banner -loglevel error -i "$filepath.tmp.mp3" -af "loudnorm=I=-16:TP=-1.5:LRA=11" "$filepath"
       rm -f "$filepath.tmp.mp3"
       
-      filesize=$(stat -c%s "$filepath" 2>/dev/null || echo 0)
-      duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$filepath" 2>/dev/null || echo 0)
-      word_count=$(wc -w <<<"$text")
-      max_duration=$(awk -v words="$word_count" 'BEGIN { limit = words * 1.2 + 3; if (limit < 4) limit = 4; printf "%.1f", limit }')
-      if awk -v duration="$duration" -v maximum="$max_duration" 'BEGIN { exit !(duration >= 0.2 && duration <= maximum) }'; then
+      if validate_audio "$filepath"; then
         printf '✅ OK (%d KB, %.1f s)\n' "$((filesize/1024))" "$duration"
         success=true
         count_generated=$((count_generated + 1))
@@ -304,3 +346,7 @@ echo "  Generiert: $count_generated"
 echo "  Übersprungen: $count_skipped"
 echo "  Fehler: $count_failed"
 echo "═══════════════════════════════════"
+
+if [[ "$count_failed" -gt 0 ]]; then
+  exit 1
+fi
