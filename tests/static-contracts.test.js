@@ -44,6 +44,7 @@ test('DOM ids are unique and screen dependencies load before app.js', () => {
 
 test('password, terms and course screens preserve the required entry flow', () => {
     const html = read('index.html');
+    const app = read('js/app.js');
     const password = html.indexOf('id="login-screen"');
     const terms = html.indexOf('id="terms-screen"');
     const course = html.indexOf('id="course-selection-screen"');
@@ -54,6 +55,8 @@ test('password, terms and course screens preserve the required entry flow', () =
     assert.match(html, /<h2>Klasse<\/h2>/);
     assert.match(html, /<h2>Fach<\/h2>/);
     assert.doesNotMatch(html, /<h2>\d+\.\s+(?:Klasse|Fach)<\/h2>/);
+    assert.doesNotMatch(html, /course-selection-hint/);
+    assert.doesNotMatch(app, /Ausgewählt:\s*\$\{window\.getCourseLabel/);
 });
 
 test('mission loop is a separate play style with a finite learning objective', () => {
@@ -98,6 +101,7 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.match(css, /\.mission-phase-overlay\s*\{/);
     assert.match(css, /\.mission-progression\s*\{/);
     assert.match(css, /\.profile-rescue-career\s*\{/);
+    assert.match(css, /#profile-rescue-medals\s*\{[^}]*white-space:\s*nowrap;/s);
 });
 
 test('active correction is mission-only and returns as a visibly marked zombie', () => {

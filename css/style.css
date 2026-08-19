@@ -674,13 +674,6 @@ body {
     cursor: pointer;
 }
 
-.course-selection-hint {
-    min-height: 1.8em;
-    margin: 12px 0 20px;
-    color: #ffda6a;
-    font-size: 1.25rem;
-}
-
 .course-change-btn {
     position: absolute;
     top: 20px;
@@ -2296,7 +2289,7 @@ select {
 
 .profile-rescue-stats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 0.9fr)) minmax(0, 1.3fr);
     gap: 8px;
 }
 
@@ -2314,6 +2307,12 @@ select {
 .profile-rescue-stats strong {
     color: #fff;
     font-size: 1.4rem;
+}
+
+#profile-rescue-medals {
+    white-space: nowrap;
+    font-size: clamp(1rem, 1.4vw, 1.2rem);
+    letter-spacing: -0.02em;
 }
 
 .profile-rescue-stats span {

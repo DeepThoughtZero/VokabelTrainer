@@ -860,7 +860,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSubjectSelection() {
         const container = document.getElementById('subject-selection');
-        const hint = document.getElementById('course-selection-hint');
         if (!container) return;
         container.innerHTML = '';
 
@@ -887,12 +886,6 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(button);
         });
 
-        const selected = window.getCourseById(pendingCourseId);
-        if (hint) {
-            hint.textContent = selected
-                ? `Ausgewählt: ${window.getCourseLabel(selected)}`
-                : 'Für diese Klasse ist noch kein Fach spielbereit.';
-        }
     }
 
     document.querySelectorAll('.grade-card').forEach(button => {
