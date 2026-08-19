@@ -24,6 +24,7 @@ Spielbereit sind Englisch 5 und Englisch 6. Französisch 6 und Latein 6 sind im 
 - Persistenz: `localStorage`, getrennt nach Kurs für SRS und persönliche Bestwerte
 - Bestenliste: Google Apps Script und Google Sheet über `js/leaderboard.js`
 - Automatisierte Tests: Node-eigener Test Runner, keine npm-Installation erforderlich
+- Qualitätsprüfung: ausschließlich lokal über `test.sh`/`scripts/verify.sh`; keine GitHub Actions
 - Hilfsskripte: Bash und Python 3; `jq`, `curl`, `ffmpeg` und `ffprobe` werden für Audio benötigt
 
 ## Wichtige Ordner und Dateien
@@ -41,7 +42,11 @@ Spielbereit sind Englisch 5 und Englisch 6. Französisch 6 und Latein 6 sind im 
 - `scripts/vocab_import`: reproduzierbare OCR-, Korrektur-, Build- und Audit-Daten für Englisch 6
 - `assets/audio`: bestehende Englisch-5-Audios
 - `assets/audio/vocab/en-6`: Englisch-6-Audios, Dateiname gleich stabiler Vokabel-ID
-- `tests/course-expansion.test.js`: Struktur-, Daten-, Migrations- und Filtertests
+- `tests/course-expansion.test.js`: Kurs-, Migrations- und Filtertests
+- `tests/static-contracts.test.js`: statische Pfade, DOM, Ladefolge, Persistenz- und Apps-Script-Verträge
+- `tests/vocabulary-integrity.test.js`: Importbericht, Datenvertrag und vollständige Audiozuordnung
+- `scripts/check_audio_integrity.py`: lokaler ffprobe- und SPEACHES-Berichts-Gatekeeper
+- `.githooks`: optionale lokale Pre-Commit- und Pre-Push-Hooks
 
 ## Kurs- und Vokabelvertrag
 
@@ -130,19 +135,19 @@ python3 scripts/regenerate_audio_in_context.py
 - Secrets, `.env`, Quellfotos und temporäre OCR-/Audioartefakte nicht committen.
 - Keine erzeugten `__pycache__`, `*.tmp.mp3` oder Server-Logs im Repository lassen.
 
-## Verifikation vor Übergabe
+## Verifikation vor Commit und Push
 
-Mindestens ausführen:
+Die einheitliche lokale Prüfkette lautet:
 
 ```bash
-node --check js/app.js
-node --check js/leaderboard.js
-node --check js/vocab_utils.js
-node --test tests/course-expansion.test.js
-bash -n generate_audio.sh
-python3 -m py_compile scripts/verify_audio_speaches.py
-git diff --check
+./test.sh --quick     # vor einem Commit
+./test.sh --full      # vor einem Push
+./test.sh --with-stt  # nach Audioänderungen; erneuert den SPEACHES-Vollbericht
 ```
+
+`--quick` prüft Diff-Hygiene, Konfliktmarker, unerlaubte Cache-/Temporärdateien, JavaScript-/Bash-/Python-Syntax und alle Node-Tests. `--full` validiert zusätzlich exakt 869 MP3s mit `ffprobe` sowie Vollständigkeit, Status und Zeitstempel des vorhandenen SPEACHES-Berichts. `--with-stt` führt den lokalen Whisper-Rücktest zuvor neu aus. Es gibt bewusst keine GitHub-Action.
+
+Lokale Hooks werden nicht ungefragt aktiviert. Wer sie nutzen möchte, führt einmal `./scripts/install_git_hooks.sh` aus; danach startet Pre-Commit `--quick` und Pre-Push `--full`.
 
 Für UI-Änderungen zusätzlich lokal ausliefern und den echten Browserablauf testen:
 

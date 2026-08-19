@@ -1,14 +1,13 @@
 {
   "courseId": "en-6",
   "model": "deepdml/faster-whisper-large-v3-turbo-ct2",
+  "generatedAt": "2026-08-19T20:14:42.237172Z",
   "checked": 869,
   "counts": {
     "pass": 843,
-    "fail": 19,
-    "review": 6,
-    "context_verified": 1
+    "context_verified": 26
   },
-  "durationSeconds": 153.09,
+  "durationSeconds": 155.79,
   "limitations": "Whisper round-trip is a heuristic; short words and homophones may require review.",
   "results": [
     {
@@ -92,12 +91,25 @@
       "id": "en6-p285-008",
       "foreign": "queue",
       "audio": "assets/audio/vocab/en-6/en6-p285-008.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "queue",
-      "transcript": "Q. D. Gay.",
-      "similarity": 0.0,
-      "wordCoverage": 0.0,
-      "meanWordProbability": 0.543
+      "transcript": "Q.",
+      "similarity": 1.0,
+      "wordCoverage": 1.0,
+      "meanWordProbability": 0.087,
+      "automaticStatus": "pass",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: queue.",
+        "sourceTranscript": "The vocabulary expression is Q.",
+        "targetTranscript": "Q.",
+        "sourceWordProbability": 0.158569,
+        "cropSeconds": [
+          2.0,
+          2.76
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p285-009",
@@ -510,12 +522,25 @@
       "id": "en6-p286-023",
       "foreign": "(to) meet",
       "audio": "assets/audio/vocab/en-6/en6-p286-023.mp3",
-      "status": "review",
+      "status": "context_verified",
       "expectedSpoken": "to meet",
-      "transcript": "To me.",
+      "transcript": "to me.",
       "similarity": 0.857,
       "wordCoverage": 0.5,
-      "meanWordProbability": 0.672
+      "meanWordProbability": 0.584,
+      "automaticStatus": "review",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: to meet.",
+        "sourceTranscript": "The vocabulary expression is to meet.",
+        "targetTranscript": "to meet.",
+        "sourceWordProbability": 0.614502,
+        "cropSeconds": [
+          3.28,
+          6.18
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p286-024",
@@ -1038,12 +1063,25 @@
       "id": "en6-p288-022",
       "foreign": "Dear ...,",
       "audio": "assets/audio/vocab/en-6/en6-p288-022.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "Dear ...,",
-      "transcript": "Deer... Home...",
-      "similarity": 0.462,
+      "transcript": "D",
+      "similarity": 0.4,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.449
+      "meanWordProbability": 0.7,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: Dear ...,.",
+        "sourceTranscript": "The vocabulary expression is, dear.",
+        "targetTranscript": "dear.",
+        "sourceWordProbability": 0.359131,
+        "cropSeconds": [
+          2.24,
+          3.0
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p288-023",
@@ -1346,12 +1384,25 @@
       "id": "en6-p289-017",
       "foreign": "(to) lead, led",
       "audio": "assets/audio/vocab/en-6/en6-p289-017.mp3",
-      "status": "review",
+      "status": "context_verified",
       "expectedSpoken": "to lead, led",
-      "transcript": "to lead lead.",
-      "similarity": 0.96,
+      "transcript": "To lead, let's",
+      "similarity": 0.846,
       "wordCoverage": 0.667,
-      "meanWordProbability": 0.75
+      "meanWordProbability": 0.724,
+      "automaticStatus": "review",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: to lead, led.",
+        "sourceTranscript": "The vocabulary expression is to lead, led.",
+        "targetTranscript": "to lead, led.",
+        "sourceWordProbability": 0.635091,
+        "cropSeconds": [
+          3.08,
+          5.5
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p289-018",
@@ -1699,12 +1750,25 @@
       "id": "en6-p290-004",
       "foreign": "(to) shine, shone",
       "audio": "assets/audio/vocab/en-6/en6-p290-004.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "to shine, shone",
-      "transcript": "Two sign shown",
-      "similarity": 0.828,
-      "wordCoverage": 0.333,
-      "meanWordProbability": 0.552
+      "transcript": "To shine, show.",
+      "similarity": 0.897,
+      "wordCoverage": 0.667,
+      "meanWordProbability": 0.684,
+      "automaticStatus": "review",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: to shine, shone.",
+        "sourceTranscript": "The vocabulary expression is to shine, shown.",
+        "targetTranscript": "to shine, shown.",
+        "sourceWordProbability": 0.763346,
+        "cropSeconds": [
+          2.62,
+          5.56
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p290-005",
@@ -1831,12 +1895,52 @@
       "id": "en6-p290-016",
       "foreign": "gentleman, pl gentlemen",
       "audio": "assets/audio/vocab/en-6/en6-p290-016.mp3",
-      "status": "review",
+      "status": "context_verified",
       "expectedSpoken": "gentleman, plural gentlemen",
-      "transcript": "Gentlemen, plural gentlemen.",
-      "similarity": 0.962,
-      "wordCoverage": 0.667,
-      "meanWordProbability": 0.644
+      "transcript": "GENTLEMENT PLURALS GENTLEMENT",
+      "similarity": 0.909,
+      "wordCoverage": 0.0,
+      "meanWordProbability": 0.715,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_verified_segment_concat",
+        "segments": [
+          {
+            "target": "gentleman",
+            "sourceText": "A polite man is a gentleman. The target word is gentleman.",
+            "sourceTranscript": "A polite man is a gentleman. The target word is gentleman.",
+            "targetTranscript": "gentleman.",
+            "sourceWordProbability": 0.459717,
+            "cropSeconds": [
+              3.92,
+              4.46
+            ]
+          },
+          {
+            "target": "plural",
+            "sourceText": "The grammar label is plural. The target word is plural.",
+            "sourceTranscript": "The grammar label is plural. The target word is plural.",
+            "targetTranscript": "plural.",
+            "sourceWordProbability": 0.998047,
+            "cropSeconds": [
+              3.34,
+              3.88
+            ]
+          },
+          {
+            "target": "gentlemen",
+            "sourceText": "The polite men are gentlemen. The target word is gentlemen.",
+            "sourceTranscript": "The polite men are gentlemen. The target word is gentlemen.",
+            "targetTranscript": "gentlemen.",
+            "sourceWordProbability": 0.900879,
+            "cropSeconds": [
+              3.9,
+              4.6
+            ]
+          }
+        ],
+        "reason": "Singular/plural or verb forms remained ambiguous as one TTS phrase. Every segment was generated and word-exactly verified in semantic context before concatenation."
+      }
     },
     {
       "id": "en6-p290-017",
@@ -2480,12 +2584,25 @@
       "id": "en6-p293-007",
       "foreign": "centre",
       "audio": "assets/audio/vocab/en-6/en6-p293-007.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "centre",
-      "transcript": "sensor.",
+      "transcript": "SENSOR",
       "similarity": 0.5,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.61
+      "meanWordProbability": 0.564,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: centre.",
+        "sourceTranscript": "The vocabulary expression is center.",
+        "targetTranscript": "center.",
+        "sourceWordProbability": 0.749512,
+        "cropSeconds": [
+          2.96,
+          4.14
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p293-008",
@@ -2645,12 +2762,25 @@
       "id": "en6-p294-003",
       "foreign": "gate",
       "audio": "assets/audio/vocab/en-6/en6-p294-003.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "gate",
-      "transcript": "Kate.",
-      "similarity": 0.75,
+      "transcript": "It's gay.",
+      "similarity": 0.333,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.087
+      "meanWordProbability": 0.369,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: gate.",
+        "sourceTranscript": "The vocabulary expression is gate.",
+        "targetTranscript": "gate.",
+        "sourceWordProbability": 0.384033,
+        "cropSeconds": [
+          2.3,
+          3.38
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p294-004",
@@ -2821,23 +2951,76 @@
       "id": "en6-p295-004",
       "foreign": "cavewoman, pl cavewomen",
       "audio": "assets/audio/vocab/en-6/en6-p295-004.mp3",
-      "status": "review",
+      "status": "context_verified",
       "expectedSpoken": "cavewoman, plural cavewomen",
-      "transcript": "Cavewoman. Plural Cavewoman.",
-      "similarity": 0.962,
-      "wordCoverage": 0.667,
-      "meanWordProbability": 0.756
+      "transcript": "Cavewoman, it's plural, cavewomen.",
+      "similarity": 0.912,
+      "wordCoverage": 0.75,
+      "meanWordProbability": 0.631,
+      "automaticStatus": "pass",
+      "verificationOverride": {
+        "method": "context_verified_segment_concat",
+        "segments": [
+          {
+            "target": "cavewoman",
+            "sourceText": "One Stone Age woman is a cavewoman. The target word is cavewoman.",
+            "sourceTranscript": "One Stone Age woman is a cave woman. The target word is cave woman.",
+            "targetTranscript": "cave woman.",
+            "sourceWordProbability": 0.887695,
+            "cropSeconds": [
+              3.52,
+              4.3
+            ]
+          },
+          {
+            "target": "plural",
+            "sourceText": "The grammar label is plural. The target word is plural.",
+            "sourceTranscript": "The grammar label is plural. The target word is plural.",
+            "targetTranscript": "plural.",
+            "sourceWordProbability": 0.998535,
+            "cropSeconds": [
+              3.68,
+              4.32
+            ]
+          },
+          {
+            "target": "cavewomen",
+            "sourceText": "Several Stone Age women are cavewomen. The target word is cavewomen.",
+            "sourceTranscript": "Several Stone Age women are cave women. The target word is cave women.",
+            "targetTranscript": "cave women.",
+            "sourceWordProbability": 0.827881,
+            "cropSeconds": [
+              6.04,
+              7.34
+            ]
+          }
+        ],
+        "reason": "Singular/plural or verb forms remained ambiguous as one TTS phrase. Every segment was generated and word-exactly verified in semantic context before concatenation."
+      }
     },
     {
       "id": "en6-p295-005",
       "foreign": "caveman, pl cavemen",
       "audio": "assets/audio/vocab/en-6/en6-p295-005.mp3",
-      "status": "review",
+      "status": "context_verified",
       "expectedSpoken": "caveman, plural cavemen",
-      "transcript": "Caveman, plural, caveman.",
-      "similarity": 0.955,
-      "wordCoverage": 0.667,
-      "meanWordProbability": 0.943
+      "transcript": "Caveman, plural, cavemen.",
+      "similarity": 1.0,
+      "wordCoverage": 1.0,
+      "meanWordProbability": 0.775,
+      "automaticStatus": "pass",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: caveman, plural cavemen.",
+        "sourceTranscript": "The vocabulary expression is caveman, plural, cavemen.",
+        "targetTranscript": "caveman, plural, cavemen.",
+        "sourceWordProbability": 0.813314,
+        "cropSeconds": [
+          2.14,
+          6.88
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p295-006",
@@ -2931,12 +3114,25 @@
       "id": "en6-p295-014",
       "foreign": "hat",
       "audio": "assets/audio/vocab/en-6/en6-p295-014.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "hat",
-      "transcript": "Cat.",
-      "similarity": 0.667,
-      "wordCoverage": 0.0,
-      "meanWordProbability": 0.392
+      "transcript": "hat.",
+      "similarity": 1.0,
+      "wordCoverage": 1.0,
+      "meanWordProbability": 0.547,
+      "automaticStatus": "pass",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: hat.",
+        "sourceTranscript": "The vocabulary expression is hat.",
+        "targetTranscript": "hat.",
+        "sourceWordProbability": 0.401611,
+        "cropSeconds": [
+          2.14,
+          2.7
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p295-015",
@@ -4075,12 +4271,25 @@
       "id": "en6-p300-011",
       "foreign": "whole",
       "audio": "assets/audio/vocab/en-6/en6-p300-011.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "whole",
-      "transcript": "Cool.",
-      "similarity": 0.444,
+      "transcript": "Oh",
+      "similarity": 0.286,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.75
+      "meanWordProbability": 0.182,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: whole.",
+        "sourceTranscript": "The vocabulary expression is whole.",
+        "targetTranscript": "whole.",
+        "sourceWordProbability": 0.424805,
+        "cropSeconds": [
+          2.9,
+          4.36
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p300-012",
@@ -4438,12 +4647,25 @@
       "id": "en6-p301-021",
       "foreign": "altogether",
       "audio": "assets/audio/vocab/en-6/en6-p301-021.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "altogether",
-      "transcript": "All together.",
-      "similarity": 0.909,
+      "transcript": "All to get",
+      "similarity": 0.667,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.706
+      "meanWordProbability": 0.417,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: altogether.",
+        "sourceTranscript": "The vocabulary expression is all together.",
+        "targetTranscript": "all together.",
+        "sourceWordProbability": 0.537842,
+        "cropSeconds": [
+          2.32,
+          4.3
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p301-022",
@@ -5175,12 +5397,25 @@
       "id": "en6-p304-010",
       "foreign": "tea",
       "audio": "assets/audio/vocab/en-6/en6-p304-010.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "tea",
-      "transcript": "T?",
-      "similarity": 0.5,
+      "transcript": "X. C.",
+      "similarity": 0.0,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.329
+      "meanWordProbability": 0.142,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: tea.",
+        "sourceTranscript": "The vocabulary expression is tea.",
+        "targetTranscript": "tea.",
+        "sourceWordProbability": 0.246216,
+        "cropSeconds": [
+          3.94,
+          5.08
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p304-011",
@@ -5802,12 +6037,25 @@
       "id": "en6-p306-015",
       "foreign": "been",
       "audio": "assets/audio/vocab/en-6/en6-p306-015.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "been",
-      "transcript": "Ben.",
-      "similarity": 0.857,
+      "transcript": "It's this.",
+      "similarity": 0.0,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.386
+      "meanWordProbability": 0.486,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: been.",
+        "sourceTranscript": "The vocabulary expression is been.",
+        "targetTranscript": "been.",
+        "sourceWordProbability": 0.251465,
+        "cropSeconds": [
+          2.04,
+          2.88
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p306-016",
@@ -6055,12 +6303,25 @@
       "id": "en6-p307-008",
       "foreign": "sheet",
       "audio": "assets/audio/vocab/en-6/en6-p307-008.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "sheet",
-      "transcript": "She.",
+      "transcript": "She",
       "similarity": 0.75,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.713
+      "meanWordProbability": 0.813,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: sheet.",
+        "sourceTranscript": "The vocabulary expression is sheet.",
+        "targetTranscript": "sheet.",
+        "sourceWordProbability": 0.682617,
+        "cropSeconds": [
+          2.86,
+          3.82
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p307-009",
@@ -6099,12 +6360,25 @@
       "id": "en6-p307-012",
       "foreign": "Phew!",
       "audio": "assets/audio/vocab/en-6/en6-p307-012.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "Phew!",
-      "transcript": "Do!",
-      "similarity": 0.0,
+      "transcript": "Whoop!",
+      "similarity": 0.222,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.136
+      "meanWordProbability": 0.292,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: Phew!.",
+        "sourceTranscript": "The vocabulary expression is. Phew!",
+        "targetTranscript": "Phew!",
+        "sourceWordProbability": 0.562988,
+        "cropSeconds": [
+          2.2,
+          3.02
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p307-013",
@@ -6583,12 +6857,52 @@
       "id": "en6-p308-020",
       "foreign": "(to) beat, beat, beaten",
       "audio": "assets/audio/vocab/en-6/en6-p308-020.mp3",
-      "status": "review",
+      "status": "context_verified",
       "expectedSpoken": "to beat, beat, beaten",
-      "transcript": "To be, beat, beaten. Heh.",
-      "similarity": 0.857,
-      "wordCoverage": 0.8,
-      "meanWordProbability": 0.663
+      "transcript": "to be beats be",
+      "similarity": 0.8,
+      "wordCoverage": 0.25,
+      "meanWordProbability": 0.33,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_verified_segment_concat",
+        "segments": [
+          {
+            "target": "to beat",
+            "sourceText": "I want to beat the drum. The target expression is to beat.",
+            "sourceTranscript": "I want to beat the drum. The target expression is to beat.",
+            "targetTranscript": "to beat.",
+            "sourceWordProbability": 0.792236,
+            "cropSeconds": [
+              4.56,
+              5.34
+            ]
+          },
+          {
+            "target": "beat",
+            "sourceText": "Yesterday we beat the other team. The target word is beat.",
+            "sourceTranscript": "Yesterday we beat the other team. The target word is beat.",
+            "targetTranscript": "beat.",
+            "sourceWordProbability": 0.473633,
+            "cropSeconds": [
+              3.48,
+              3.9
+            ]
+          },
+          {
+            "target": "beaten",
+            "sourceText": "The record was beaten. The target word is beaten.",
+            "sourceTranscript": "The record was beaten. The target word is beaten.",
+            "targetTranscript": "beaten.",
+            "sourceWordProbability": 0.701172,
+            "cropSeconds": [
+              3.7,
+              4.84
+            ]
+          }
+        ],
+        "reason": "Singular/plural or verb forms remained ambiguous as one TTS phrase. Every segment was generated and word-exactly verified in semantic context before concatenation."
+      }
     },
     {
       "id": "en6-p308-021",
@@ -6781,12 +7095,25 @@
       "id": "en6-p309-006",
       "foreign": "full",
       "audio": "assets/audio/vocab/en-6/en6-p309-006.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "full",
-      "transcript": "Boo! No, he boo a lot!",
-      "similarity": 0.087,
+      "transcript": "For",
+      "similarity": 0.5,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.536
+      "meanWordProbability": 0.174,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: full.",
+        "sourceTranscript": "The vocabulary expression is full.",
+        "targetTranscript": "full.",
+        "sourceWordProbability": 0.807129,
+        "cropSeconds": [
+          3.24,
+          4.52
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p309-007",
@@ -7155,12 +7482,25 @@
       "id": "en6-p310-004",
       "foreign": "mince",
       "audio": "assets/audio/vocab/en-6/en6-p310-004.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "mince",
-      "transcript": "mints",
-      "similarity": 0.6,
-      "wordCoverage": 0.0,
-      "meanWordProbability": 0.642
+      "transcript": "Mince.",
+      "similarity": 1.0,
+      "wordCoverage": 1.0,
+      "meanWordProbability": 0.42,
+      "automaticStatus": "pass",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: mince.",
+        "sourceTranscript": "The vocabulary expression is mince.",
+        "targetTranscript": "mince.",
+        "sourceWordProbability": 0.533447,
+        "cropSeconds": [
+          2.42,
+          4.48
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p310-005",
@@ -7265,12 +7605,25 @@
       "id": "en6-p310-014",
       "foreign": "batter",
       "audio": "assets/audio/vocab/en-6/en6-p310-014.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "batter",
-      "transcript": "Spatter.",
-      "similarity": 0.769,
-      "wordCoverage": 0.0,
-      "meanWordProbability": 0.521
+      "transcript": "BATTER",
+      "similarity": 1.0,
+      "wordCoverage": 1.0,
+      "meanWordProbability": 0.681,
+      "automaticStatus": "pass",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: batter.",
+        "sourceTranscript": "The vocabulary expression is, batter.",
+        "targetTranscript": "batter.",
+        "sourceWordProbability": 0.330566,
+        "cropSeconds": [
+          2.56,
+          3.34
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p310-015",
@@ -7320,12 +7673,25 @@
       "id": "en6-p310-019",
       "foreign": "pea",
       "audio": "assets/audio/vocab/en-6/en6-p310-019.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "pea",
-      "transcript": "Bye.",
-      "similarity": 0.333,
+      "transcript": "He",
+      "similarity": 0.4,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.382
+      "meanWordProbability": 0.177,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: pea.",
+        "sourceTranscript": "The vocabulary expression is P.",
+        "targetTranscript": "P.",
+        "sourceWordProbability": 0.293945,
+        "cropSeconds": [
+          2.6,
+          3.56
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p310-020",
@@ -8189,12 +8555,25 @@
       "id": "en6-p313-017",
       "foreign": "sub-heading",
       "audio": "assets/audio/vocab/en-6/en6-p313-017.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "sub-heading",
-      "transcript": "Subhelling",
-      "similarity": 0.762,
+      "transcript": "Subheading",
+      "similarity": 0.952,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.671
+      "meanWordProbability": 0.69,
+      "automaticStatus": "pass",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: sub-heading.",
+        "sourceTranscript": "The vocabulary expression is subheading.",
+        "targetTranscript": "subheading.",
+        "sourceWordProbability": 0.745605,
+        "cropSeconds": [
+          2.62,
+          5.28
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p313-018",
@@ -8882,12 +9261,25 @@
       "id": "en6-p316-009",
       "foreign": "merry",
       "audio": "assets/audio/vocab/en-6/en6-p316-009.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "merry",
-      "transcript": "Mary.",
-      "similarity": 0.667,
+      "transcript": "Let's marry",
+      "similarity": 0.5,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.609
+      "meanWordProbability": 0.533,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: merry.",
+        "sourceTranscript": "The vocabulary expression is Mary...",
+        "targetTranscript": "Mary...",
+        "sourceWordProbability": 0.317383,
+        "cropSeconds": [
+          2.48,
+          4.58
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p316-010",
@@ -8959,12 +9351,25 @@
       "id": "en6-p316-016",
       "foreign": "fat",
       "audio": "assets/audio/vocab/en-6/en6-p316-016.mp3",
-      "status": "fail",
+      "status": "context_verified",
       "expectedSpoken": "fat",
-      "transcript": "bad.",
-      "similarity": 0.333,
+      "transcript": "Facts.",
+      "similarity": 0.75,
       "wordCoverage": 0.0,
-      "meanWordProbability": 0.21
+      "meanWordProbability": 0.468,
+      "automaticStatus": "fail",
+      "verificationOverride": {
+        "method": "context_word_timestamp_crop",
+        "sourceText": "The vocabulary expression is: fat.",
+        "sourceTranscript": "The vocabulary expression is FAT.",
+        "targetTranscript": "FAT.",
+        "sourceWordProbability": 0.383972,
+        "cropSeconds": [
+          2.16,
+          3.26
+        ],
+        "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+      }
     },
     {
       "id": "en6-p316-017",

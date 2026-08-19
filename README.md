@@ -37,6 +37,29 @@ Der komplette Audioinhalt kann zusätzlich mit dem lokalen SPEACHES-Whisper rüc
 python3 scripts/verify_audio_speaches.py --course en-6 --workers 2
 ```
 
+## ✅ Lokal vor Commit und Push prüfen
+
+Die komplette Prüfkette läuft lokal und benötigt weder GitHub Actions noch einen anderen Cloud-CI-Dienst:
+
+```bash
+# schneller Check: Syntax, Repository-Hygiene und automatisierte Tests
+./test.sh --quick
+
+# Pre-Push-Check: zusätzlich alle MP3s und den vorhandenen SPEACHES-Bericht prüfen
+./test.sh --full
+
+# bei geänderten Audios: SPEACHES-Bericht neu erzeugen und vollständig prüfen
+./test.sh --with-stt
+```
+
+Die mitgelieferten lokalen Git-Hooks sind bewusst opt-in. Einmalig aktivieren mit:
+
+```bash
+./scripts/install_git_hooks.sh
+```
+
+Danach läuft `--quick` automatisch vor jedem Commit und `--full` vor jedem Push. Der Pre-Push-Check greift nicht auf das Netzwerk zu; er validiert MP3-Dauer, Dateimenge und Aktualität des zuletzt lokal erzeugten SPEACHES-Berichts.
+
 ## 🦊 Entwickler
 
 Entwickelt mit ❤️ von **Magic Fox Studios**.

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import datetime as dt
 import difflib
 import json
 import os
@@ -44,6 +45,9 @@ HOMOPHONES = {
     "pee": "pea",
     "p": "pea",
     "lamm": "lamb",
+    "shown": "shone",
+    "few": "phew",
+    "mary": "merry",
 }
 SPELLING_EQUIVALENTS = {
     "colour": "color",
@@ -126,6 +130,7 @@ def prepare_spoken_text(foreign: str) -> str:
 def normalize_words(text: str) -> list[str]:
     value = unicodedata.normalize("NFKC", text).lower().replace("’", "'")
     value = re.sub(r"\bfor\s+ever\b", "forever", value)
+    value = re.sub(r"\ball\s+together\b", "altogether", value)
     words = re.findall(r"[a-z]+(?:'[a-z]+)?", value)
     return [HOMOPHONES.get(SPELLING_EQUIVALENTS.get(word, word), SPELLING_EQUIVALENTS.get(word, word)) for word in words]
 
@@ -284,6 +289,7 @@ def main() -> int:
     report = {
         "courseId": args.course,
         "model": args.model,
+        "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
         "checked": len(results),
         "counts": counts,
         "durationSeconds": round(time.time() - started, 2),

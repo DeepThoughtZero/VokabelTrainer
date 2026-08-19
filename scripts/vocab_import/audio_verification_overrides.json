@@ -81,5 +81,314 @@
       3.38
     ],
     "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p295-005": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: caveman, plural cavemen.",
+    "sourceTranscript": "The vocabulary expression is caveman, plural, cavemen.",
+    "targetTranscript": "caveman, plural, cavemen.",
+    "sourceWordProbability": 0.813314,
+    "cropSeconds": [
+      2.14,
+      6.88
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p295-014": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: hat.",
+    "sourceTranscript": "The vocabulary expression is hat.",
+    "targetTranscript": "hat.",
+    "sourceWordProbability": 0.401611,
+    "cropSeconds": [
+      2.14,
+      2.7
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p300-011": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: whole.",
+    "sourceTranscript": "The vocabulary expression is whole.",
+    "targetTranscript": "whole.",
+    "sourceWordProbability": 0.424805,
+    "cropSeconds": [
+      2.9,
+      4.36
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p304-010": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: tea.",
+    "sourceTranscript": "The vocabulary expression is tea.",
+    "targetTranscript": "tea.",
+    "sourceWordProbability": 0.246216,
+    "cropSeconds": [
+      3.94,
+      5.08
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p306-015": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: been.",
+    "sourceTranscript": "The vocabulary expression is been.",
+    "targetTranscript": "been.",
+    "sourceWordProbability": 0.251465,
+    "cropSeconds": [
+      2.04,
+      2.88
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p309-006": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: full.",
+    "sourceTranscript": "The vocabulary expression is full.",
+    "targetTranscript": "full.",
+    "sourceWordProbability": 0.807129,
+    "cropSeconds": [
+      3.24,
+      4.52
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p310-014": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: batter.",
+    "sourceTranscript": "The vocabulary expression is, batter.",
+    "targetTranscript": "batter.",
+    "sourceWordProbability": 0.330566,
+    "cropSeconds": [
+      2.56,
+      3.34
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p310-019": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: pea.",
+    "sourceTranscript": "The vocabulary expression is P.",
+    "targetTranscript": "P.",
+    "sourceWordProbability": 0.293945,
+    "cropSeconds": [
+      2.6,
+      3.56
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p313-017": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: sub-heading.",
+    "sourceTranscript": "The vocabulary expression is subheading.",
+    "targetTranscript": "subheading.",
+    "sourceWordProbability": 0.745605,
+    "cropSeconds": [
+      2.62,
+      5.28
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p316-016": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: fat.",
+    "sourceTranscript": "The vocabulary expression is FAT.",
+    "targetTranscript": "FAT.",
+    "sourceWordProbability": 0.383972,
+    "cropSeconds": [
+      2.16,
+      3.26
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p290-004": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: to shine, shone.",
+    "sourceTranscript": "The vocabulary expression is to shine, shown.",
+    "targetTranscript": "to shine, shown.",
+    "sourceWordProbability": 0.763346,
+    "cropSeconds": [
+      2.62,
+      5.56
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p301-021": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: altogether.",
+    "sourceTranscript": "The vocabulary expression is all together.",
+    "targetTranscript": "all together.",
+    "sourceWordProbability": 0.537842,
+    "cropSeconds": [
+      2.32,
+      4.3
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p307-008": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: sheet.",
+    "sourceTranscript": "The vocabulary expression is sheet.",
+    "targetTranscript": "sheet.",
+    "sourceWordProbability": 0.682617,
+    "cropSeconds": [
+      2.86,
+      3.82
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p307-012": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: Phew!.",
+    "sourceTranscript": "The vocabulary expression is. Phew!",
+    "targetTranscript": "Phew!",
+    "sourceWordProbability": 0.562988,
+    "cropSeconds": [
+      2.2,
+      3.02
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p310-004": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: mince.",
+    "sourceTranscript": "The vocabulary expression is mince.",
+    "targetTranscript": "mince.",
+    "sourceWordProbability": 0.533447,
+    "cropSeconds": [
+      2.42,
+      4.48
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p316-009": {
+    "method": "context_word_timestamp_crop",
+    "sourceText": "The vocabulary expression is: merry.",
+    "sourceTranscript": "The vocabulary expression is Mary...",
+    "targetTranscript": "Mary...",
+    "sourceWordProbability": 0.317383,
+    "cropSeconds": [
+      2.48,
+      4.58
+    ],
+    "reason": "The isolated expression was persistently ambiguous or unstable. It was verified in explicit context before cropping."
+  },
+  "en6-p290-016": {
+    "method": "context_verified_segment_concat",
+    "segments": [
+      {
+        "target": "gentleman",
+        "sourceText": "A polite man is a gentleman. The target word is gentleman.",
+        "sourceTranscript": "A polite man is a gentleman. The target word is gentleman.",
+        "targetTranscript": "gentleman.",
+        "sourceWordProbability": 0.459717,
+        "cropSeconds": [
+          3.92,
+          4.46
+        ]
+      },
+      {
+        "target": "plural",
+        "sourceText": "The grammar label is plural. The target word is plural.",
+        "sourceTranscript": "The grammar label is plural. The target word is plural.",
+        "targetTranscript": "plural.",
+        "sourceWordProbability": 0.998047,
+        "cropSeconds": [
+          3.34,
+          3.88
+        ]
+      },
+      {
+        "target": "gentlemen",
+        "sourceText": "The polite men are gentlemen. The target word is gentlemen.",
+        "sourceTranscript": "The polite men are gentlemen. The target word is gentlemen.",
+        "targetTranscript": "gentlemen.",
+        "sourceWordProbability": 0.900879,
+        "cropSeconds": [
+          3.9,
+          4.6
+        ]
+      }
+    ],
+    "reason": "Singular/plural or verb forms remained ambiguous as one TTS phrase. Every segment was generated and word-exactly verified in semantic context before concatenation."
+  },
+  "en6-p308-020": {
+    "method": "context_verified_segment_concat",
+    "segments": [
+      {
+        "target": "to beat",
+        "sourceText": "I want to beat the drum. The target expression is to beat.",
+        "sourceTranscript": "I want to beat the drum. The target expression is to beat.",
+        "targetTranscript": "to beat.",
+        "sourceWordProbability": 0.792236,
+        "cropSeconds": [
+          4.56,
+          5.34
+        ]
+      },
+      {
+        "target": "beat",
+        "sourceText": "Yesterday we beat the other team. The target word is beat.",
+        "sourceTranscript": "Yesterday we beat the other team. The target word is beat.",
+        "targetTranscript": "beat.",
+        "sourceWordProbability": 0.473633,
+        "cropSeconds": [
+          3.48,
+          3.9
+        ]
+      },
+      {
+        "target": "beaten",
+        "sourceText": "The record was beaten. The target word is beaten.",
+        "sourceTranscript": "The record was beaten. The target word is beaten.",
+        "targetTranscript": "beaten.",
+        "sourceWordProbability": 0.701172,
+        "cropSeconds": [
+          3.7,
+          4.84
+        ]
+      }
+    ],
+    "reason": "Singular/plural or verb forms remained ambiguous as one TTS phrase. Every segment was generated and word-exactly verified in semantic context before concatenation."
+  },
+  "en6-p295-004": {
+    "method": "context_verified_segment_concat",
+    "segments": [
+      {
+        "target": "cavewoman",
+        "sourceText": "One Stone Age woman is a cavewoman. The target word is cavewoman.",
+        "sourceTranscript": "One Stone Age woman is a cave woman. The target word is cave woman.",
+        "targetTranscript": "cave woman.",
+        "sourceWordProbability": 0.887695,
+        "cropSeconds": [
+          3.52,
+          4.3
+        ]
+      },
+      {
+        "target": "plural",
+        "sourceText": "The grammar label is plural. The target word is plural.",
+        "sourceTranscript": "The grammar label is plural. The target word is plural.",
+        "targetTranscript": "plural.",
+        "sourceWordProbability": 0.998535,
+        "cropSeconds": [
+          3.68,
+          4.32
+        ]
+      },
+      {
+        "target": "cavewomen",
+        "sourceText": "Several Stone Age women are cavewomen. The target word is cavewomen.",
+        "sourceTranscript": "Several Stone Age women are cave women. The target word is cave women.",
+        "targetTranscript": "cave women.",
+        "sourceWordProbability": 0.827881,
+        "cropSeconds": [
+          6.04,
+          7.34
+        ]
+      }
+    ],
+    "reason": "Singular/plural or verb forms remained ambiguous as one TTS phrase. Every segment was generated and word-exactly verified in semantic context before concatenation."
   }
 }

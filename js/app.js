@@ -1927,6 +1927,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateOptions(correctVocab, isForeignToGerman) {
         optionsContainer.innerHTML = '';
+        optionsContainer.classList.remove('options-dense', 'options-very-dense');
         // Dynamische Schwierigkeit: Mehr Auswahlmöglichkeiten je besser der Streak ist (max 8)
         const optionsCount = Math.min(8, 4 + Math.floor(state.streak / CONFIG.streakForExtraOption));
         let options = [state.currentWord.a];
@@ -1956,6 +1957,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         options.sort(() => Math.random() - 0.5);
 
+        const optionDensity = window.VocabUtils.getOptionDensity(options);
+        if (optionDensity === 'dense') {
+            optionsContainer.classList.add('options-dense');
+        } else if (optionDensity === 'very-dense') {
+            optionsContainer.classList.add('options-very-dense');
+        }
+
         options.forEach(opt => {
             const btn = document.createElement('button');
             btn.className = 'option-btn';
@@ -1977,9 +1985,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.style.padding = '';
         });
         
-        let fontSize = 3.6; // Startwert aus CSS (3.6rem)
-        const minFontSize = 1.6;
+        const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        let fontSize = parseFloat(getComputedStyle(buttons[0]).fontSize) / rootFontSize;
+        const minFontSize = optionsContainer.classList.contains('options-very-dense') ? 1.5 : 1.6;
         const step = 0.2;
+        const maxOptionsHeight = Math.max(170, Math.min(250, window.innerHeight * 0.23));
         
         while (fontSize >= minFontSize) {
             let rows = 1;
@@ -1992,8 +2002,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            if (rows <= 3) {
-                break; // Passt in 3 oder weniger Zeilen
+            if (rows <= 3 && optionsContainer.scrollHeight <= maxOptionsHeight) {
+                break; // Passt in Zeilenzahl und verfügbaren oberen Bereich
             }
             
             fontSize -= step;

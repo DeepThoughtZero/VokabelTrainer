@@ -7,6 +7,23 @@ window.VocabUtils = Object.freeze({
         return decodeURIComponent(String(value));
     },
 
+    getOptionDensity(options) {
+        const labels = Array.from(options || [], option => String(option || '').trim());
+        const totalCharacters = labels.reduce((sum, label) => sum + label.length, 0);
+        const longestLabel = labels.reduce((maximum, label) => Math.max(maximum, label.length), 0);
+
+        if (
+            totalCharacters >= 135
+            || (labels.length >= 7 && (totalCharacters >= 90 || longestLabel >= 24))
+        ) {
+            return 'very-dense';
+        }
+        if (labels.length >= 6 || totalCharacters >= 70 || longestLabel >= 28) {
+            return 'dense';
+        }
+        return 'normal';
+    },
+
     tokenizeAnswer(answer) {
         answer = String(answer || '').normalize('NFC');
         const tokens = [];

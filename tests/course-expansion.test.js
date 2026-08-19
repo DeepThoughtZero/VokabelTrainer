@@ -68,6 +68,22 @@ test('unicode writing tokenizer keeps French letters playable', () => {
     assert.ok(Array.from(tokens).some(token => token.type === 'fixed' && token.text === 'sth.'));
 });
 
+test('answer choices become compact only when count or text volume requires it', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const density = context.window.VocabUtils.getOptionDensity;
+    assert.equal(density(['cat', 'dog', 'owl', 'fox']), 'normal');
+    assert.equal(density(['one', 'two', 'three', 'four', 'five', 'six']), 'dense');
+    assert.equal(density([
+        '(to) blow, blew, blown',
+        'awful',
+        '(to) forget',
+        '(to) throw',
+        'centre',
+        '(to) log out (of a website)',
+        '(to) understand, understood'
+    ]), 'very-dense');
+});
+
 test('learning-path filter segments preserve colons in class-6 unit names', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
     const unit = 'Unit 1: Holiday stories';

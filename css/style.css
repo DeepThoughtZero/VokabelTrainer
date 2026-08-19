@@ -507,6 +507,7 @@ select {
     gap: 15px;
     margin-bottom: 20px;
     flex-wrap: wrap;
+    align-content: flex-start;
 }
 
 .option-btn {
@@ -519,6 +520,31 @@ select {
     font-weight: bold;
     cursor: pointer;
     transition: all 0.2s ease;
+    line-height: 1.12;
+}
+
+.options.options-dense {
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.options.options-dense .option-btn {
+    padding: 13px 23px;
+    border-width: 2px;
+    border-radius: 12px;
+    font-size: 2.6rem;
+}
+
+.options.options-very-dense {
+    gap: 8px 10px;
+    margin-bottom: 10px;
+}
+
+.options.options-very-dense .option-btn {
+    padding: 9px 17px;
+    border-width: 2px;
+    border-radius: 10px;
+    font-size: 2rem;
 }
 
 .option-btn:hover {

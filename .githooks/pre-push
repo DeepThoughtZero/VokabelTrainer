@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+cd "$PROJECT_ROOT"
+if git ls-files | rg -q '(^|/)(__pycache__/|[^/]+\.py[co]$|[^/]+\.tmp\.mp3$)'; then
+  printf 'Push blockiert: generierte Cache- oder temporäre Dateien liegen noch im Git-Index.\n' >&2
+  git ls-files | rg '(^|/)(__pycache__/|[^/]+\.py[co]$|[^/]+\.tmp\.mp3$)' >&2
+  exit 1
+fi
+exec "$PROJECT_ROOT/scripts/verify.sh" --full

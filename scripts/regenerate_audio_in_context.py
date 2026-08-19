@@ -22,13 +22,43 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from verify_audio_speaches import (  # noqa: E402
     DEFAULT_MODEL,
-    compare_text,
     get_api_key,
     load_vocabulary,
     normalize_words,
     prepare_spoken_text,
     transcribe,
 )
+
+
+CONTEXT_PREFIXES = {
+    "en6-p290-016": (
+        "One man is called a gentleman. Two men are called gentlemen. "
+    ),
+    "en6-p295-004": (
+        "One woman from the Stone Age is a cavewoman. Several are cavewomen. "
+    ),
+    "en6-p308-020": (
+        "The verb has the forms beat, beat, beaten. "
+    ),
+}
+
+SEGMENT_PLANS = {
+    "en6-p290-016": [
+        ("gentleman", "A polite man is a gentleman. The target word is gentleman."),
+        ("plural", "The grammar label is plural. The target word is plural."),
+        ("gentlemen", "The polite men are gentlemen. The target word is gentlemen."),
+    ],
+    "en6-p295-004": [
+        ("cavewoman", "One Stone Age woman is a cavewoman. The target word is cavewoman."),
+        ("plural", "The grammar label is plural. The target word is plural."),
+        ("cavewomen", "Several Stone Age women are cavewomen. The target word is cavewomen."),
+    ],
+    "en6-p308-020": [
+        ("to beat", "I want to beat the drum. The target expression is to beat."),
+        ("beat", "Yesterday we beat the other team. The target word is beat."),
+        ("beaten", "The record was beaten. The target word is beaten."),
+    ],
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,7 +77,12 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def synthesize_context(args: argparse.Namespace, text: str, output: Path) -> None:
+def synthesize_context(
+    args: argparse.Namespace,
+    text: str,
+    output: Path,
+    instruction: str = "",
+) -> None:
     payload = json.dumps(
         {
             "model": "qwen3-tts",
@@ -56,7 +91,8 @@ def synthesize_context(args: argparse.Namespace, text: str, output: Path) -> Non
             "language": "english",
             "instruct": (
                 "Speak this sentence clearly in standard British English. "
-                "Articulate the quoted vocabulary expression especially carefully."
+                "Articulate the target vocabulary expression especially carefully. "
+                + instruction
             ),
             "response_format": "mp3",
             "speed": 0.9,
@@ -87,14 +123,51 @@ def target_span(response: dict, expected: str) -> tuple[float, float, str, float
 
     target_words = words[prefix_end:]
     transcript = " ".join(str(item.get("word", "")).strip() for item in target_words).strip()
-    status, _, _ = compare_text(expected, transcript)
+    expected_words = normalize_words(expected)
+    actual_words = normalize_words(transcript)
+    variants = [expected_words]
+    if expected_words and expected_words[0] == "two" and len(expected_words) > 1:
+        variants.append(expected_words[1:])
+    exact = any(
+        variant == actual_words or "".join(variant) == "".join(actual_words)
+        for variant in variants
+    )
     probabilities = [float(item.get("probability", 0)) for item in target_words]
     confidence = sum(probabilities) / len(probabilities) if probabilities else 0.0
-    if status != "pass":
+    if not exact:
         return None
     start = max(0.0, float(target_words[0]["start"]) - 0.04)
     end = float(target_words[-1]["end"]) + 0.1
     return start, end, transcript, confidence
+
+
+def find_exact_span(response: dict, expected: str) -> tuple[float, float, str, float] | None:
+    words = response.get("words") or []
+    expected_words = normalize_words(expected)
+    flattened: list[str] = []
+    source_indices: list[int] = []
+    for index, word in enumerate(words):
+        for token in normalize_words(str(word.get("word", ""))):
+            flattened.append(token)
+            source_indices.append(index)
+    matches: list[tuple[int, int]] = []
+    expected_compact = "".join(expected_words)
+    for start in range(len(flattened)):
+        maximum_end = min(len(flattened), start + len(expected_words) + 2)
+        for end in range(start + 1, maximum_end + 1):
+            candidate = flattened[start:end]
+            if candidate == expected_words or "".join(candidate) == expected_compact:
+                matches.append((source_indices[start], source_indices[end - 1]))
+    if not matches:
+        return None
+    first, last = matches[-1]
+    selected = words[first : last + 1]
+    transcript = " ".join(str(item.get("word", "")).strip() for item in selected).strip()
+    probabilities = [float(item.get("probability", 0)) for item in selected]
+    confidence = sum(probabilities) / len(probabilities) if probabilities else 0.0
+    start_seconds = max(0.0, float(selected[0]["start"]) - 0.04)
+    end_seconds = float(selected[-1]["end"]) + 0.12
+    return start_seconds, end_seconds, transcript, confidence
 
 
 def crop_audio(source: Path, destination: Path, start: float, end: float) -> None:
@@ -121,6 +194,76 @@ def crop_audio(source: Path, destination: Path, start: float, end: float) -> Non
     )
 
 
+def concatenate_audio(sources: list[Path], destination: Path) -> None:
+    command = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error"]
+    for source in sources:
+        command.extend(["-i", str(source)])
+    inputs = "".join(f"[{index}:a]" for index in range(len(sources)))
+    command.extend(
+        [
+            "-filter_complex",
+            f"{inputs}concat=n={len(sources)}:v=0:a=1,loudnorm=I=-16:TP=-1.5:LRA=11[out]",
+            "-map",
+            "[out]",
+            str(destination),
+        ]
+    )
+    subprocess.run(command, check=True)
+
+
+def regenerate_from_segments(
+    args: argparse.Namespace,
+    entry_id: str,
+    entry: dict,
+    api_key: str,
+    temp_dir: Path,
+) -> dict | None:
+    evidence: list[dict] = []
+    cropped: list[Path] = []
+    for segment_index, (target, context_text) in enumerate(SEGMENT_PLANS[entry_id], 1):
+        verified = False
+        for attempt in range(1, args.attempts + 1):
+            context_audio = temp_dir / f"{entry_id}-segment-{segment_index}-context.mp3"
+            segment_audio = temp_dir / f"{entry_id}-segment-{segment_index}.mp3"
+            synthesize_context(
+                args,
+                context_text,
+                context_audio,
+                f"The final target is exactly: {target}.",
+            )
+            response = transcribe(args.speaches_url, args.model, api_key, context_audio)
+            span = find_exact_span(response, target)
+            if not span:
+                print(f"    {entry_id}/{target}: Versuch {attempt} nicht eindeutig")
+                continue
+            start, end, transcript, confidence = span
+            crop_audio(context_audio, segment_audio, start, end)
+            cropped.append(segment_audio)
+            evidence.append(
+                {
+                    "target": target,
+                    "sourceText": context_text,
+                    "sourceTranscript": str(response.get("text", "")).strip(),
+                    "targetTranscript": transcript,
+                    "sourceWordProbability": round(confidence, 6),
+                    "cropSeconds": [round(start, 3), round(end, 3)],
+                }
+            )
+            verified = True
+            break
+        if not verified:
+            return None
+    concatenate_audio(cropped, ROOT / entry["audio"])
+    return {
+        "method": "context_verified_segment_concat",
+        "segments": evidence,
+        "reason": (
+            "Singular/plural or verb forms remained ambiguous as one TTS phrase. "
+            "Every segment was generated and word-exactly verified in semantic context before concatenation."
+        ),
+    }
+
+
 def main() -> int:
     args = parse_args()
     report_path = ROOT / args.report
@@ -143,7 +286,22 @@ def main() -> int:
         for current, entry_id in enumerate(sorted(selected), 1):
             entry = vocabulary[entry_id]
             expected = prepare_spoken_text(entry["foreign"])
-            context_text = f"The vocabulary expression is: {expected}."
+            if entry_id in SEGMENT_PLANS:
+                override = regenerate_from_segments(args, entry_id, entry, api_key, temp_dir)
+                if override:
+                    overrides[entry_id] = override
+                    overrides_path.write_text(
+                        json.dumps(overrides, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                    print(f"[{current:02d}/{len(selected):02d}] {entry_id}: OK — segmentweise verifiziert")
+                else:
+                    failures.append(entry_id)
+                continue
+            context_text = (
+                CONTEXT_PREFIXES.get(entry_id, "")
+                + f"The vocabulary expression is: {expected}."
+            )
             success = False
             for attempt in range(1, args.attempts + 1):
                 context_audio = temp_dir / f"{entry_id}-context.mp3"

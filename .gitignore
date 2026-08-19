@@ -1,2 +1,5 @@
 pictures/
 .env
+__pycache__/
+*.py[cod]
+*.tmp.mp3
