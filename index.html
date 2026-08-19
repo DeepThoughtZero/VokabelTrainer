@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
     <title>Zombie Hunter: Vokabel-Trainer</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/fonts.css">
@@ -11,6 +12,14 @@
     <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></canvas>
     <div id="vignette-overlay"></div>
     <div id="weather-overlay"></div>
+    <div id="orientation-notice" role="dialog" aria-modal="true" aria-labelledby="orientation-notice-title" aria-describedby="orientation-notice-text">
+        <div class="orientation-notice-card">
+            <div class="orientation-phone" aria-hidden="true">📱</div>
+            <h2 id="orientation-notice-title">Bitte ins Querformat drehen</h2>
+            <p id="orientation-notice-text">So hast du alle Antworten und Zombies gut im Blick.</p>
+            <button id="dismiss-orientation-notice-btn" class="btn-secondary" type="button">Trotzdem spielen</button>
+        </div>
+    </div>
     <div id="app-container">
         <!-- Terms Screen -->
         <section id="terms-screen" class="screen">
@@ -167,7 +176,7 @@
         </section>
 
         <!-- Game Screen -->
-        <section id="game-screen" class="screen">
+        <section id="game-screen" class="screen notranslate" translate="no">
             <div class="top-bar">
                 <div id="hearts-container">
                     <span class="heart">❤️</span>

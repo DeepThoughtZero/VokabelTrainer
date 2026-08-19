@@ -418,6 +418,44 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
         deviceScaleFactor: 1,
         mobile: true,
     });
+    await waitForCondition(
+        client,
+        `getComputedStyle(document.querySelector('#orientation-notice')).display === 'flex'`,
+        'Querformat-Hinweis im Hochformat sichtbar',
+    );
+    await assertInsideViewport(client, '#orientation-notice');
+    await assertInsideViewport(client, '.orientation-notice-card');
+
+    await client.send('Emulation.setDeviceMetricsOverride', {
+        width: 844,
+        height: 390,
+        deviceScaleFactor: 1,
+        mobile: true,
+    });
+    await waitForCondition(
+        client,
+        `getComputedStyle(document.querySelector('#orientation-notice')).display === 'none'`,
+        'Querformat-Hinweis nach Drehung ausgeblendet',
+    );
+
+    await client.send('Emulation.setDeviceMetricsOverride', {
+        width: 390,
+        height: 844,
+        deviceScaleFactor: 1,
+        mobile: true,
+    });
+    await waitForCondition(
+        client,
+        `getComputedStyle(document.querySelector('#orientation-notice')).display === 'flex'`,
+        'Querformat-Hinweis nach Rückdrehung sichtbar',
+    );
+    await click(client, '#dismiss-orientation-notice-btn');
+    await waitForCondition(
+        client,
+        `getComputedStyle(document.querySelector('#orientation-notice')).display === 'none'`,
+        'Querformat-Hinweis manuell geschlossen',
+    );
+
     await evaluate(client, `window.openLeaderboardDialog(-1, '', '', 0, 'Englisch 6')`);
     await waitForCondition(client, `!document.querySelector('#leaderboard-dialog').classList.contains('hidden')`, 'mobile Bestenliste geöffnet');
     await waitForCondition(client, `document.querySelectorAll('#leaderboard-body tr').length === 2`, 'mobile Bestenliste gefiltert');
@@ -468,7 +506,7 @@ async function main() {
         client = await connectCdp(page.webSocketDebuggerUrl);
         const problems = [];
         await runSmokeTest(client, `http://127.0.0.1:${port}`, problems);
-        console.log(`Browser-Smoke-Test OK: Desktop, Mobil, Englisch 6, Bestenliste und Spielstart (${browserBinary}).`);
+        console.log(`Browser-Smoke-Test OK: Desktop, Mobil, Querformat-Hinweis, Englisch 6, Bestenliste und Spielstart (${browserBinary}).`);
     } catch (error) {
         const stderr = browserStderr.join('').trim().split('\n').slice(-8).join('\n');
         if (stderr) console.error(`Letzte Browsermeldungen:\n${stderr}`);

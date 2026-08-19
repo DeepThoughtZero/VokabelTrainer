@@ -86,6 +86,16 @@ test('leaderboard filters are stacked and separate class from learning path', ()
     assert.match(css, /\.leaderboard-filter-field select\s*\{[\s\S]*?width:\s*100%;/);
 });
 
+test('portrait orientation notice is limited to the active game and can be dismissed', () => {
+    const html = read('index.html');
+    const css = read('css/style.css');
+    const app = read('js/app.js');
+    assert.match(html, /id="orientation-notice"[\s\S]*?id="dismiss-orientation-notice-btn"/);
+    assert.match(css, /@media \(orientation: portrait\)[\s\S]*?body\.game-active:not\(\.orientation-notice-dismissed\) #orientation-notice/);
+    assert.match(app, /classList\.toggle\('game-active', screenName === 'game'\)/);
+    assert.match(app, /classList\.add\('orientation-notice-dismissed'\)/);
+});
+
 test('visual dense-options fixture stays wired to the production styles and classifier', () => {
     const fixture = read('tests/fixtures/options-density-preview.html');
     assert.match(fixture, /\.\.\/\.\.\/css\/style\.css/);

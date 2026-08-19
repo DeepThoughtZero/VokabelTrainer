@@ -39,6 +39,77 @@ body {
     flex-shrink: 0;
 }
 
+#orientation-notice {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+    background:
+        radial-gradient(circle at 50% 35%, rgba(0, 255, 136, 0.14), transparent 38%),
+        rgba(5, 7, 8, 0.96);
+}
+
+.orientation-notice-card {
+    width: min(100%, 430px);
+    padding: 30px 24px;
+    text-align: center;
+    border: 2px solid var(--accent-color);
+    border-radius: 20px;
+    background: rgba(8, 14, 12, 0.96);
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.28);
+}
+
+.orientation-phone {
+    width: fit-content;
+    margin: 0 auto 18px;
+    font-size: clamp(4rem, 18vw, 6rem);
+    line-height: 1;
+    transform: rotate(0deg);
+    animation: suggestLandscape 2.4s ease-in-out infinite;
+}
+
+.orientation-notice-card h2 {
+    margin-bottom: 12px;
+    color: var(--accent-color);
+    font-family: 'Creepster', cursive;
+    font-size: clamp(2rem, 8vw, 3rem);
+    letter-spacing: 1px;
+}
+
+.orientation-notice-card p {
+    margin-bottom: 24px;
+    color: #eee;
+    font-size: clamp(1.05rem, 4.5vw, 1.35rem);
+    line-height: 1.45;
+}
+
+.orientation-notice-card .btn-secondary {
+    font-size: 1rem;
+    padding: 10px 18px;
+}
+
+@keyframes suggestLandscape {
+    0%, 20% { transform: rotate(0deg); }
+    45%, 80% { transform: rotate(90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@media (orientation: portrait) {
+    body.game-active:not(.orientation-notice-dismissed) #orientation-notice {
+        display: flex;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .orientation-phone {
+        animation: none;
+        transform: rotate(90deg);
+    }
+}
+
 .screen {
     position: absolute;
     top: 0;

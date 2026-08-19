@@ -1480,6 +1480,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function showScreen(screenName) {
         Object.values(screens).forEach(s => s.classList.remove('active'));
         screens[screenName].classList.add('active');
+        document.body.classList.toggle('game-active', screenName === 'game');
+        if (screenName !== 'game') {
+            document.body.classList.remove('orientation-notice-dismissed');
+        }
+    }
+
+    const dismissOrientationNoticeBtn = document.getElementById('dismiss-orientation-notice-btn');
+    if (dismissOrientationNoticeBtn) {
+        dismissOrientationNoticeBtn.addEventListener('click', () => {
+            document.body.classList.add('orientation-notice-dismissed');
+        });
     }
 
     function updateDirectionOptions() {
