@@ -24,6 +24,94 @@ window.VocabUtils = Object.freeze({
         return 'normal';
     },
 
+    getWordBubbleDensity(text) {
+        const textLength = Array.from(String(text || '').trim()).length;
+        if (textLength > 100) return 'very-long';
+        if (textLength > 70) return 'long';
+        return 'normal';
+    },
+
+    createMissionTargetSet(vocabulary, options = {}) {
+        const requestedTargetSize = Number(options.targetSize);
+        const requestedNewWordLimit = Number(options.newWordLimit);
+        const targetSize = Number.isFinite(requestedTargetSize) && requestedTargetSize > 0
+            ? Math.floor(requestedTargetSize)
+            : 12;
+        const newWordLimit = Number.isFinite(requestedNewWordLimit) && requestedNewWordLimit >= 0
+            ? Math.floor(requestedNewWordLimit)
+            : 6;
+        const isKnown = typeof options.isKnown === 'function' ? options.isKnown : () => false;
+        const random = typeof options.random === 'function' ? options.random : Math.random;
+        const uniqueVocabulary = [];
+        const seenIds = new Set();
+
+        for (const vocab of Array.from(vocabulary || [])) {
+            const id = String(vocab?.id || '');
+            if (!id || seenIds.has(id)) continue;
+            seenIds.add(id);
+            uniqueVocabulary.push(vocab);
+        }
+
+        function shuffled(values) {
+            const result = [...values];
+            for (let index = result.length - 1; index > 0; index--) {
+                const swapIndex = Math.floor(random() * (index + 1));
+                [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+            }
+            return result;
+        }
+
+        const knownWords = shuffled(uniqueVocabulary.filter(isKnown));
+        const newWords = shuffled(uniqueVocabulary.filter(vocab => !isKnown(vocab)));
+        const selectedNewWords = newWords.slice(0, Math.min(newWordLimit, newWords.length));
+        const selectedKnownWords = knownWords.slice(0, Math.max(0, targetSize - selectedNewWords.length));
+
+        return shuffled([...selectedKnownWords, ...selectedNewWords]).slice(0, targetSize);
+    },
+
+    pickMissionVocabulary(targetWords, securedIds, lastVocabId, random = Math.random, excludedIds = []) {
+        const excluded = excludedIds instanceof Set ? excludedIds : new Set(excludedIds || []);
+        const targets = Array.from(targetWords || []).filter(vocab => !excluded.has(vocab.id));
+        if (targets.length === 0) return null;
+        const secured = securedIds instanceof Set ? securedIds : new Set(securedIds || []);
+        const unsecured = targets.filter(vocab => !secured.has(vocab.id));
+        let candidates = unsecured.filter(vocab => vocab.id !== lastVocabId);
+
+        // When only the just-seen target remains, insert a previously secured
+        // spacer word so a vocabulary item is never asked twice in a row.
+        if (candidates.length === 0 && unsecured.length > 0) {
+            candidates = targets.filter(vocab => vocab.id !== lastVocabId);
+        }
+        if (candidates.length === 0) candidates = unsecured.length > 0 ? unsecured : targets;
+
+        return candidates[Math.floor(random() * candidates.length)] || null;
+    },
+
+    createCorrectionSchedule(currentEncounter, random = Math.random) {
+        const encounter = Number.isFinite(Number(currentEncounter))
+            ? Math.max(0, Math.floor(Number(currentEncounter)))
+            : 0;
+        const randomValue = Math.min(0.999999, Math.max(0, Number(random()) || 0));
+        const spacerCount = 2 + Math.floor(randomValue * 3);
+        return {
+            spacerCount,
+            dueEncounter: encounter + spacerCount + 1
+        };
+    },
+
+    pickDueCorrection(corrections, nextEncounter, force = false) {
+        const pending = Array.from(corrections || [])
+            .filter(entry => entry && !entry.resolved)
+            .sort((left, right) => {
+                const dueDifference = Number(left.dueEncounter || 0) - Number(right.dueEncounter || 0);
+                if (dueDifference !== 0) return dueDifference;
+                return Number(left.createdOrder || 0) - Number(right.createdOrder || 0);
+            });
+        if (pending.length === 0) return null;
+        if (force) return pending[0];
+        return pending.find(entry => Number(entry.dueEncounter || 0) <= Number(nextEncounter || 0)) || null;
+    },
+
     tokenizeAnswer(answer) {
         answer = String(answer || '').normalize('NFC');
         const tokens = [];

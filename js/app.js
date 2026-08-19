@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
         maxZombieDuration: 15.0,
         streakForExtraOption: 3,
         streakForHeart: 10,
+        missionTargetSize: 12,
+        missionNewWordLimit: 6,
+        missionMaxEncounters: 20,
+        missionBossWordCount: 3,
         bubbleOnLeft: true, // Schalter: Setze auf false, um die Sprechblase wieder oben anzuzeigen
         enableParallax: false // Schalter: Deaktiviert, da die Bildübergänge aktuell nicht nahtlos sind
     };
@@ -39,7 +43,18 @@ document.addEventListener('DOMContentLoaded', () => {
         bossActive: false,
         bossHealth: 0,
         bossMaxHealth: 0,
-        currentMode: 'de-foreign'
+        currentMode: 'de-foreign',
+        playStyle: 'mission',
+        mission: {
+            targetWords: [],
+            securedIds: new Set(),
+            encounters: 0,
+            lastVocabId: '',
+            completed: false,
+            endReason: '',
+            currentPhase: '',
+            finishing: false
+        }
     };
 
     let activeCourse = window.getCourseById(state.courseId);
@@ -91,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastFrameTime = 0;
     
     let currentUIAudio = null;
+    let missionPhaseTransitionTimer = null;
 
     function playUIAudio(filename) {
         if (currentUIAudio) {
@@ -656,6 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
         login: document.getElementById('login-screen'),
         hunter: document.getElementById('hunter-selection-screen'),
         city: document.getElementById('city-selection-screen'),
+        mission: document.getElementById('mission-selection-screen'),
         start: document.getElementById('start-screen'),
         game: document.getElementById('game-screen'),
         end: document.getElementById('end-screen')
@@ -829,10 +846,22 @@ document.addEventListener('DOMContentLoaded', () => {
         preferredCourseId = localStorage.getItem('vokabelzombie_last_course') || preferredCourseId;
     } catch (error) {}
     if (!activateCourse(preferredCourseId)) activateCourse('en-5');
+    try {
+        const preferredPlayStyle = localStorage.getItem('vokabelzombie_last_play_style');
+        if (preferredPlayStyle === 'mission' || preferredPlayStyle === 'hunt') {
+            state.playStyle = preferredPlayStyle;
+        }
+    } catch (error) {}
     initCarousel();
     initCityCarousel();
     startBtn.addEventListener('click', startGame);
-    restartBtn.addEventListener('click', showHunterScreen);
+    restartBtn.addEventListener('click', () => {
+        if (state.playStyle === 'mission') {
+            startGame();
+        } else {
+            showHunterScreen();
+        }
+    });
 
     document.getElementById('back-to-hunter-from-city-btn').addEventListener('click', showHunterScreen);
     document.getElementById('confirm-hunter-btn').addEventListener('click', () => {
@@ -845,12 +874,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         showCityScreen();
     });
-    document.getElementById('back-to-city-btn').addEventListener('click', showCityScreen);
+    document.getElementById('back-to-city-from-mission-btn').addEventListener('click', showCityScreen);
+    document.getElementById('back-to-mission-btn').addEventListener('click', showMissionSelectionScreen);
+    document.getElementById('change-play-style-btn').addEventListener('click', showMissionSelectionScreen);
+    document.getElementById('change-mission-settings-btn').addEventListener('click', showStartScreen);
     document.getElementById('confirm-city-btn').addEventListener('click', () => {
         const phraseIndex = Math.floor(Math.random() * 5);
         playUIAudio(`city_select_${phraseIndex}.mp3`);
-        showStartScreen();
+        showMissionSelectionScreen();
     });
+
+    document.querySelectorAll('.play-style-card').forEach(button => {
+        button.addEventListener('click', () => selectPlayStyle(button.dataset.playStyle));
+    });
+    document.getElementById('confirm-play-style-btn').addEventListener('click', showStartScreen);
 
     settingsBtn.addEventListener('click', () => {
         state.settingsPending = true;
@@ -1558,8 +1595,208 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => focusCity(targetIndex, true, false), 50);
     }
 
+    function selectPlayStyle(playStyle, persist = true) {
+        state.playStyle = playStyle === 'hunt' ? 'hunt' : 'mission';
+        const isMission = state.playStyle === 'mission';
+
+        document.querySelectorAll('.play-style-card').forEach(card => {
+            const active = card.dataset.playStyle === state.playStyle;
+            card.classList.toggle('active', active);
+            card.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
+        document.getElementById('mission-briefing')?.classList.toggle('hidden', !isMission);
+        document.getElementById('hunt-briefing')?.classList.toggle('hidden', isMission);
+
+        const confirmButton = document.getElementById('confirm-play-style-btn');
+        if (confirmButton) confirmButton.textContent = isMission ? 'Mission vorbereiten' : 'Jagd vorbereiten';
+
+        const banner = document.getElementById('selected-play-style-banner');
+        banner?.classList.toggle('mission-selected', isMission);
+        banner?.classList.toggle('hunt-selected', !isMission);
+        const icon = document.getElementById('selected-play-style-icon');
+        const title = document.getElementById('selected-play-style-title');
+        const summary = document.getElementById('selected-play-style-summary');
+        if (icon) icon.textContent = isMission ? '🎯' : '♾️';
+        if (title) title.textContent = isMission ? 'Rettungsmission' : 'Freie Jagd';
+        if (summary) {
+            summary.textContent = isMission
+                ? 'Horde orten · Boss besiegen · Stadt retten'
+                : 'Jage ohne Limit – bis dein letztes Herz fällt';
+        }
+        if (startBtn) startBtn.textContent = isMission ? 'Mission starten' : 'Jagd beginnen';
+
+        if (persist) {
+            try {
+                localStorage.setItem('vokabelzombie_last_play_style', state.playStyle);
+            } catch (error) {}
+        }
+    }
+
+    function showMissionSelectionScreen() {
+        const selectedCity = CITIES.find(city => city.id === state.city);
+        const cityName = document.getElementById('mission-city-name');
+        if (cityName) cityName.textContent = selectedCity?.name || 'deine Stadt';
+        selectPlayStyle(state.playStyle, false);
+        showScreen('mission');
+    }
+
     function showStartScreen() {
+        selectPlayStyle(state.playStyle, false);
         showScreen('start');
+    }
+
+    function isMissionMode() {
+        return state.playStyle === 'mission';
+    }
+
+    function getMissionRemainingCount() {
+        return state.mission.targetWords.reduce((count, vocab) => (
+            count + (state.mission.securedIds.has(vocab.id) ? 0 : 1)
+        ), 0);
+    }
+
+    function getMissionBossTargetCount() {
+        // Short first missions still get a real attack wave before the boss.
+        return Math.min(
+            CONFIG.missionBossWordCount,
+            Math.max(1, state.mission.targetWords.length - 4)
+        );
+    }
+
+    function getMissionPhase() {
+        const securedCount = state.mission.securedIds.size;
+        const remainingCount = getMissionRemainingCount();
+        if (state.mission.completed || remainingCount === 0) return 'extract';
+        if (state.bossActive || remainingCount <= getMissionBossTargetCount()) return 'boss';
+        if (securedCount < 3) return 'scout';
+        return 'attack';
+    }
+
+    function showMissionPhaseTransition(phase) {
+        const overlay = document.getElementById('mission-phase-overlay');
+        if (!overlay) return;
+        const presentations = {
+            scout: {
+                icon: '📡',
+                kicker: 'Phase 1 · Aufklärung',
+                title: 'Gebiet scannen',
+                detail: 'Drei ruhige Ziele. Präge dir jedes Wort ein.'
+            },
+            attack: {
+                icon: '🧟',
+                kicker: 'Phase 2 · Angriffswelle',
+                title: 'Die Horde ist da!',
+                detail: 'Das Tempo steigt. Halte die Linie und sichere das Gebiet.'
+            },
+            boss: {
+                icon: '👑',
+                kicker: 'Phase 3 · Bossalarm',
+                title: 'Anführer gesichtet',
+                detail: 'Die letzten Schlüsselwörter entscheiden über die Stadt.'
+            },
+            extract: {
+                icon: '🚁',
+                kicker: 'Finale · Extraktion',
+                title: 'Ziel erreicht!',
+                detail: 'Die Stadt ist gesichert. Dein Team wird ausgeflogen.'
+            }
+        };
+        const presentation = presentations[phase];
+        if (!presentation) return;
+
+        document.getElementById('mission-phase-overlay-icon').textContent = presentation.icon;
+        document.getElementById('mission-phase-overlay-kicker').textContent = presentation.kicker;
+        document.getElementById('mission-phase-overlay-title').textContent = presentation.title;
+        document.getElementById('mission-phase-overlay-detail').textContent = presentation.detail;
+        overlay.className = `mission-phase-overlay phase-${phase}`;
+        void overlay.offsetWidth;
+        clearTimeout(missionPhaseTransitionTimer);
+        missionPhaseTransitionTimer = setTimeout(() => overlay.classList.add('hidden'), 2350);
+    }
+
+    function updateMissionHUD() {
+        const hud = document.getElementById('mission-hud');
+        if (!hud) return;
+        hud.classList.toggle('hidden', !isMissionMode());
+        const phaseClasses = ['mission-phase-scout', 'mission-phase-attack', 'mission-phase-boss', 'mission-phase-extract'];
+        if (!isMissionMode()) {
+            screens.game.classList.remove(...phaseClasses);
+            document.getElementById('mission-phase-overlay')?.classList.add('hidden');
+            return;
+        }
+
+        const securedCount = state.mission.securedIds.size;
+        const targetCount = state.mission.targetWords.length;
+        const percentage = targetCount > 0 ? Math.min(100, (securedCount / targetCount) * 100) : 0;
+        const phase = getMissionPhase();
+        const phaseLabels = {
+            scout: 'Aufklärung',
+            attack: 'Angriffswelle',
+            boss: 'Boss-Zone',
+            extract: 'Extraktion'
+        };
+        const phaseOrder = ['scout', 'attack', 'boss', 'extract'];
+        const activePhaseIndex = phaseOrder.indexOf(phase);
+
+        const phaseLabel = document.getElementById('mission-phase-label');
+        const objectiveLabel = document.getElementById('mission-objective-label');
+        const encounterLabel = document.getElementById('mission-encounter-label');
+        const progress = document.getElementById('mission-hud-progress');
+        if (phaseLabel) phaseLabel.textContent = phaseLabels[phase];
+        if (objectiveLabel) {
+            objectiveLabel.textContent = `${securedCount} / ${targetCount} gesichert`;
+        }
+        if (encounterLabel) encounterLabel.textContent = `⚔ ${state.mission.encounters} / ${CONFIG.missionMaxEncounters}`;
+        if (progress) progress.style.width = `${percentage}%`;
+
+        screens.game.classList.remove(...phaseClasses);
+        screens.game.classList.add(`mission-phase-${phase}`);
+        if (state.mission.currentPhase !== phase) {
+            state.mission.currentPhase = phase;
+            showMissionPhaseTransition(phase);
+        }
+
+        document.querySelectorAll('[data-mission-phase]').forEach((step, index) => {
+            step.classList.toggle('active', index === activePhaseIndex);
+            step.classList.toggle('complete', index < activePhaseIndex);
+        });
+    }
+
+    function registerMissionEncounter(vocab) {
+        if (!isMissionMode() || !vocab) return;
+        state.mission.encounters++;
+        state.mission.lastVocabId = vocab.id;
+        updateMissionHUD();
+    }
+
+    function finishMissionIfNeeded() {
+        if (!isMissionMode()) return false;
+        if (state.mission.finishing) return true;
+        const objectiveReached = getMissionRemainingCount() === 0;
+        const encounterLimitReached = state.mission.encounters >= CONFIG.missionMaxEncounters;
+        if (!objectiveReached && !encounterLimitReached) return false;
+
+        state.mission.completed = objectiveReached;
+        state.mission.endReason = objectiveReached ? 'objective' : 'encounter-limit';
+        state.mission.finishing = true;
+        updateMissionHUD();
+        showMissionPhaseTransition('extract');
+        state.gameRunning = false;
+        cancelAnimationFrame(animationId);
+        setTimeout(endGame, 1400);
+        return true;
+    }
+
+    function selectMissionTargets(vocabulary) {
+        return window.VocabUtils.createMissionTargetSet(vocabulary, {
+            targetSize: CONFIG.missionTargetSize,
+            newWordLimit: CONFIG.missionNewWordLimit,
+            isKnown(vocab) {
+                const record = srsData.entries[getSrsKey(vocab)];
+                return Boolean(record && record.timesCorrect > 0);
+            }
+        });
     }
 
     function startGame() {
@@ -1608,36 +1845,36 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // GAMIFICATION: Apply SRS weights
-        // Wir duplizieren Vokabeln im Pool basierend auf SRS-Daten
-        let srsWeightedPool = [];
-        state.vocabPool.forEach(vocab => {
-            const srsKey = getSrsKey(vocab);
-            let weight = 1; // Standard-Gewicht
-            
-            if (srsData.entries[srsKey]) {
-                const srs = srsData.entries[srsKey];
-                // Berechne ein Fehler-Ratio
-                const totalAttempts = srs.timesCorrect + srs.timesFailed;
-                if (totalAttempts > 0) {
-                    const failRate = srs.timesFailed / totalAttempts;
-                    if (failRate > 0.5) weight = 3; // Sehr schwach
-                    else if (failRate > 0.3) weight = 2; // Etwas schwach
-                    
-                    // Füge Gewichtung für Vokabeln hinzu, die wir lange nicht gesehen haben
-                    const daysSinceLastSeen = (Date.now() - srs.lastSeen) / (1000 * 60 * 60 * 24);
-                    if (daysSinceLastSeen > 7) weight += 1;
+        let missionTargets = [];
+        if (isMissionMode()) {
+            missionTargets = selectMissionTargets(state.vocabPool);
+            state.vocabPool = [...missionTargets];
+        } else {
+            // GAMIFICATION: Apply SRS weights to the classic endless hunt.
+            const srsWeightedPool = [];
+            state.vocabPool.forEach(vocab => {
+                const srsKey = getSrsKey(vocab);
+                let weight = 1;
+
+                if (srsData.entries[srsKey]) {
+                    const srs = srsData.entries[srsKey];
+                    const totalAttempts = srs.timesCorrect + srs.timesFailed;
+                    if (totalAttempts > 0) {
+                        const failRate = srs.timesFailed / totalAttempts;
+                        if (failRate > 0.5) weight = 3;
+                        else if (failRate > 0.3) weight = 2;
+
+                        const daysSinceLastSeen = (Date.now() - srs.lastSeen) / (1000 * 60 * 60 * 24);
+                        if (daysSinceLastSeen > 7) weight += 1;
+                    }
+                } else {
+                    weight = 2;
                 }
-            } else {
-                // Neue Vokabel, höheres Gewicht am Anfang
-                weight = 2;
-            }
-            
-            for (let i = 0; i < weight; i++) {
-                srsWeightedPool.push(vocab);
-            }
-        });
-        state.vocabPool = srsWeightedPool;
+
+                for (let i = 0; i < weight; i++) srsWeightedPool.push(vocab);
+            });
+            state.vocabPool = srsWeightedPool;
+        }
 
         let unitStatus = new Map();
 
@@ -1717,6 +1954,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (state.direction === 'foreign-de') {
             state.kategorie += ", nach Deutsch";
         }
+        if (isMissionMode()) state.kategorie += ', Mission';
 
         // Reset State
         state.hearts = 3;
@@ -1738,6 +1976,16 @@ document.addEventListener('DOMContentLoaded', () => {
         state.bossActive = false;
         state.bossHealth = 0;
         state.bossMaxHealth = 0;
+        state.mission = {
+            targetWords: missionTargets,
+            securedIds: new Set(),
+            encounters: 0,
+            lastVocabId: '',
+            completed: false,
+            endReason: '',
+            currentPhase: '',
+            finishing: false
+        };
         settingsBtn.classList.remove('pending');
         
         updateBoostUI();
@@ -1759,6 +2007,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateHeartsUI();
+        updateMissionHUD();
         scoreEl.textContent = state.score;
 
         showScreen('game');
@@ -1780,6 +2029,15 @@ document.addEventListener('DOMContentLoaded', () => {
             { q: getGerman(vocab), a: getForeign(vocab), vocab: vocab };
     }
 
+    function setZombieWord(question) {
+        const text = String(question ?? '');
+        const density = window.VocabUtils.getWordBubbleDensity(text);
+
+        zombieWordEl.textContent = text;
+        zombieWordEl.classList.remove('word-bubble-long', 'word-bubble-very-long');
+        if (density !== 'normal') zombieWordEl.classList.add(`word-bubble-${density}`);
+    }
+
     function spawnZombie() {
         if (!state.gameRunning) return;
         
@@ -1790,20 +2048,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (finishMissionIfNeeded()) return;
+
         state.wrongAttemptsForCurrentWord = 0;
         state.zombieDead = false;
 
         state.wordsSinceLastBoss++;
         
         let isBoss = false;
-        if (state.wordsSinceLastBoss >= 10 && Math.random() > 0.5 || state.wordsSinceLastBoss >= 15) {
+        if (isMissionMode()) {
+            const remainingCount = getMissionRemainingCount();
+            isBoss = remainingCount > 0 && remainingCount <= getMissionBossTargetCount();
+        } else if ((state.wordsSinceLastBoss >= 10 && Math.random() > 0.5) || state.wordsSinceLastBoss >= 15) {
             isBoss = true;
             state.wordsSinceLastBoss = 0;
         }
 
         if (isBoss) {
             state.bossActive = true;
-            state.bossHealth = Math.floor(Math.random() * 2) + 2; // 2 or 3
+            state.bossHealth = isMissionMode()
+                ? getMissionRemainingCount()
+                : Math.floor(Math.random() * 2) + 2;
             state.bossMaxHealth = state.bossHealth;
             zombieEl.classList.add('boss');
             
@@ -1838,8 +2103,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (zombieSpriteCanvas) zombieSpriteCanvas.style.display = 'none';
         }
 
-        const randomIndex = Math.floor(Math.random() * state.vocabPool.length);
-        const vocab = state.vocabPool[randomIndex];
+        const vocab = isMissionMode()
+            ? window.VocabUtils.pickMissionVocabulary(
+                state.mission.targetWords,
+                state.mission.securedIds,
+                state.mission.lastVocabId
+            )
+            : state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)];
+        if (!vocab) {
+            if (isMissionMode()) finishMissionIfNeeded();
+            return;
+        }
+        registerMissionEncounter(vocab);
         
         let currentMode = state.direction;
         if (state.direction === 'mixed') {
@@ -1868,13 +2143,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let currentDuration = maxDuration - (progress * (maxDuration - minDuration));
+        if (isMissionMode() && getMissionPhase() === 'scout') {
+            // Phase 1 is intentionally calmer: the player should first orient
+            // themselves and retrieve three words without immediate pressure.
+            currentDuration *= 1.45;
+        }
         let startX = canvas.clientWidth;
         let distance = startX - 200; // 200 ist der Hit-Bereich
         let framesNeeded = currentDuration * 60; // Geht von 60fps aus
 
         state.zombieSpeed = distance / framesNeeded;
 
-        zombieWordEl.textContent = state.currentWord.q;
+        setZombieWord(state.currentWord.q);
         state.zombiePosition = canvas.clientWidth; 
         zombieEl.style.left = state.zombiePosition + 'px';
         zombieEl.style.opacity = '0';
@@ -1906,8 +2186,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateNewWordForBoss() {
-        const randomIndex = Math.floor(Math.random() * state.vocabPool.length);
-        const vocab = state.vocabPool[randomIndex];
+        if (finishMissionIfNeeded()) return false;
+        const vocab = isMissionMode()
+            ? window.VocabUtils.pickMissionVocabulary(
+                state.mission.targetWords,
+                state.mission.securedIds,
+                state.mission.lastVocabId
+            )
+            : state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)];
+        if (!vocab) return false;
+        registerMissionEncounter(vocab);
         
         let currentMode = state.direction;
         if (state.direction === 'mixed') {
@@ -1922,7 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         state.currentWord = getQuestionAndAnswer(vocab, isForeignToGerman);
-        zombieWordEl.textContent = state.currentWord.q;
+        setZombieWord(state.currentWord.q);
         state.wrongAttemptsForCurrentWord = 0; // Fehlerzähler für neues Wort zurücksetzen
         
         if (currentMode === 'de-foreign-write') {
@@ -1934,6 +2222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('writing-container').classList.add('hidden');
             generateOptions(vocab, isForeignToGerman);
         }
+        return true;
     }
 
     function generateOptions(correctVocab, isForeignToGerman) {
@@ -2183,6 +2472,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const correct = selectedOption === state.currentWord.a;
 
         if (correct) {
+            let newlySecuredMissionTarget = false;
+            if (isMissionMode()) {
+                newlySecuredMissionTarget = !state.mission.securedIds.has(state.currentWord.vocab.id);
+                state.mission.securedIds.add(state.currentWord.vocab.id);
+                updateMissionHUD();
+            }
+
             // GAMIFICATION: Add XP and Update SRS
             addXP(10);
             playerProfile.stats.totalZombies++;
@@ -2276,13 +2572,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 projectile.style.width = shootDistance + 'px';
                 setTimeout(() => {
                     projectile.className = 'hidden';
-                    if (state.bossActive && state.bossHealth > 1) {
-                        state.bossHealth--;
+                    const bossNeedsAnotherHit = state.bossActive && (
+                        state.bossHealth > 1 || (isMissionMode() && !newlySecuredMissionTarget)
+                    );
+                    if (bossNeedsAnotherHit) {
+                        if (!isMissionMode() || newlySecuredMissionTarget) state.bossHealth--;
                         zombieEl.classList.add('boss-hit');
                         setTimeout(() => zombieEl.classList.remove('boss-hit'), 100);
                         
                         const hps = document.querySelectorAll('.boss-hp');
-                        if (hps[state.bossHealth]) {
+                        if ((!isMissionMode() || newlySecuredMissionTarget) && hps[state.bossHealth]) {
                             hps[state.bossHealth].classList.add('lost');
                         }
                         
@@ -2299,12 +2598,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         zombieEl.classList.add('knockback');
                         zombieEl.style.left = newPos + 'px';
                         
-                        generateNewWordForBoss();
-                        
-                        setTimeout(() => {
-                            zombieEl.classList.remove('knockback');
-                            state.zombieDead = false;
-                        }, 400);
+                        const hasNextBossWord = generateNewWordForBoss();
+                        if (hasNextBossWord) {
+                            setTimeout(() => {
+                                zombieEl.classList.remove('knockback');
+                                state.zombieDead = false;
+                            }, 400);
+                        }
                     } else {
                         if (state.bossActive) {
                             // Bonus score for defeating boss
@@ -2427,7 +2727,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBoostUI();
         state.level = Math.max(1, state.level - 1);
         
-        state.hearts--;
+        state.hearts = Math.max(0, state.hearts - 1);
         updateHeartsUI();
         
         // Schwerer Screen-Shake bei Schaden
@@ -2440,7 +2740,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const afterDialog = () => {
             zombieEl.classList.remove('hidden');
-            if (state.hearts <= 0) {
+            if (!isMissionMode() && state.hearts <= 0) {
                 endGame();
             } else {
                 spawnZombie();
@@ -2544,6 +2844,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalTimeSeconds = (Date.now() - state.startTime) / 1000;
         const timePerWord = state.totalAttempts > 0 ? (totalTimeSeconds / state.totalAttempts).toFixed(1) : 0;
         const avgTimeMs = state.totalAttempts > 0 ? (totalTimeSeconds * 1000) / state.totalAttempts : 0;
+
+        const missionResult = document.getElementById('mission-result');
+        const endScreenTitle = document.getElementById('end-screen-title');
+        const changeMissionSettingsBtn = document.getElementById('change-mission-settings-btn');
+        if (isMissionMode()) {
+            const securedCount = state.mission.securedIds.size;
+            const targetCount = state.mission.targetWords.length;
+            const missionPercentage = targetCount > 0 ? Math.min(100, (securedCount / targetCount) * 100) : 0;
+            const medal = state.hearts >= 3 ? '🥇' : state.hearts === 2 ? '🥈' : '🥉';
+            if (endScreenTitle) endScreenTitle.textContent = state.mission.completed ? 'Mission erfüllt!' : 'Extraktion erreicht!';
+            missionResult?.classList.remove('hidden');
+            missionResult?.classList.toggle('incomplete', !state.mission.completed);
+            document.getElementById('mission-medal').textContent = medal;
+            document.getElementById('mission-result-title').textContent = state.mission.completed
+                ? 'Operation Morgenrot abgeschlossen'
+                : 'Ziel fast erreicht – Wörter vorgemerkt';
+            document.getElementById('mission-result-summary').textContent = state.mission.completed
+                ? `${securedCount} von ${targetCount} Zielwörtern gesichert · ${state.mission.encounters} Begegnungen`
+                : `${securedCount} von ${targetCount} Zielwörtern gesichert · Extraktion nach ${state.mission.encounters} Begegnungen`;
+            document.getElementById('mission-result-progress').style.width = `${missionPercentage}%`;
+            restartBtn.textContent = 'Empfohlene nächste Mission';
+            changeMissionSettingsBtn?.classList.remove('hidden');
+        } else {
+            if (endScreenTitle) endScreenTitle.textContent = 'Jagd beendet!';
+            missionResult?.classList.add('hidden');
+            missionResult?.classList.remove('incomplete');
+            restartBtn.textContent = 'Neue Jagd';
+            changeMissionSettingsBtn?.classList.add('hidden');
+        }
 
         checkAchievements({
             totalWords: state.totalAttempts,

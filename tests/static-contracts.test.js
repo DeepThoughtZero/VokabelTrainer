@@ -56,6 +56,32 @@ test('password, terms and course screens preserve the required entry flow', () =
     assert.doesNotMatch(html, /<h2>\d+\.\s+(?:Klasse|Fach)<\/h2>/);
 });
 
+test('mission loop is a separate play style with a finite learning objective', () => {
+    const html = read('index.html');
+    const app = read('js/app.js');
+    const css = read('css/style.css');
+    assert.match(html, /id="mission-selection-screen"/);
+    assert.match(html, /data-play-style="mission"/);
+    assert.match(html, /data-play-style="hunt"/);
+    assert.match(html, /class="mission-route"/);
+    assert.match(html, /id="mission-hud"/);
+    assert.match(html, /id="mission-encounter-label"/);
+    assert.match(html, /id="mission-phase-overlay"/);
+    assert.match(html, /id="mission-result"/);
+    assert.doesNotMatch(html, /Klares Lernziel · sichtbares Ende/);
+    assert.doesNotMatch(html, /<option value="mission"/);
+    assert.match(app, /missionTargetSize:\s*12/);
+    assert.match(app, /missionMaxEncounters:\s*20/);
+    assert.match(app, /missionNewWordLimit:\s*6/);
+    assert.match(app, /finishMissionIfNeeded/);
+    assert.match(app, /currentDuration \*= 1\.45/);
+    assert.match(app, /showMissionPhaseTransition/);
+    assert.match(app, /Empfohlene nächste Mission/);
+    assert.match(css, /\.mission-route\s*\{/);
+    assert.match(css, /\.mission-hud\s*\{/);
+    assert.match(css, /\.mission-phase-overlay\s*\{/);
+});
+
 test('course-specific persistence and leaderboard category construction stay separated', () => {
     const app = read('js/app.js');
     const leaderboard = read('js/leaderboard.js');
@@ -102,6 +128,7 @@ test('visual dense-options fixture stays wired to the production styles and clas
     assert.match(fixture, /\.\.\/\.\.\/js\/vocab_utils\.js/);
     assert.equal((fixture.match(/class="option-btn"/g) || []).length, 7);
     assert.match(fixture, /getOptionDensity\(labels\)/);
+    assert.match(fixture, /getWordBubbleDensity\(bubble\.textContent\)/);
 });
 
 test('visual leaderboard fixture exercises class grouping with production code', () => {

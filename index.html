@@ -140,9 +140,96 @@
             </div>
         </section>
 
+        <!-- Play Style Selection Screen -->
+        <section id="mission-selection-screen" class="screen mission-selection-screen">
+            <button id="back-to-city-from-mission-btn" class="btn-secondary screen-back-btn" type="button" title="Zurück zur Stadtauswahl">⬅ Zurück</button>
+            <h1 class="title">Einsatz auswählen</h1>
+            <p class="mission-screen-kicker">Wie willst du <span id="mission-city-name">die Stadt</span> retten?</p>
+
+            <div class="mission-command-center glass">
+                <div class="play-style-grid" role="radiogroup" aria-label="Spielart">
+                    <button class="play-style-card active" type="button" data-play-style="mission" aria-pressed="true">
+                        <span class="play-style-recommendation">Empfohlen</span>
+                        <span class="play-style-icon" aria-hidden="true">🎯</span>
+                        <span class="play-style-copy">
+                            <strong>Rettungsmission</strong>
+                            <small>Orte die Horde. Stürze den Boss. Rette die Stadt.</small>
+                        </span>
+                        <span class="play-style-check" aria-hidden="true">✓</span>
+                    </button>
+                    <button class="play-style-card" type="button" data-play-style="hunt" aria-pressed="false">
+                        <span class="play-style-icon" aria-hidden="true">♾️</span>
+                        <span class="play-style-copy">
+                            <strong>Freie Jagd</strong>
+                            <small>Jage ohne Limit – bis dein letztes Herz fällt.</small>
+                        </span>
+                        <span class="play-style-check" aria-hidden="true">✓</span>
+                    </button>
+                </div>
+
+                <div id="mission-briefing" class="mission-briefing-panel">
+                    <div class="mission-briefing-heading">
+                        <div>
+                            <span class="mission-eyebrow">Neuer Notruf · Operation Morgenrot</span>
+                            <h2>Brich durch die Horde – und stürze den Boss!</h2>
+                            <p class="mission-briefing-story">Jedes gesicherte Wort bringt dein Team näher zur Extraktion.</p>
+                        </div>
+                        <div class="mission-duration"><span aria-hidden="true">⏱</span><strong>≈ 5 Min.</strong></div>
+                    </div>
+
+                    <div class="mission-route" aria-label="Missionspfad: Briefing, Aufklärung, Angriff, Boss und Extraktion">
+                        <div class="mission-route-line" aria-hidden="true"></div>
+                        <div class="mission-route-stop complete">
+                            <span class="mission-route-node" aria-hidden="true">📡</span>
+                            <strong>Briefing</strong>
+                            <small>Notruf empfangen</small>
+                        </div>
+                        <div class="mission-route-stop">
+                            <span class="mission-route-node" aria-hidden="true">🧭</span>
+                            <strong>Aufklärung</strong>
+                            <small>3 Ziele orten</small>
+                        </div>
+                        <div class="mission-route-stop">
+                            <span class="mission-route-node" aria-hidden="true">🧟</span>
+                            <strong>Angriff</strong>
+                            <small>Horde stoppen</small>
+                        </div>
+                        <div class="mission-route-stop boss-stop">
+                            <span class="mission-route-node" aria-hidden="true">👑</span>
+                            <strong>Boss</strong>
+                            <small>Anführer stürzen</small>
+                        </div>
+                        <div class="mission-route-stop">
+                            <span class="mission-route-node" aria-hidden="true">🚁</span>
+                            <strong>Extraktion</strong>
+                            <small>Stadt gerettet</small>
+                        </div>
+                    </div>
+
+                    <div class="mission-rules">
+                        <span><strong>12</strong> Wörter im Einsatz</span>
+                        <span><strong>20</strong> Chancen bis zum Abflug</span>
+                        <span><strong>6</strong> unbekannte Wörter max.</span>
+                        <span><strong>🥇</strong> Gold für 3 Herzen</span>
+                    </div>
+                </div>
+
+                <div id="hunt-briefing" class="hunt-briefing-panel hidden">
+                    <span class="hunt-briefing-icon" aria-hidden="true">🧟‍♂️</span>
+                    <div>
+                        <span class="mission-eyebrow">Klassische Endlosjagd</span>
+                        <h2>Halte die Horde so lange wie möglich auf</h2>
+                        <p>Kein festes Lernziel und keine Begegnungsgrenze. Die Jagd endet, wenn alle drei Herzen verloren sind.</p>
+                    </div>
+                </div>
+
+                <button id="confirm-play-style-btn" class="btn-primary mission-confirm-btn" type="button">Mission vorbereiten</button>
+            </div>
+        </section>
+
         <!-- Start Screen (Settings) -->
         <section id="start-screen" class="screen">
-            <button id="back-to-city-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Stadtauswahl">⬅ Zurück</button>
+            <button id="back-to-mission-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Einsatzwahl">⬅ Einsatzart</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
                 <button id="profile-start-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-start-btn" class="gear-btn" title="Weltrangliste">🏆</button>
@@ -152,6 +239,15 @@
             <div id="daily-streak-display" style="text-align: center; margin-top: -10px; margin-bottom: 15px; font-size: 1.8rem; color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.5); font-weight: bold; display: none;">🔥 <span id="daily-streak-count">0</span></div>
             
             <div class="menu-box glass">
+                <div id="selected-play-style-banner" class="selected-play-style-banner mission-selected">
+                    <span id="selected-play-style-icon" class="selected-play-style-icon" aria-hidden="true">🎯</span>
+                    <div>
+                        <span class="mission-eyebrow">Gewählter Einsatz</span>
+                        <strong id="selected-play-style-title">Rettungsmission</strong>
+                        <small id="selected-play-style-summary">Horde orten · Boss besiegen · Stadt retten</small>
+                    </div>
+                    <button id="change-play-style-btn" type="button">Ändern</button>
+                </div>
                 <div class="form-group">
                     <label>Lernpfad auswählen (Mehrfachauswahl):</label>
                     <div id="learning-path-container" class="custom-filter-grid">
@@ -170,7 +266,7 @@
                         </select>
                     </div>
                     
-                    <button id="start-btn" class="btn-primary">Jagd Beginnen</button>
+                    <button id="start-btn" class="btn-primary">Mission starten</button>
                 </div>
             </div>
         </section>
@@ -184,7 +280,71 @@
                     <span class="heart">❤️</span>
                 </div>
                 <button id="settings-btn" class="gear-btn" title="Zurück zu den Einstellungen">⚙️</button>
+                <div id="mission-hud" class="mission-hud hidden" aria-live="polite">
+                    <div class="mission-hud-copy">
+                        <span id="mission-phase-label">Aufklärung</span>
+                        <div class="mission-hud-counts">
+                            <strong id="mission-objective-label">0 / 12 gesichert</strong>
+                            <span id="mission-encounter-label">⚔ 0 / 20</span>
+                        </div>
+                    </div>
+                    <div class="mission-hud-track" aria-hidden="true"><span id="mission-hud-progress"></span></div>
+                    <div class="mission-hud-steps" aria-hidden="true">
+                        <span class="active" data-mission-phase="scout">🧭</span>
+                        <span data-mission-phase="attack">🧟</span>
+                        <span data-mission-phase="boss">👑</span>
+                        <span data-mission-phase="extract">🚁</span>
+                    </div>
+                </div>
                 <div id="score-container">Score: <span id="score">0</span></div>
+            </div>
+
+            <div id="mission-phase-overlay" class="mission-phase-overlay hidden" role="status" aria-live="polite">
+                <span id="mission-phase-overlay-icon" class="mission-phase-overlay-icon" aria-hidden="true">📡</span>
+                <div>
+                    <span id="mission-phase-overlay-kicker" class="mission-phase-overlay-kicker">Phase 1</span>
+                    <strong id="mission-phase-overlay-title">Gebiet scannen</strong>
+                    <small id="mission-phase-overlay-detail">Drei ruhige Ziele. Präge dir jedes Wort ein.</small>
+                </div>
+            </div>
+
+            <section id="correction-panel" class="correction-panel hidden" role="dialog" aria-modal="true" aria-labelledby="correction-title" aria-describedby="correction-instruction">
+                <div class="correction-panel-heading">
+                    <div class="correction-mark-emblem" aria-hidden="true">
+                        <span>⟳</span>
+                        <small>MARKIERT</small>
+                    </div>
+                    <div class="correction-panel-copy">
+                        <span class="correction-kicker">Spur gesichert · kein Wort geht verloren</span>
+                        <h2 id="correction-title">Der Zombie zieht sich zurück</h2>
+                        <p id="correction-pair" class="correction-pair">
+                            <span id="correction-question">Frage</span>
+                            <span class="correction-arrow" aria-hidden="true">→</span>
+                            <strong id="correction-answer">Lösung</strong>
+                        </p>
+                    </div>
+                    <div class="correction-return-chip">
+                        <span aria-hidden="true">⌛</span>
+                        <div>
+                            <small>Kommt wieder</small>
+                            <strong id="correction-return-label">nach 2 Wörtern</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="correction-builder">
+                    <p id="correction-instruction">Präge dir die Lösung ein und baue sie aus den Buchstaben zusammen.</p>
+                    <div id="correction-pool" class="letter-pool correction-letter-pool" aria-label="Verfügbare Buchstaben"></div>
+                    <div id="correction-target" class="letter-target correction-letter-target" aria-label="Zusammengesetzte Lösung"></div>
+                    <p id="correction-feedback" class="correction-feedback" role="status" aria-live="polite">Setze die Buchstaben in der richtigen Reihenfolge ein.</p>
+                </div>
+            </section>
+
+            <div id="marked-retry-banner" class="marked-retry-banner hidden" role="status" aria-live="polite">
+                <span class="marked-retry-symbol" aria-hidden="true">⟳</span>
+                <div>
+                    <span>Markierter Zombie</span>
+                    <strong>Du kennst ihn – hol dir das Wort jetzt zurück!</strong>
+                </div>
             </div>
             
             <div id="options-container" class="options">
@@ -214,6 +374,10 @@
                     <img src="assets/hunter_commanderneon.png" alt="Hunter" class="sprite-img" id="hunter-img">
                 </div>
                 <div id="zombie" class="entity">
+                    <div id="marked-zombie-badge" class="marked-zombie-badge hidden" aria-label="Markierter Zombie kehrt zurück">
+                        <span aria-hidden="true">⟳</span>
+                        <strong>RÜCKKEHRER</strong>
+                    </div>
                     <div id="boss-health-bar" class="hidden"></div>
                     <div id="zombie-word" class="word-bubble">Word</div>
                     <img src="assets/zombie01.png" alt="Zombie" class="sprite-img" id="zombie-img">
@@ -225,8 +389,17 @@
 
         <!-- End Screen -->
         <section id="end-screen" class="screen">
-            <h2 class="title">Jagd Beendet!</h2>
+            <h2 id="end-screen-title" class="title">Jagd Beendet!</h2>
             <div class="stats-box glass">
+                <div id="mission-result" class="mission-result hidden">
+                    <div id="mission-medal" class="mission-medal" aria-hidden="true">🥇</div>
+                    <div class="mission-result-copy">
+                        <span class="mission-eyebrow">Einsatzbericht</span>
+                        <h3 id="mission-result-title">Mission erfüllt</h3>
+                        <p id="mission-result-summary">12 von 12 Zielwörtern gesichert</p>
+                        <div class="mission-result-track" aria-hidden="true"><span id="mission-result-progress"></span></div>
+                    </div>
+                </div>
                 <div class="final-score-display">
                     <h3>Score</h3>
                     <div id="stat-final-score">0</div>
@@ -261,6 +434,10 @@
                         </div>
                     </div>
                 </div>
+                <div class="end-actions">
+                    <button id="restart-btn" class="btn-primary">Neue Jagd</button>
+                    <button id="change-mission-settings-btn" class="btn-secondary hidden" type="button">Lernpfad ändern</button>
+                </div>
                 <div class="weaknesses">
                     <h3>Deine Schwächen:</h3>
                     <table class="weakness-table">
@@ -277,7 +454,6 @@
                         <tbody id="stat-weaknesses-body"></tbody>
                     </table>
                 </div>
-                <button id="restart-btn" class="btn-primary" style="margin-top: 15px;">Neue Jagd</button>
             </div>
         </section>
 

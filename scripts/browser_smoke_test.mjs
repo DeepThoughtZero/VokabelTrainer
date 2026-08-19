@@ -341,6 +341,17 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     await click(client, '#confirm-hunter-btn');
     await waitForCondition(client, `document.querySelector('#city-selection-screen.active')`, 'Stadtauswahl aktiv');
     await click(client, '#confirm-city-btn');
+    await waitForCondition(client, `document.querySelector('#mission-selection-screen.active')`, 'Einsatzwahl aktiv');
+    const missionSelectionState = await evaluate(client, `({
+        activeStyle: document.querySelector('.play-style-card.active')?.dataset.playStyle,
+        routeStops: document.querySelectorAll('.mission-route-stop').length,
+        objective: document.querySelector('#mission-briefing h2')?.textContent.trim(),
+    })`);
+    assert.equal(missionSelectionState.activeStyle, 'mission');
+    assert.equal(missionSelectionState.routeStops, 5);
+    assert.equal(missionSelectionState.objective, 'Brich durch die Horde – und stürze den Boss!');
+    await assertInsideViewport(client, '.mission-command-center');
+    await click(client, '#confirm-play-style-btn');
     await waitForCondition(client, `document.querySelector('#start-screen.active')`, 'Lernpfad aktiv');
 
     const learningPathState = await evaluate(client, `({
@@ -404,7 +415,26 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     await click(client, '#close-leaderboard-btn');
     await click(client, '#start-btn');
     await waitForCondition(client, `document.querySelector('#game-screen.active')`, 'Spielscreen aktiv');
+    await waitForCondition(client, `!document.querySelector('#mission-hud').classList.contains('hidden')`, 'Missionsfortschritt sichtbar');
     await waitForCondition(client, `document.querySelectorAll('#options-container .option-btn').length >= 4`, 'Antwortmöglichkeiten sichtbar');
+    const missionHudState = await evaluate(client, `({
+        phase: document.querySelector('#mission-phase-label').textContent.trim(),
+        objective: document.querySelector('#mission-objective-label').textContent.trim(),
+        encounter: document.querySelector('#mission-encounter-label').textContent.trim(),
+        transition: document.querySelector('#mission-phase-overlay-title').textContent.trim(),
+        transitionVisible: !document.querySelector('#mission-phase-overlay').classList.contains('hidden'),
+        clipped: ['mission-phase-label', 'mission-objective-label', 'mission-encounter-label'].some(id => {
+            const element = document.getElementById(id);
+            return element.scrollWidth > element.clientWidth + 1;
+        }),
+    })`);
+    assert.equal(missionHudState.phase, 'Aufklärung');
+    assert.match(missionHudState.objective, /^0 \/ (?:6|12) gesichert$/);
+    assert.equal(missionHudState.encounter, '⚔ 1 / 20');
+    assert.equal(missionHudState.transition, 'Gebiet scannen');
+    assert.equal(missionHudState.transitionVisible, true);
+    assert.equal(missionHudState.clipped, false, 'Missionsstatus in der Titelleiste ist abgeschnitten');
+    await assertInsideViewport(client, '#mission-hud');
     await assertInsideViewport(client, '#options-container');
     const optionOverflow = await evaluate(client, `[...document.querySelectorAll('#options-container .option-btn')].some(button => {
         const rect = button.getBoundingClientRect();
@@ -506,7 +536,7 @@ async function main() {
         client = await connectCdp(page.webSocketDebuggerUrl);
         const problems = [];
         await runSmokeTest(client, `http://127.0.0.1:${port}`, problems);
-        console.log(`Browser-Smoke-Test OK: Desktop, Mobil, Querformat-Hinweis, Englisch 6, Bestenliste und Spielstart (${browserBinary}).`);
+        console.log(`Browser-Smoke-Test OK: Desktop, Mobil, Missionspfad, Querformat-Hinweis, Englisch 6, Bestenliste und Spielstart (${browserBinary}).`);
     } catch (error) {
         const stderr = browserStderr.join('').trim().split('\n').slice(-8).join('\n');
         if (stderr) console.error(`Letzte Browsermeldungen:\n${stderr}`);

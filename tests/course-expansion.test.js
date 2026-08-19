@@ -84,6 +84,50 @@ test('answer choices become compact only when count or text volume requires it',
     ]), 'very-dense');
 });
 
+test('long vocabulary prompts use smaller speech-bubble text', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const density = context.window.VocabUtils.getWordBubbleDensity;
+    assert.equal(density('die Waffe'), 'normal');
+    assert.equal(density('Essen zum Mitnehmen; Restaurant/Imbissgeschäft, das auch Essen zum Mitnehmen verkauft'), 'long');
+    assert.equal(density('sich drehen; sich umdrehen; ausschalten ... einschalten; (nach) links/rechts abbiegen; lauter stellen; dunkel werden'), 'very-long');
+});
+
+test('mission planning limits new words and never repeats a target immediately', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+    const vocabulary = Array.from({ length: 18 }, (_, index) => ({
+        id: `word-${index + 1}`,
+        known: index < 8
+    }));
+    const targets = Array.from(utilities.createMissionTargetSet(vocabulary, {
+        targetSize: 12,
+        newWordLimit: 6,
+        isKnown: vocab => vocab.known,
+        random: () => 0.25
+    }));
+
+    assert.equal(targets.length, 12);
+    assert.ok(targets.filter(vocab => !vocab.known).length <= 6);
+    assert.equal(new Set(targets.map(vocab => vocab.id)).size, targets.length);
+
+    const lastTarget = targets[0];
+    const securedIds = targets.slice(1).map(vocab => vocab.id);
+    const next = utilities.pickMissionVocabulary(targets, securedIds, lastTarget.id, () => 0);
+    assert.notEqual(next.id, lastTarget.id, 'mission word repeated without a spacer');
+});
+
+test('a first mission contains no more than six entirely new words', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const vocabulary = Array.from({ length: 20 }, (_, index) => ({ id: `new-${index + 1}` }));
+    const targets = Array.from(context.window.VocabUtils.createMissionTargetSet(vocabulary, {
+        targetSize: 12,
+        newWordLimit: 6,
+        isKnown: () => false,
+        random: () => 0.5
+    }));
+    assert.equal(targets.length, 6);
+});
+
 test('learning-path filter segments preserve colons in class-6 unit names', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
     const unit = 'Unit 1: Holiday stories';

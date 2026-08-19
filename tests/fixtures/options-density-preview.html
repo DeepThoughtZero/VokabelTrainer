@@ -26,8 +26,8 @@
             </div>
             <div id="game-canvas">
                 <div id="hunter" class="entity"><img src="../../assets/hunter_commanderneon.png" alt="Hunter" class="sprite-img"></div>
-                <div id="zombie" class="entity">
-                    <div class="word-bubble">vergessen</div>
+                <div id="zombie" class="entity bubble-left" style="left: 1100px;">
+                    <div class="word-bubble">sich drehen; sich umdrehen; ausschalten ... einschalten; (nach) links/rechts abbiegen; lauter stellen; dunkel werden</div>
                     <img src="../../assets/zombie01.png" alt="Zombie" class="sprite-img">
                 </div>
             </div>
@@ -41,6 +41,11 @@
         if (density === 'dense') container.classList.add('options-dense');
         if (density === 'very-dense') container.classList.add('options-very-dense');
         document.documentElement.dataset.optionDensity = density;
+
+        const bubble = document.querySelector('.word-bubble');
+        const bubbleDensity = window.VocabUtils.getWordBubbleDensity(bubble.textContent);
+        if (bubbleDensity !== 'normal') bubble.classList.add(`word-bubble-${bubbleDensity}`);
+        document.documentElement.dataset.wordBubbleDensity = bubbleDensity;
     </script>
 </body>
 </html>
