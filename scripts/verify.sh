@@ -11,7 +11,7 @@ usage() {
 Aufruf: ./scripts/verify.sh [--quick|--full|--with-stt]
 
   --quick     Schnelle statische Prüfungen und Node-Tests (Pre-Commit)
-  --full      Zusätzlich alle 869 MP3s und den vorhandenen STT-Bericht prüfen (Pre-Push)
+  --full      Zusätzlich Browser, alle 869 MP3s und vorhandenen STT-Bericht prüfen (Pre-Push)
   --with-stt  SPEACHES-Bericht lokal neu erzeugen und danach vollständig prüfen
 EOF
 }
@@ -119,6 +119,12 @@ PY
 
 section "Automatisierte Tests"
 node --test tests/*.test.js
+bash tests/check_staged_snapshot_test.sh
+
+if [[ "$MODE" != "quick" ]]; then
+  section "Browser-Smoke-Test"
+  node scripts/browser_smoke_test.mjs
+fi
 
 if [[ "$MODE" == "with-stt" ]]; then
   section "SPEACHES-Rücktest"

@@ -10,4 +10,5 @@ if [[ -n "$tracked_generated_files" ]]; then
   printf '%s\n' "$tracked_generated_files" >&2
   exit 1
 fi
+"$PROJECT_ROOT/scripts/check_tested_snapshot.sh" --staged
 exec "$PROJECT_ROOT/scripts/verify.sh" --quick

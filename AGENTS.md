@@ -46,7 +46,10 @@ Spielbereit sind Englisch 5 und Englisch 6. Französisch 6 und Latein 6 sind im 
 - `tests/static-contracts.test.js`: statische Pfade, DOM, Ladefolge, Persistenz- und Apps-Script-Verträge
 - `tests/vocabulary-integrity.test.js`: Importbericht, Datenvertrag und vollständige Audiozuordnung
 - `scripts/check_audio_integrity.py`: lokaler ffprobe- und SPEACHES-Berichts-Gatekeeper
-- `.githooks`: optionale lokale Pre-Commit- und Pre-Push-Hooks
+- `scripts/browser_smoke_test.mjs`: echter Headless-Chrome-Smoke-Test ohne npm-Abhängigkeiten
+- `scripts/check_tested_snapshot.sh`: stellt sicher, dass Hooks exakt den Commit-/HEAD-Snapshot testen
+- `scripts/audio_content_hashes.py`: gemeinsamer SHA-256-Vertrag für MP3, Vokabel- und Sprechtext
+- `.githooks`: optionale lokale, snapshot-sichere Pre-Commit- und Pre-Push-Hooks
 
 ## Kurs- und Vokabelvertrag
 
@@ -107,6 +110,8 @@ python3 scripts/verify_audio_speaches.py --course en-6 --workers 2
 
 SPEACHES läuft üblicherweise auf Port 8000. Der API-Schlüssel kommt aus `SPEACHES_API_KEY`/`API_KEY` oder wird lokal aus dem Container `speaches` gelesen; nie ausgeben oder einchecken. Der Bericht liegt in `scripts/vocab_import/class6_audio_stt_report.json` und unterscheidet `pass`, `review`, `fail` und transparente Kontext-Sonderprüfungen.
 
+Jeder Berichtseintrag ist über SHA-256 an die exakten MP3-Bytes, den originalen Vokabeltext und den normalisierten erwarteten Sprechtext gebunden. Die Vollprüfung vergleicht Inhalte und keine Dateizeitstempel; dadurch bleibt der Nachweis auch nach einem frischen Clone zuverlässig. Hashabweichungen nie durch manuelles Umschreiben des Berichts „bestätigen“, sondern nach Audio- oder Textänderungen `./test.sh --with-stt` ausführen.
+
 Markierte Clips lassen sich gesammelt neu erzeugen:
 
 ```bash
@@ -145,17 +150,24 @@ Die einheitliche lokale Prüfkette lautet:
 ./test.sh --with-stt  # nach Audioänderungen; erneuert den SPEACHES-Vollbericht
 ```
 
-`--quick` prüft Diff-Hygiene, Konfliktmarker, unerlaubte Cache-/Temporärdateien, JavaScript-/Bash-/Python-Syntax und alle Node-Tests. `--full` validiert zusätzlich exakt 869 MP3s mit `ffprobe` sowie Vollständigkeit, Status und Zeitstempel des vorhandenen SPEACHES-Berichts. `--with-stt` führt den lokalen Whisper-Rücktest zuvor neu aus. Es gibt bewusst keine GitHub-Action.
+`--quick` prüft Diff-Hygiene, Konfliktmarker, unerlaubte Cache-/Temporärdateien, JavaScript-/Bash-/Python-Syntax, Hook-Snapshot-Verhalten, SHA-256-Inhaltsverträge und alle Node-Tests. `--full` startet zusätzlich den echten Browser-Smoke-Test in Desktop- und Mobilgröße, validiert exakt 869 MP3s mit `ffprobe` und verlangt einen vollständigen, inhaltlich per SHA-256 gebundenen SPEACHES-Bericht. `--with-stt` führt den lokalen Whisper-Rücktest zuvor neu aus. Es gibt bewusst keine GitHub-Action.
 
-Lokale Hooks werden nicht ungefragt aktiviert. Wer sie nutzen möchte, führt einmal `./scripts/install_git_hooks.sh` aus; danach startet Pre-Commit `--quick` und Pre-Push `--full`.
+Verbindliche lokale Alltagsregeln:
 
-Für UI-Änderungen zusätzlich lokal ausliefern und den echten Browserablauf testen:
+- Nur nach Audioänderungen vor dem Commit beziehungsweise Push einmal `./test.sh --with-stt` ausführen.
+- Bei einem neuen Clone oder auf einem anderen Rechner die Hooks einmalig mit `./scripts/install_git_hooks.sh` aktivieren.
+
+Lokale Hooks werden nicht ungefragt aktiviert. Nach ihrer Aktivierung startet Pre-Commit `--quick` und Pre-Push `--full`. Pre-Commit akzeptiert nur einen Arbeitsbaum ohne nicht vorgemerkte oder nicht versionierte Dateien, damit der getestete Stand exakt dem Git-Index entspricht. Pre-Push verlangt einen vollständig sauberen Arbeitsbaum, damit exakt `HEAD` getestet wird.
+
+`--full` sucht `google-chrome-stable`, `google-chrome`, `chromium` oder `chromium-browser`. Auf abweichenden Installationen den vollständigen Browserpfad über `BROWSER_BIN` setzen. Der automatische Smoke-Test prüft Passwort → AGB/Datenschutz → Englisch 6 → Spielfigur → Stadt → Lernpfad → Spiel sowie Klassenfilter und Überlauf der Bestenliste bei 1280×720 und 390×844.
+
+Für größere UI-Änderungen zusätzlich visuell lokal ausliefern und den echten Browserablauf prüfen:
 
 ```bash
 python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
-Mindestens Passwort → AGB/Datenschutz → Klasse/Fach → Spielfigur → Stadt → Lernpfad → einzelne Unit → Spiel prüfen. Außerdem Browserkonsole, mobile Darstellung, Audio-Wiedergabe und Rücknavigation kontrollieren.
+Zusätzlich zum automatischen Smoke-Test insbesondere Animationen, Audio-Wiedergabe, Rücknavigation und schwer per Geometrie erkennbare visuelle Fehler kontrollieren.
 
 Bei Audio- oder Datenänderungen zusätzlich sicherstellen:
 

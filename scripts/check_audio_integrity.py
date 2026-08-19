@@ -12,6 +12,9 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
+from audio_content_hashes import CONTENT_HASH_SCHEMA, content_hashes
+from verify_audio_speaches import prepare_spoken_text
+
 
 ROOT = Path(__file__).resolve().parents[1]
 VOCAB_FILE = ROOT / "js/vocabs_en_6.js"
@@ -95,6 +98,10 @@ def validate_report(entries: list[dict]) -> list[str]:
     result_ids = [item.get("id") for item in results]
     if report.get("courseId") != "en-6":
         errors.append("STT-Bericht gehört nicht zum Kurs en-6.")
+    if report.get("contentHashSchema") != CONTENT_HASH_SCHEMA:
+        errors.append(
+            "STT-Bericht besitzt keinen aktuellen SHA-256-Inhaltsnachweis; bitte --with-stt ausführen."
+        )
     if report.get("checked") != EXPECTED_COUNT or len(results) != EXPECTED_COUNT:
         errors.append(
             f"STT-Bericht ist unvollständig: checked={report.get('checked')}, Ergebnisse={len(results)}."
@@ -113,22 +120,46 @@ def validate_report(entries: list[dict]) -> list[str]:
             f"STT-Bericht enthält {len(unresolved)} ungeklärte Ergebnisse: "
             + ", ".join(unresolved[:20])
         )
+
+    results_by_id = {item.get("id"): item for item in results}
+    hash_mismatches: list[str] = []
+    metadata_mismatches: list[str] = []
+    for entry in entries:
+        item = results_by_id.get(entry["id"])
+        audio_path = ROOT / entry["audio"]
+        if not item or not audio_path.is_file():
+            continue
+        expected_spoken = prepare_spoken_text(entry["foreign"])
+        expected_hashes = content_hashes(audio_path, entry["foreign"], expected_spoken)
+        changed_fields = [
+            field for field, expected_value in expected_hashes.items()
+            if item.get(field) != expected_value
+        ]
+        if changed_fields:
+            hash_mismatches.append(f"{entry['id']} ({', '.join(changed_fields)})")
+        if (
+            item.get("foreign") != entry["foreign"]
+            or item.get("audio") != entry["audio"]
+            or item.get("expectedSpoken") != expected_spoken
+        ):
+            metadata_mismatches.append(entry["id"])
+    if hash_mismatches:
+        errors.append(
+            f"{len(hash_mismatches)} Audio-/Textinhalte weichen vom STT-Nachweis ab: "
+            + ", ".join(hash_mismatches[:20])
+        )
+    if metadata_mismatches:
+        errors.append(
+            f"{len(metadata_mismatches)} STT-Metadatensätze weichen von der Vokabeldatenbank ab: "
+            + ", ".join(metadata_mismatches[:20])
+        )
+
     generated_at = report.get("generatedAt")
     if not generated_at:
         errors.append("STT-Bericht hat keinen generatedAt-Zeitstempel; bitte --with-stt ausführen.")
     else:
         try:
-            report_time = parse_timestamp(str(generated_at)).timestamp()
-            newer = [
-                entry["id"]
-                for entry in entries
-                if (ROOT / entry["audio"]).is_file()
-                and (ROOT / entry["audio"]).stat().st_mtime > report_time + 1
-            ]
-            if newer:
-                errors.append(
-                    f"{len(newer)} Audios sind neuer als der STT-Bericht: " + ", ".join(newer[:20])
-                )
+            parse_timestamp(str(generated_at))
         except ValueError:
             errors.append(f"Ungültiger generatedAt-Zeitstempel: {generated_at!r}.")
     return errors

@@ -23,6 +23,8 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+from audio_content_hashes import CONTENT_HASH_SCHEMA, content_hashes
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2"
@@ -219,24 +221,25 @@ def transcribe(url: str, model: str, api_key: str, file_path: Path) -> dict:
 
 def verify_entry(entry: dict, args: argparse.Namespace, api_key: str, overrides: dict) -> dict:
     audio_path = ROOT / entry["audio"]
+    expected = prepare_spoken_text(entry["foreign"])
     result = {
         "id": entry["id"],
         "foreign": entry["foreign"],
         "audio": entry["audio"],
+        "expectedSpoken": expected,
     }
     if not audio_path.is_file():
         return {**result, "status": "fail", "error": "audio_missing"}
+    result.update(content_hashes(audio_path, entry["foreign"], expected))
     try:
         response = transcribe(args.url, args.model, api_key, audio_path)
         transcript = str(response.get("text", "")).strip()
-        expected = prepare_spoken_text(entry["foreign"])
         status, similarity, coverage = compare_text(expected, transcript)
         probabilities = [float(word.get("probability", 0)) for word in response.get("words", [])]
         confidence = sum(probabilities) / len(probabilities) if probabilities else None
         result.update(
             {
                 "status": status,
-                "expectedSpoken": expected,
                 "transcript": transcript,
                 "similarity": round(similarity, 3),
                 "wordCoverage": round(coverage, 3),
@@ -290,6 +293,7 @@ def main() -> int:
         "courseId": args.course,
         "model": args.model,
         "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+        "contentHashSchema": CONTENT_HASH_SCHEMA,
         "checked": len(results),
         "counts": counts,
         "durationSeconds": round(time.time() - started, 2),

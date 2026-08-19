@@ -108,3 +108,29 @@ test('local Git verification does not depend on a Codex-only ripgrep binary', ()
         assert.doesNotMatch(read(file), /\brg\b/, `${file} must run in a regular user PATH`);
     }
 });
+
+test('local hooks test the staged commit and clean push snapshots', () => {
+    const preCommit = read('.githooks/pre-commit');
+    const prePush = read('.githooks/pre-push');
+    assert.match(preCommit, /check_tested_snapshot\.sh" --staged/);
+    assert.match(prePush, /check_tested_snapshot\.sh" --head/);
+    assert.match(read('scripts/verify.sh'), /bash tests\/check_staged_snapshot_test\.sh/);
+});
+
+test('full local verification includes the dependency-free browser smoke test', () => {
+    const verify = read('scripts/verify.sh');
+    const browserSmoke = read('scripts/browser_smoke_test.mjs');
+    assert.match(verify, /node scripts\/browser_smoke_test\.mjs/);
+    assert.doesNotMatch(browserSmoke, /from ['"](?:playwright|puppeteer)/);
+    assert.match(browserSmoke, /1280/);
+    assert.match(browserSmoke, /width:\s*390/);
+    assert.match(browserSmoke, /Englisch 6/);
+});
+
+test('audio evidence freshness is content-addressed instead of timestamp-based', () => {
+    const checker = read('scripts/check_audio_integrity.py');
+    const verifier = read('scripts/verify_audio_speaches.py');
+    assert.match(checker, /content_hashes/);
+    assert.match(verifier, /contentHashSchema/);
+    assert.doesNotMatch(checker, /st_mtime/);
+});

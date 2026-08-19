@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -81,4 +82,32 @@ test('source-photo manifest includes page 285 correction and all photos exactly 
     const files = manifest.pages.flatMap(page => [page.file, ...(page.alternatives || [])]);
     assert.equal(files.length, 39);
     assert.equal(new Set(files).size, files.length);
+});
+
+test('SPEACHES evidence is content-addressed to every vocabulary text and MP3', () => {
+    const entries = loadEnglish6();
+    const report = JSON.parse(
+        fs.readFileSync(path.join(root, 'scripts/vocab_import/class6_audio_stt_report.json'), 'utf8')
+    );
+    assert.equal(report.contentHashSchema, 'sha256-v1');
+    assert.equal(report.results.length, entries.length);
+    const results = new Map(report.results.map(result => [result.id, result]));
+
+    for (const entry of entries) {
+        const result = results.get(entry.id);
+        assert.ok(result, `missing STT evidence: ${entry.id}`);
+        const audio = fs.readFileSync(path.join(root, entry.audio));
+        const audioHash = crypto.createHash('sha256').update(audio).digest('hex');
+        const foreignHash = crypto.createHash('sha256').update(entry.foreign, 'utf8').digest('hex');
+        const expectedSpokenHash = crypto.createHash('sha256')
+            .update(result.expectedSpoken, 'utf8')
+            .digest('hex');
+        assert.equal(result.audioSha256, audioHash, `stale audio evidence: ${entry.id}`);
+        assert.equal(result.foreignSha256, foreignHash, `stale vocabulary evidence: ${entry.id}`);
+        assert.equal(
+            result.expectedSpokenSha256,
+            expectedSpokenHash,
+            `stale spoken-text evidence: ${entry.id}`
+        );
+    }
 });

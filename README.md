@@ -45,7 +45,7 @@ Die komplette Prüfkette läuft lokal und benötigt weder GitHub Actions noch ei
 # schneller Check: Syntax, Repository-Hygiene und automatisierte Tests
 ./test.sh --quick
 
-# Pre-Push-Check: zusätzlich alle MP3s und den vorhandenen SPEACHES-Bericht prüfen
+# Pre-Push-Check: zusätzlich Browser, alle MP3s und SPEACHES-Bericht prüfen
 ./test.sh --full
 
 # bei geänderten Audios: SPEACHES-Bericht neu erzeugen und vollständig prüfen
@@ -58,7 +58,11 @@ Die mitgelieferten lokalen Git-Hooks sind bewusst opt-in. Einmalig aktivieren mi
 ./scripts/install_git_hooks.sh
 ```
 
-Danach läuft `--quick` automatisch vor jedem Commit und `--full` vor jedem Push. Der Pre-Push-Check greift nicht auf das Netzwerk zu; er validiert MP3-Dauer, Dateimenge und Aktualität des zuletzt lokal erzeugten SPEACHES-Berichts.
+Danach läuft `--quick` automatisch vor jedem Commit und `--full` vor jedem Push. Pre-Commit verlangt einen vollständig vorgemerkten Arbeitsbaum, damit exakt der Commit-Inhalt getestet wird; Pre-Push verlangt einen sauberen `HEAD`.
+
+Der Pre-Push-Test steuert einen lokal installierten Chrome/Chromium headless und prüft den Hauptablauf sowie Desktop- und Mobilansicht. Falls der Browser nicht automatisch gefunden wird, kann sein vollständiger Pfad über `BROWSER_BIN` gesetzt werden. Der Test verwendet keine npm-Pakete oder Cloud-CI-Dienste.
+
+Der SPEACHES-Nachweis ist über SHA-256 an jede MP3, den Vokabeltext und den erwarteten Sprechtext gebunden. Nach Audioänderungen deshalb vor Commit oder Push einmal `./test.sh --with-stt` ausführen.
 
 ## 🦊 Entwickler
 
