@@ -573,7 +573,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const passwordInput = document.getElementById('secret-password');
     const loginError = document.getElementById('login-error');
     
-    // Obfuscated password ("Zombie" in base64)
     const SECRET_HASH = "Wm9tYmll";
 
     loginBtn.addEventListener('click', handleLogin);
@@ -583,8 +582,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleLogin() {
         const input = passwordInput.value.trim();
-        // Simple base64 encoding check (btoa)
-        // btoa("Zombie") === "Wm9tYmll"
         if (btoa(input) === SECRET_HASH) {
             showHunterScreen();
         } else {
