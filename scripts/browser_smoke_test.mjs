@@ -317,7 +317,10 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
             };
             Object.defineProperty(HTMLMediaElement.prototype, 'play', {
                 configurable: true,
-                value() { return Promise.resolve(); },
+                value() {
+                    queueMicrotask(() => this.dispatchEvent(new Event('ended')));
+                    return Promise.resolve();
+                },
             });
         })();`,
     });
@@ -436,11 +439,147 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     assert.equal(missionHudState.clipped, false, 'Missionsstatus in der Titelleiste ist abgeschnitten');
     await assertInsideViewport(client, '#mission-hud');
     await assertInsideViewport(client, '#options-container');
+
+    const phasePositionBefore = await evaluate(client, `Number.parseFloat(document.querySelector('#zombie').style.left)`);
+    await sleep(3_000);
+    const phaseHoldState = await evaluate(client, `({
+        transitionVisible: !document.querySelector('#mission-phase-overlay').classList.contains('hidden'),
+        zombiePosition: Number.parseFloat(document.querySelector('#zombie').style.left),
+    })`);
+    assert.equal(phaseHoldState.transitionVisible, true, 'Phasenhinweis verschwindet zu schnell');
+    assert.ok(
+        Math.abs(phaseHoldState.zombiePosition - phasePositionBefore) < 1,
+        'Zombie bewegt sich während des Phasenhinweises weiter'
+    );
+    await waitForCondition(
+        client,
+        `document.querySelector('#mission-phase-overlay').classList.contains('hidden')`,
+        'verlängerter Phasenhinweis geschlossen',
+        4_000
+    );
+
     const optionOverflow = await evaluate(client, `[...document.querySelectorAll('#options-container .option-btn')].some(button => {
         const rect = button.getBoundingClientRect();
         return rect.left < -1 || rect.right > window.innerWidth + 1 || button.scrollWidth > button.clientWidth + 1;
     })`);
     assert.equal(optionOverflow, false, 'Antworttext oder Auswahlknopf ist horizontal abgeschnitten');
+
+    const wrongAnswerTriggered = await evaluate(client, `(() => {
+        const wrongButton = [...document.querySelectorAll('#options-container .option-btn')]
+            .find(button => button.dataset.correct === 'false');
+        if (!wrongButton) return false;
+        wrongButton.click();
+        return true;
+    })()`);
+    assert.equal(wrongAnswerTriggered, true, 'Keine falsche Testantwort gefunden');
+    await waitForCondition(client, `!document.querySelector('#correction-panel').classList.contains('hidden')`, 'aktive Korrektur sichtbar');
+    const correctionState = await evaluate(client, `(() => {
+        const label = document.querySelector('#correction-return-label').textContent.trim();
+        return {
+            title: document.querySelector('#correction-title').textContent.trim(),
+            answer: document.querySelector('#correction-answer').textContent.trim(),
+            returnLabel: label,
+            spacerCount: Number(label.match(/\\d+/)?.[0]),
+            letterButtons: document.querySelectorAll('#correction-pool .letter-btn').length,
+            letterSlots: document.querySelectorAll('#correction-target .letter-slot').length,
+            optionsHidden: document.querySelector('#options-container').classList.contains('hidden'),
+            fleeing: document.querySelector('#zombie').classList.contains('marked-fleeing'),
+        };
+    })()`);
+    assert.equal(correctionState.title, 'Der Zombie zieht sich zurück');
+    assert.ok(correctionState.answer, 'Korrektur zeigt keine Lösung');
+    assert.match(correctionState.returnLabel, /^nach [2-4] Wörtern$/);
+    assert.equal(correctionState.letterButtons, correctionState.letterSlots);
+    assert.equal(correctionState.optionsHidden, true);
+    assert.equal(correctionState.fleeing, true);
+    await assertInsideViewport(client, '#correction-panel');
+
+    const correctionSolved = await evaluate(client, `(() => {
+        const pool = document.querySelector('#correction-pool');
+        const slots = [...document.querySelectorAll('#correction-target .letter-slot')];
+        for (const slot of slots) {
+            const expected = slot.dataset.expectedChar.toLocaleLowerCase();
+            const button = [...pool.querySelectorAll('.letter-btn')]
+                .find(candidate => candidate.dataset.char.toLocaleLowerCase() === expected);
+            if (!button) return false;
+            button.click();
+        }
+        return true;
+    })()`);
+    assert.equal(correctionSolved, true, 'Buchstabenbestätigung konnte nicht gelöst werden');
+    await waitForCondition(client, `document.querySelector('#correction-panel').classList.contains('confirmed')`, 'Korrektur bestätigt');
+    await waitForCondition(client, `document.querySelector('#correction-panel').classList.contains('hidden')`, 'Korrektur geschlossen', 5_000);
+
+    for (let spacerIndex = 0; spacerIndex < correctionState.spacerCount; spacerIndex++) {
+        await waitForCondition(client, `
+            !document.querySelector('#options-container').classList.contains('hidden')
+            && [...document.querySelectorAll('#options-container .option-btn')].some(button => !button.disabled)
+        `, `Zwischenwort ${spacerIndex + 1} spielbereit`, 5_000);
+        const previousQuestion = await evaluate(client, `document.querySelector('#zombie-word').textContent.trim()`);
+        const correctSpacerClicked = await evaluate(client, `(() => {
+            const correctButton = [...document.querySelectorAll('#options-container .option-btn')]
+                .find(button => button.dataset.correct === 'true');
+            if (!correctButton) return false;
+            correctButton.click();
+            return true;
+        })()`);
+        assert.equal(correctSpacerClicked, true, `Zwischenwort ${spacerIndex + 1} konnte nicht beantwortet werden`);
+        await waitForCondition(client, `
+            !document.querySelector('#marked-retry-banner').classList.contains('hidden')
+            || (
+                document.querySelector('#zombie-word').textContent.trim() !== ${JSON.stringify(previousQuestion)}
+                && [...document.querySelectorAll('#options-container .option-btn')].some(button => !button.disabled)
+            )
+        `, `Begegnung nach Zwischenwort ${spacerIndex + 1}`, 5_000);
+    }
+
+    await waitForCondition(client, `!document.querySelector('#marked-retry-banner').classList.contains('hidden')`, 'markierter Zombie zurückgekehrt', 5_000);
+    const markedReturnState = await evaluate(client, `({
+        badge: !document.querySelector('#marked-zombie-badge').classList.contains('hidden'),
+        markedClass: document.querySelector('#zombie').classList.contains('marked-zombie'),
+        symbol: document.querySelector('#marked-retry-banner .marked-retry-symbol').textContent.trim(),
+        kicker: document.querySelector('#marked-retry-banner .marked-retry-kicker').textContent.trim(),
+        banner: document.querySelector('#marked-retry-banner .marked-retry-title').textContent.trim(),
+        symbolFits: (() => {
+            const symbol = document.querySelector('#marked-retry-banner .marked-retry-symbol');
+            const copy = document.querySelector('#marked-retry-banner .marked-retry-copy');
+            return symbol.scrollWidth <= symbol.clientWidth
+                && symbol.scrollHeight <= symbol.clientHeight
+                && symbol.getBoundingClientRect().right <= copy.getBoundingClientRect().left;
+        })(),
+    })`);
+    assert.equal(markedReturnState.badge, true);
+    assert.equal(markedReturnState.markedClass, true);
+    assert.equal(markedReturnState.symbol, '⟳');
+    assert.equal(markedReturnState.kicker, 'Markierter Zombie');
+    assert.equal(markedReturnState.banner, 'Du kennst ihn – hol dir das Wort jetzt zurück!');
+    assert.equal(markedReturnState.symbolFits, true, 'Rückkehr-Symbol kollidiert mit dem Bannertext');
+
+    const markedZombieSecured = await evaluate(client, `(() => {
+        const correctButton = [...document.querySelectorAll('#options-container .option-btn')]
+            .find(button => button.dataset.correct === 'true');
+        if (!correctButton || correctButton.disabled) return false;
+        correctButton.click();
+        return true;
+    })()`);
+    assert.equal(markedZombieSecured, true, 'Markierter Zombie konnte nicht gesichert werden');
+    await waitForCondition(client, `document.querySelector('#marked-retry-banner').classList.contains('resolved')`, 'Spur gesichert');
+    const securedBannerState = await evaluate(client, `({
+        symbol: document.querySelector('#marked-retry-banner .marked-retry-symbol').textContent.trim(),
+        kicker: document.querySelector('#marked-retry-banner .marked-retry-kicker').textContent.trim(),
+        title: document.querySelector('#marked-retry-banner .marked-retry-title').textContent.trim(),
+        symbolFits: (() => {
+            const symbol = document.querySelector('#marked-retry-banner .marked-retry-symbol');
+            const copy = document.querySelector('#marked-retry-banner .marked-retry-copy');
+            return symbol.scrollWidth <= symbol.clientWidth
+                && symbol.scrollHeight <= symbol.clientHeight
+                && symbol.getBoundingClientRect().right <= copy.getBoundingClientRect().left;
+        })(),
+    })`);
+    assert.equal(securedBannerState.symbol, '✓');
+    assert.equal(securedBannerState.kicker, 'Spur gesichert');
+    assert.equal(securedBannerState.title, 'Stark erinnert – dieser Zombie ist erledigt.');
+    assert.equal(securedBannerState.symbolFits, true, 'Gesichert-Symbol kollidiert mit dem Bannertext');
 
     await client.send('Emulation.setDeviceMetricsOverride', {
         width: 390,
@@ -536,7 +675,7 @@ async function main() {
         client = await connectCdp(page.webSocketDebuggerUrl);
         const problems = [];
         await runSmokeTest(client, `http://127.0.0.1:${port}`, problems);
-        console.log(`Browser-Smoke-Test OK: Desktop, Mobil, Missionspfad, Querformat-Hinweis, Englisch 6, Bestenliste und Spielstart (${browserBinary}).`);
+        console.log(`Browser-Smoke-Test OK: Desktop, Mobil, Missionspfad, Korrekturschleife, Querformat-Hinweis, Englisch 6, Bestenliste und Spielstart (${browserBinary}).`);
     } catch (error) {
         const stderr = browserStderr.join('').trim().split('\n').slice(-8).join('\n');
         if (stderr) console.error(`Letzte Browsermeldungen:\n${stderr}`);

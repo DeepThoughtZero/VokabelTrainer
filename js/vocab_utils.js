@@ -112,6 +112,65 @@ window.VocabUtils = Object.freeze({
         return pending.find(entry => Number(entry.dueEncounter || 0) <= Number(nextEncounter || 0)) || null;
     },
 
+    calculateMissionReward(result = {}) {
+        const answerXp = Math.max(0, Math.floor(Number(result.answerXp) || 0));
+        const securedCount = Math.max(0, Math.floor(Number(result.securedCount) || 0));
+        const targetCount = Math.max(0, Math.floor(Number(result.targetCount) || 0));
+        const recoveredCorrections = Math.max(0, Math.floor(Number(result.recoveredCorrections) || 0));
+        const hearts = Math.max(0, Math.floor(Number(result.hearts) || 0));
+        const totalAttempts = Math.max(0, Math.floor(Number(result.totalAttempts) || 0));
+        const correctAttempts = Math.max(0, Math.floor(Number(result.correctAttempts) || 0));
+        const completed = targetCount > 0 && securedCount >= targetCount;
+        const completionBonusXp = completed ? 50 : 0;
+        const recoveryBonusXp = recoveredCorrections * 15;
+        const perfect = completed
+            && hearts >= 3
+            && totalAttempts === correctAttempts
+            && recoveredCorrections === 0;
+
+        return {
+            answerXp,
+            completionBonusXp,
+            recoveryBonusXp,
+            totalXp: answerXp + completionBonusXp + recoveryBonusXp,
+            securedCount,
+            recoveredCorrections,
+            completed,
+            perfect,
+            medal: hearts >= 3 ? 'gold' : hearts === 2 ? 'silver' : 'bronze'
+        };
+    },
+
+    normalizeRescueCareer(value = {}) {
+        const medals = value && typeof value.medals === 'object' ? value.medals : {};
+        return {
+            missionsCompleted: Math.max(0, Math.floor(Number(value.missionsCompleted) || 0)),
+            medals: {
+                gold: Math.max(0, Math.floor(Number(medals.gold) || 0)),
+                silver: Math.max(0, Math.floor(Number(medals.silver) || 0)),
+                bronze: Math.max(0, Math.floor(Number(medals.bronze) || 0))
+            },
+            rescuedWords: Math.max(0, Math.floor(Number(value.rescuedWords) || 0)),
+            perfectMissions: Math.max(0, Math.floor(Number(value.perfectMissions) || 0)),
+            correctionsRecovered: Math.max(0, Math.floor(Number(value.correctionsRecovered) || 0))
+        };
+    },
+
+    addMissionToRescueCareer(currentCareer, missionReward) {
+        const career = this.normalizeRescueCareer(currentCareer);
+        const reward = missionReward || {};
+        career.rescuedWords += Math.max(0, Math.floor(Number(reward.securedCount) || 0));
+        career.correctionsRecovered += Math.max(0, Math.floor(Number(reward.recoveredCorrections) || 0));
+
+        if (reward.completed) {
+            career.missionsCompleted++;
+            const medal = ['gold', 'silver', 'bronze'].includes(reward.medal) ? reward.medal : 'bronze';
+            career.medals[medal]++;
+            if (reward.perfect) career.perfectMissions++;
+        }
+        return career;
+    },
+
     tokenizeAnswer(answer) {
         answer = String(answer || '').normalize('NFC');
         const tokens = [];

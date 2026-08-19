@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
         missionNewWordLimit: 6,
         missionMaxEncounters: 20,
         missionBossWordCount: 3,
+        missionPhaseTransitionDurationMs: 6000,
+        missionExtractionTransitionDurationMs: 4000,
         bubbleOnLeft: true, // Schalter: Setze auf false, um die Sprechblase wieder oben anzuzeigen
         enableParallax: false // Schalter: Deaktiviert, da die Bildübergänge aktuell nicht nahtlos sind
     };
@@ -45,6 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
         bossMaxHealth: 0,
         currentMode: 'de-foreign',
         playStyle: 'mission',
+        lastVocabId: '',
+        correction: {
+            queue: [],
+            activeEntry: null,
+            currentRetry: null,
+            encounterSerial: 0,
+            createdOrder: 0,
+            confirmationTimer: null,
+            audio: null
+        },
         mission: {
             targetWords: [],
             securedIds: new Set(),
@@ -53,7 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
             completed: false,
             endReason: '',
             currentPhase: '',
-            finishing: false
+            finishing: false,
+            transitionActive: false,
+            startXp: 0,
+            answerXp: 0,
+            recoveredCorrectionIds: new Set()
         }
     };
 
@@ -187,7 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'schreibkuenstler', title: 'Schreibkünstler', desc: '50 Vokabeln im Schreibmodus richtig', icon: '📝' },
         { id: 'blitzschnell', title: 'Blitzschnell', desc: 'Ø Antwortzeit < 4s in einer Runde', icon: '⚡' },
         { id: 'zombiemeister', title: 'Zombie-Meister', desc: '500 Zombies besiegt', icon: '🧟' },
-        { id: 'ausdauernd', title: 'Ausdauernd', desc: '7 Tage in Folge gespielt', icon: '🗓️' }
+        { id: 'ausdauernd', title: 'Ausdauernd', desc: '7 Tage in Folge gespielt', icon: '🗓️' },
+        { id: 'erste_rettung', title: 'Erste Rettung', desc: 'Die erste Rettungsmission abgeschlossen', icon: '🚁' },
+        { id: 'einsatzleiter', title: 'Einsatzleiter', desc: '10 Rettungsmissionen abgeschlossen', icon: '📡' },
+        { id: 'goldkommando', title: 'Goldkommando', desc: '3 Goldmedaillen in Rettungsmissionen verdient', icon: '🥇' },
+        { id: 'wortretter', title: 'Wortretter', desc: '100 Zielwörter in Rettungsmissionen gesichert', icon: '🛡️' }
     ];
 
     const LEVELS = [
@@ -214,26 +234,54 @@ document.addEventListener('DOMContentLoaded', () => {
         return { currentLevel, nextLevel };
     }
 
-    function loadProfile() {
-        try {
-            const data = localStorage.getItem(PROFILE_KEY);
-            if (data) return JSON.parse(data);
-        } catch (e) {
-            console.warn('localStorage not available:', e);
-        }
+    function createDefaultProfile() {
         return {
             xp: 0,
             dailyStreak: 0,
             lastPlayDate: null,
-            achievements: [], // list of unlocked ids
+            achievements: [],
             stats: {
                 totalZombies: 0,
                 citiesPlayed: [],
                 huntersUsed: [],
                 totalRounds: 0,
-                writeModeCorrect: 0
+                writeModeCorrect: 0,
+                rescue: window.VocabUtils.normalizeRescueCareer()
             }
         };
+    }
+
+    function normalizeProfile(value) {
+        const defaults = createDefaultProfile();
+        const source = value && typeof value === 'object' ? value : {};
+        const stats = source.stats && typeof source.stats === 'object' ? source.stats : {};
+        return {
+            ...defaults,
+            ...source,
+            xp: Math.max(0, Math.floor(Number(source.xp) || 0)),
+            dailyStreak: Math.max(0, Math.floor(Number(source.dailyStreak) || 0)),
+            achievements: Array.isArray(source.achievements) ? [...new Set(source.achievements)] : [],
+            stats: {
+                ...defaults.stats,
+                ...stats,
+                totalZombies: Math.max(0, Math.floor(Number(stats.totalZombies) || 0)),
+                citiesPlayed: Array.isArray(stats.citiesPlayed) ? [...new Set(stats.citiesPlayed)] : [],
+                huntersUsed: Array.isArray(stats.huntersUsed) ? [...new Set(stats.huntersUsed)] : [],
+                totalRounds: Math.max(0, Math.floor(Number(stats.totalRounds) || 0)),
+                writeModeCorrect: Math.max(0, Math.floor(Number(stats.writeModeCorrect) || 0)),
+                rescue: window.VocabUtils.normalizeRescueCareer(stats.rescue)
+            }
+        };
+    }
+
+    function loadProfile() {
+        try {
+            const data = localStorage.getItem(PROFILE_KEY);
+            if (data) return normalizeProfile(JSON.parse(data));
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+        }
+        return createDefaultProfile();
     }
 
     function saveProfile(profile) {
@@ -350,6 +398,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 achievementsContainer.appendChild(card);
             });
         }
+
+        const rescue = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
+        const profileMissionCount = document.getElementById('profile-rescue-missions');
+        const profileRescuedWords = document.getElementById('profile-rescued-words');
+        const profilePerfectMissions = document.getElementById('profile-perfect-missions');
+        const profileRescueMedals = document.getElementById('profile-rescue-medals');
+        if (profileMissionCount) profileMissionCount.textContent = rescue.missionsCompleted;
+        if (profileRescuedWords) profileRescuedWords.textContent = rescue.rescuedWords;
+        if (profilePerfectMissions) profilePerfectMissions.textContent = rescue.perfectMissions;
+        if (profileRescueMedals) {
+            profileRescueMedals.textContent = `🥇 ${rescue.medals.gold} · 🥈 ${rescue.medals.silver} · 🥉 ${rescue.medals.bronze}`;
+        }
         
         const streakDisplay = document.getElementById('daily-streak-display');
         const streakCount = document.getElementById('daily-streak-count');
@@ -453,6 +513,102 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function finalizeMissionReward() {
+        const reward = window.VocabUtils.calculateMissionReward({
+            answerXp: state.mission.answerXp,
+            securedCount: state.mission.securedIds.size,
+            targetCount: state.mission.targetWords.length,
+            recoveredCorrections: state.mission.recoveredCorrectionIds.size,
+            hearts: state.hearts,
+            totalAttempts: state.totalAttempts,
+            correctAttempts: state.correctAttempts
+        });
+        const bonusXp = reward.completionBonusXp + reward.recoveryBonusXp;
+        if (bonusXp > 0) addXP(bonusXp);
+        playerProfile.stats.rescue = window.VocabUtils.addMissionToRescueCareer(
+            playerProfile.stats.rescue,
+            reward
+        );
+        return {
+            ...reward,
+            startXp: state.mission.startXp,
+            endXp: playerProfile.xp,
+            career: playerProfile.stats.rescue
+        };
+    }
+
+    function renderMissionLevelProgress(xp) {
+        const safeXp = Math.max(0, Math.floor(Number(xp) || 0));
+        const { currentLevel, nextLevel } = getLevelInfo(safeXp);
+        const levelName = document.getElementById('mission-level-name');
+        const levelText = document.getElementById('mission-level-xp-text');
+        const levelFill = document.getElementById('mission-level-fill');
+        if (levelName) levelName.textContent = currentLevel.name;
+        if (nextLevel) {
+            const levelSpan = nextLevel.xp - currentLevel.xp;
+            const progress = levelSpan > 0 ? ((safeXp - currentLevel.xp) / levelSpan) * 100 : 100;
+            if (levelText) levelText.textContent = `${safeXp} / ${nextLevel.xp} XP`;
+            if (levelFill) levelFill.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+        } else {
+            if (levelText) levelText.textContent = `${safeXp} XP · Maximalstufe`;
+            if (levelFill) levelFill.style.width = '100%';
+        }
+    }
+
+    function prepareMissionProgression(reward, newlyUnlocked) {
+        const panel = document.getElementById('mission-progression');
+        if (!panel || !reward) return;
+        panel.classList.remove('hidden');
+        document.getElementById('mission-xp-earned').textContent = '0';
+        document.getElementById('mission-answer-xp').textContent = reward.answerXp;
+        document.getElementById('mission-completion-xp').textContent = `+${reward.completionBonusXp}`;
+        document.getElementById('mission-recovery-xp').textContent = `+${reward.recoveryBonusXp}`;
+        document.getElementById('mission-career-count').textContent = reward.career.missionsCompleted;
+        document.getElementById('mission-career-words').textContent = reward.career.rescuedWords;
+        document.getElementById('mission-career-perfect').textContent = reward.career.perfectMissions;
+        document.getElementById('mission-career-medals').textContent = [
+            `🥇 ${reward.career.medals.gold}`,
+            `🥈 ${reward.career.medals.silver}`,
+            `🥉 ${reward.career.medals.bronze}`
+        ].join(' · ');
+        renderMissionLevelProgress(reward.startXp);
+
+        const unlockPanel = document.getElementById('mission-achievement-unlock');
+        const unlockTitle = document.getElementById('mission-achievement-unlock-title');
+        const unlockedAchievements = ACHIEVEMENTS.filter(achievement => newlyUnlocked.includes(achievement.id));
+        const unlockedRescueAchievements = unlockedAchievements.filter(achievement => (
+            ['erste_rettung', 'einsatzleiter', 'goldkommando', 'wortretter'].includes(achievement.id)
+        ));
+        unlockPanel?.classList.toggle('hidden', unlockedRescueAchievements.length === 0);
+        if (unlockTitle && unlockedRescueAchievements.length > 0) {
+            unlockTitle.textContent = unlockedRescueAchievements
+                .map(achievement => `${achievement.icon} ${achievement.title}`)
+                .join(' · ');
+        }
+    }
+
+    function animateMissionProgression(reward) {
+        const earnedElement = document.getElementById('mission-xp-earned');
+        if (!earnedElement || !reward) return;
+        const duration = 1800;
+        const startedAt = performance.now();
+
+        function tick(now) {
+            const progress = Math.min((now - startedAt) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const currentXp = Math.round(reward.startXp + ((reward.endXp - reward.startXp) * eased));
+            earnedElement.textContent = Math.round(reward.totalXp * eased);
+            renderMissionLevelProgress(currentXp);
+            if (progress < 1) {
+                requestAnimationFrame(tick);
+            } else {
+                earnedElement.textContent = reward.totalXp;
+                renderMissionLevelProgress(reward.endXp);
+            }
+        }
+        requestAnimationFrame(tick);
+    }
+
     function checkAchievements(roundStats) {
         let newlyUnlocked = [];
         
@@ -483,6 +639,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerProfile.dailyStreak >= 7) {
             if (!playerProfile.achievements.includes('ausdauernd')) newlyUnlocked.push('ausdauernd');
         }
+        const rescue = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
+        if (rescue.missionsCompleted >= 1) {
+            if (!playerProfile.achievements.includes('erste_rettung')) newlyUnlocked.push('erste_rettung');
+        }
+        if (rescue.missionsCompleted >= 10) {
+            if (!playerProfile.achievements.includes('einsatzleiter')) newlyUnlocked.push('einsatzleiter');
+        }
+        if (rescue.medals.gold >= 3) {
+            if (!playerProfile.achievements.includes('goldkommando')) newlyUnlocked.push('goldkommando');
+        }
+        if (rescue.rescuedWords >= 100) {
+            if (!playerProfile.achievements.includes('wortretter')) newlyUnlocked.push('wortretter');
+        }
         
         if (newlyUnlocked.length > 0) {
             playerProfile.achievements.push(...newlyUnlocked);
@@ -490,6 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // We could show a toast here, but we will just fire confetti on the end screen
             fireConfetti();
         }
+        return newlyUnlocked;
     }
 
     // Call checkDailyStreak on startup
@@ -792,6 +962,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const zombieImgEl = document.getElementById('zombie-img');
     const hunterEl = document.getElementById('hunter-img');
     const hunterContainer = document.getElementById('hunter');
+    const correctionPanel = document.getElementById('correction-panel');
+    const correctionPool = document.getElementById('correction-pool');
+    const correctionTarget = document.getElementById('correction-target');
+    const correctionFeedback = document.getElementById('correction-feedback');
+    const markedRetryBanner = document.getElementById('marked-retry-banner');
+    const markedZombieBadge = document.getElementById('marked-zombie-badge');
 
     // Boss Sprite Sheet Animation
     const zombieSpriteCanvas = document.getElementById('zombie-sprite-canvas');
@@ -1712,10 +1888,15 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.className = `mission-phase-overlay phase-${phase}`;
         void overlay.offsetWidth;
         clearTimeout(missionPhaseTransitionTimer);
-        missionPhaseTransitionTimer = setTimeout(() => overlay.classList.add('hidden'), 2350);
+        state.mission.transitionActive = phase !== 'extract' && state.gameRunning;
+        missionPhaseTransitionTimer = setTimeout(() => {
+            overlay.classList.add('hidden');
+            state.mission.transitionActive = false;
+            lastFrameTime = performance.now();
+        }, CONFIG.missionPhaseTransitionDurationMs);
     }
 
-    function updateMissionHUD() {
+    function updateMissionHUD(deferPhaseTransition = false) {
         const hud = document.getElementById('mission-hud');
         if (!hud) return;
         hud.classList.toggle('hidden', !isMissionMode());
@@ -1723,6 +1904,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isMissionMode()) {
             screens.game.classList.remove(...phaseClasses);
             document.getElementById('mission-phase-overlay')?.classList.add('hidden');
+            clearTimeout(missionPhaseTransitionTimer);
+            state.mission.transitionActive = false;
             return;
         }
 
@@ -1752,7 +1935,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         screens.game.classList.remove(...phaseClasses);
         screens.game.classList.add(`mission-phase-${phase}`);
-        if (state.mission.currentPhase !== phase) {
+        if (state.mission.currentPhase !== phase && !deferPhaseTransition) {
             state.mission.currentPhase = phase;
             showMissionPhaseTransition(phase);
         }
@@ -1763,9 +1946,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function registerMissionEncounter(vocab) {
-        if (!isMissionMode() || !vocab) return;
-        state.mission.encounters++;
+    function getPendingCorrections() {
+        return state.correction.queue.filter(entry => !entry.resolved);
+    }
+
+    function hasPendingCorrections() {
+        return getPendingCorrections().length > 0;
+    }
+
+    function registerMissionEncounter(vocab, isCorrectionRetry = false) {
+        if (!vocab) return;
+        state.correction.encounterSerial++;
+        state.lastVocabId = vocab.id;
+        if (!isMissionMode()) return;
+        if (!isCorrectionRetry) state.mission.encounters++;
         state.mission.lastVocabId = vocab.id;
         updateMissionHUD();
     }
@@ -1774,7 +1968,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isMissionMode()) return false;
         if (state.mission.finishing) return true;
         const objectiveReached = getMissionRemainingCount() === 0;
-        const encounterLimitReached = state.mission.encounters >= CONFIG.missionMaxEncounters;
+        // A marked zombie always gets its promised return. If the regular
+        // encounter limit has been reached, its retry becomes an extra
+        // correction encounter and does not consume another mission chance.
+        const encounterLimitReached = state.mission.encounters >= CONFIG.missionMaxEncounters
+            && !hasPendingCorrections();
         if (!objectiveReached && !encounterLimitReached) return false;
 
         state.mission.completed = objectiveReached;
@@ -1784,7 +1982,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showMissionPhaseTransition('extract');
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
-        setTimeout(endGame, 1400);
+        setTimeout(endGame, CONFIG.missionExtractionTransitionDurationMs);
         return true;
     }
 
@@ -1976,6 +2174,21 @@ document.addEventListener('DOMContentLoaded', () => {
         state.bossActive = false;
         state.bossHealth = 0;
         state.bossMaxHealth = 0;
+        state.lastVocabId = '';
+        if (state.correction?.confirmationTimer) clearTimeout(state.correction.confirmationTimer);
+        if (state.correction?.audio) {
+            state.correction.audio.pause();
+            state.correction.audio.currentTime = 0;
+        }
+        state.correction = {
+            queue: [],
+            activeEntry: null,
+            currentRetry: null,
+            encounterSerial: 0,
+            createdOrder: 0,
+            confirmationTimer: null,
+            audio: null
+        };
         state.mission = {
             targetWords: missionTargets,
             securedIds: new Set(),
@@ -1984,9 +2197,17 @@ document.addEventListener('DOMContentLoaded', () => {
             completed: false,
             endReason: '',
             currentPhase: '',
-            finishing: false
+            finishing: false,
+            transitionActive: false,
+            startXp: playerProfile.xp,
+            answerXp: 0,
+            recoveredCorrectionIds: new Set()
         };
         settingsBtn.classList.remove('pending');
+        correctionPanel?.classList.add('hidden');
+        markedRetryBanner?.classList.add('hidden');
+        markedZombieBadge?.classList.add('hidden');
+        screens.game.classList.remove('correction-active');
         
         updateBoostUI();
         
@@ -2038,6 +2259,218 @@ document.addEventListener('DOMContentLoaded', () => {
         if (density !== 'normal') zombieWordEl.classList.add(`word-bubble-${density}`);
     }
 
+    function getPlayableAnswer(answer) {
+        return String(answer || '').replace(/,\s*pl[\s\S]*/i, '');
+    }
+
+    function stopCorrectionAudio() {
+        if (!state.correction.audio) return;
+        state.correction.audio.pause();
+        state.correction.audio.currentTime = 0;
+        state.correction.audio = null;
+    }
+
+    function playCorrectionAudio(vocab) {
+        stopCorrectionAudio();
+        const legacyFilename = getForeign(vocab).replace(/\//g, '_') + '.mp3';
+        const audioPath = vocab.audio || (state.courseId === 'en-5' ? `assets/audio/${legacyFilename}` : '');
+        if (!audioPath) return;
+        state.correction.audio = new Audio(audioPath);
+        state.correction.audio.play().catch(error => {
+            console.log('Correction audio playback failed:', error);
+        });
+    }
+
+    function scheduleCurrentCorrection(speedPenalty = 0) {
+        const vocab = state.currentWord.vocab;
+        const schedule = window.VocabUtils.createCorrectionSchedule(state.correction.encounterSerial);
+        let entry = state.correction.queue.find(candidate => candidate.vocab.id === vocab.id && !candidate.resolved);
+
+        if (!entry) {
+            entry = {
+                vocab,
+                createdOrder: state.correction.createdOrder++,
+                retryCount: 0,
+                speedPenalty: 0,
+                resolved: false
+            };
+            state.correction.queue.push(entry);
+        }
+
+        entry.question = state.currentWord.q;
+        entry.answer = state.currentWord.a;
+        entry.spacerCount = schedule.spacerCount;
+        entry.dueEncounter = schedule.dueEncounter;
+        entry.retryCount++;
+        entry.speedPenalty = Math.min(12, Number(entry.speedPenalty || 0) + Number(speedPenalty || 0));
+        entry.resolved = false;
+        return entry;
+    }
+
+    function selectNextEncounter() {
+        const pendingCorrections = getPendingCorrections();
+        const nextEncounter = state.correction.encounterSerial + 1;
+        const forceCorrection = isMissionMode()
+            && state.mission.encounters >= CONFIG.missionMaxEncounters
+            && pendingCorrections.length > 0;
+        let correctionEntry = window.VocabUtils.pickDueCorrection(
+            pendingCorrections,
+            nextEncounter,
+            forceCorrection
+        );
+
+        if (correctionEntry) return { vocab: correctionEntry.vocab, correctionEntry };
+
+        const excludedIds = new Set(pendingCorrections.map(entry => entry.vocab.id));
+        let vocab = null;
+        if (isMissionMode()) {
+            vocab = window.VocabUtils.pickMissionVocabulary(
+                state.mission.targetWords,
+                state.mission.securedIds,
+                state.mission.lastVocabId,
+                Math.random,
+                excludedIds
+            );
+        } else {
+            // Free Hunt intentionally keeps its established random draw. The
+            // correction queue is a Rescue Mission mechanic only.
+            vocab = state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)] || null;
+        }
+
+        // Very small custom pools may not contain enough spacer words. In that
+        // edge case, return the oldest marked zombie instead of stalling.
+        if (!vocab && pendingCorrections.length > 0) {
+            correctionEntry = window.VocabUtils.pickDueCorrection(pendingCorrections, nextEncounter, true);
+            if (correctionEntry) return { vocab: correctionEntry.vocab, correctionEntry };
+        }
+
+        return { vocab, correctionEntry: null };
+    }
+
+    function setMarkedZombieUI(correctionEntry) {
+        const isMarked = Boolean(correctionEntry);
+        zombieEl.classList.remove('marked-fleeing', 'marked-rescued');
+        zombieEl.classList.toggle('marked-zombie', isMarked);
+        markedRetryBanner?.classList.toggle('hidden', !isMarked);
+        markedRetryBanner?.classList.remove('resolved');
+        markedZombieBadge?.classList.toggle('hidden', !isMarked);
+
+        if (markedZombieBadge) {
+            const symbol = markedZombieBadge.querySelector('span');
+            const label = markedZombieBadge.querySelector('strong');
+            if (symbol) symbol.textContent = '⟳';
+            if (label) label.textContent = 'RÜCKKEHRER';
+        }
+        if (markedRetryBanner) {
+            const symbol = markedRetryBanner.querySelector('.marked-retry-symbol');
+            const kicker = markedRetryBanner.querySelector('.marked-retry-kicker');
+            const title = markedRetryBanner.querySelector('.marked-retry-title');
+            if (symbol) symbol.textContent = '⟳';
+            if (kicker) kicker.textContent = 'Markierter Zombie';
+            if (title) title.textContent = 'Du kennst ihn – hol dir das Wort jetzt zurück!';
+        }
+    }
+
+    function beginCorrectionConfirmation(speedPenalty = 0) {
+        if (!state.currentWord || state.correction.activeEntry) return;
+        const entry = scheduleCurrentCorrection(speedPenalty);
+        state.correction.activeEntry = entry;
+        state.zombieDead = true;
+        screens.game.classList.add('correction-active');
+        document.getElementById('mission-phase-overlay')?.classList.add('hidden');
+        optionsContainer.classList.add('hidden');
+        document.getElementById('writing-container').classList.add('hidden');
+        markedRetryBanner?.classList.add('hidden');
+
+        correctionPanel?.classList.remove('hidden', 'confirmed');
+        const emblemSymbol = correctionPanel?.querySelector('.correction-mark-emblem > span');
+        if (emblemSymbol) emblemSymbol.textContent = '⟳';
+        document.getElementById('correction-question').textContent = entry.question;
+        document.getElementById('correction-answer').textContent = entry.answer;
+        document.getElementById('correction-return-label').textContent = `nach ${entry.spacerCount} ${entry.spacerCount === 1 ? 'Wort' : 'Wörtern'}`;
+        correctionFeedback.textContent = 'Setze die Buchstaben in der richtigen Reihenfolge ein.';
+
+        const playableAnswer = getPlayableAnswer(entry.answer);
+        const letterCount = tokenizeAnswer(playableAnswer).filter(token => token.type === 'letter').length;
+        const builder = correctionPanel?.querySelector('.correction-builder');
+        builder?.classList.remove('builder-dense', 'builder-very-dense');
+        if (letterCount > 36) builder?.classList.add('builder-very-dense');
+        else if (letterCount > 20) builder?.classList.add('builder-dense');
+
+        renderLetterBuilder({
+            pool: correctionPool,
+            target: correctionTarget,
+            answer: playableAnswer,
+            canInteract: () => Boolean(state.correction.activeEntry),
+            onCorrect: completeCorrectionConfirmation,
+            onIncorrect: () => {
+                correctionFeedback.textContent = 'Fast – die markierten Buchstaben springen zurück. Versuch es noch einmal.';
+            }
+        });
+
+        setZombieWord(`${entry.answer}  ✓`);
+        zombieEl.classList.remove('dead', 'walking', 'hidden');
+        zombieEl.classList.add('marked-zombie', 'marked-fleeing');
+        markedZombieBadge?.classList.remove('hidden');
+        zombieEl.style.opacity = '1';
+        playCorrectionAudio(entry.vocab);
+    }
+
+    function completeCorrectionConfirmation() {
+        const entry = state.correction.activeEntry;
+        if (!entry) return;
+        entry.confirmed = true;
+        correctionPanel?.classList.add('confirmed');
+        const emblemSymbol = correctionPanel?.querySelector('.correction-mark-emblem > span');
+        if (emblemSymbol) emblemSymbol.textContent = '✓';
+        correctionFeedback.textContent = `Lösung bestätigt! Achte auf das ⟳ – der Zombie kehrt nach ${entry.spacerCount} ${entry.spacerCount === 1 ? 'Wort' : 'Wörtern'} zurück.`;
+        stopCorrectionAudio();
+
+        clearTimeout(state.correction.confirmationTimer);
+        state.correction.confirmationTimer = setTimeout(() => {
+            correctionPanel?.classList.add('hidden');
+            correctionPanel?.classList.remove('confirmed');
+            screens.game.classList.remove('correction-active');
+            zombieEl.classList.remove('marked-fleeing', 'marked-zombie');
+            markedZombieBadge?.classList.add('hidden');
+            state.correction.activeEntry = null;
+            state.correction.currentRetry = null;
+
+            if (!isMissionMode() && state.hearts <= 0) {
+                endGame();
+            } else {
+                spawnZombie();
+            }
+        }, 1050);
+    }
+
+    function resolveCurrentCorrectionRetry() {
+        const entry = state.correction.currentRetry;
+        if (!entry) return false;
+        if (isMissionMode()) state.mission.recoveredCorrectionIds.add(entry.vocab.id);
+        entry.resolved = true;
+        state.correction.queue = state.correction.queue.filter(candidate => candidate !== entry);
+        state.correction.currentRetry = null;
+        zombieEl.classList.add('marked-rescued');
+
+        if (markedZombieBadge) {
+            const symbol = markedZombieBadge.querySelector('span');
+            const label = markedZombieBadge.querySelector('strong');
+            if (symbol) symbol.textContent = '✓';
+            if (label) label.textContent = 'GESICHERT';
+        }
+        if (markedRetryBanner) {
+            markedRetryBanner.classList.add('resolved');
+            const symbol = markedRetryBanner.querySelector('.marked-retry-symbol');
+            const kicker = markedRetryBanner.querySelector('.marked-retry-kicker');
+            const title = markedRetryBanner.querySelector('.marked-retry-title');
+            if (symbol) symbol.textContent = '✓';
+            if (kicker) kicker.textContent = 'Spur gesichert';
+            if (title) title.textContent = 'Stark erinnert – dieser Zombie ist erledigt.';
+        }
+        return true;
+    }
+
     function spawnZombie() {
         if (!state.gameRunning) return;
         
@@ -2048,6 +2481,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        state.correction.currentRetry = null;
+        setMarkedZombieUI(null);
         if (finishMissionIfNeeded()) return;
 
         state.wrongAttemptsForCurrentWord = 0;
@@ -2103,18 +2538,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (zombieSpriteCanvas) zombieSpriteCanvas.style.display = 'none';
         }
 
-        const vocab = isMissionMode()
-            ? window.VocabUtils.pickMissionVocabulary(
-                state.mission.targetWords,
-                state.mission.securedIds,
-                state.mission.lastVocabId
-            )
-            : state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)];
+        const nextEncounter = selectNextEncounter();
+        const vocab = nextEncounter.vocab;
         if (!vocab) {
             if (isMissionMode()) finishMissionIfNeeded();
             return;
         }
-        registerMissionEncounter(vocab);
+        state.correction.currentRetry = nextEncounter.correctionEntry;
+        registerMissionEncounter(vocab, Boolean(nextEncounter.correctionEntry));
+        setMarkedZombieUI(nextEncounter.correctionEntry);
         
         let currentMode = state.direction;
         if (state.direction === 'mixed') {
@@ -2153,6 +2585,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let framesNeeded = currentDuration * 60; // Geht von 60fps aus
 
         state.zombieSpeed = distance / framesNeeded;
+        if (nextEncounter.correctionEntry) {
+            // The existing speed penalty remains attached to the zombie that
+            // escaped, while the correction itself is untimed.
+            state.zombieSpeed += Number(nextEncounter.correctionEntry.speedPenalty || 0);
+        }
 
         setZombieWord(state.currentWord.q);
         state.zombiePosition = canvas.clientWidth; 
@@ -2187,15 +2624,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateNewWordForBoss() {
         if (finishMissionIfNeeded()) return false;
-        const vocab = isMissionMode()
-            ? window.VocabUtils.pickMissionVocabulary(
-                state.mission.targetWords,
-                state.mission.securedIds,
-                state.mission.lastVocabId
-            )
-            : state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)];
+        const nextEncounter = selectNextEncounter();
+        const vocab = nextEncounter.vocab;
         if (!vocab) return false;
-        registerMissionEncounter(vocab);
+        state.correction.currentRetry = nextEncounter.correctionEntry;
+        registerMissionEncounter(vocab, Boolean(nextEncounter.correctionEntry));
+        setMarkedZombieUI(nextEncounter.correctionEntry);
         
         let currentMode = state.direction;
         if (state.direction === 'mixed') {
@@ -2212,6 +2646,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.currentWord = getQuestionAndAnswer(vocab, isForeignToGerman);
         setZombieWord(state.currentWord.q);
         state.wrongAttemptsForCurrentWord = 0; // Fehlerzähler für neues Wort zurücksetzen
+        if (nextEncounter.correctionEntry) {
+            state.zombieSpeed += Number(nextEncounter.correctionEntry.speedPenalty || 0);
+        }
         
         if (currentMode === 'de-foreign-write') {
             document.getElementById('options-container').classList.add('hidden');
@@ -2268,6 +2705,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.className = 'option-btn';
             btn.textContent = opt;
+            btn.dataset.correct = opt === state.currentWord.a ? 'true' : 'false';
             btn.addEventListener('click', () => handleAnswer(opt, btn));
             optionsContainer.appendChild(btn);
         });
@@ -2321,27 +2759,71 @@ document.addEventListener('DOMContentLoaded', () => {
         return window.VocabUtils.tokenizeAnswer(answer);
     }
 
-    function generateWritingUI(vocab) {
-        const pool = document.getElementById('writing-pool');
-        const target = document.getElementById('writing-target');
+    function renderLetterBuilder({ pool, target, answer, canInteract, onCorrect, onIncorrect }) {
         pool.innerHTML = '';
         target.innerHTML = '';
-
-        let answer = state.currentWord.a;
-        // Strip plural extensions like ", pl strawberries"
-        answer = answer.replace(/,\s*pl[\s\S]*/i, '');
-        
         const tokens = tokenizeAnswer(answer);
-        
         const lettersToType = tokens.filter(t => t.type === 'letter').map(t => t.text);
-        let shuffled = [...lettersToType].sort(() => Math.random() - 0.5);
+        const shuffled = [...lettersToType];
+        for (let index = shuffled.length - 1; index > 0; index--) {
+            const swapIndex = Math.floor(Math.random() * (index + 1));
+            [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+        }
+        let completed = false;
 
-        let currentWordGroup = document.createElement('div');
-        currentWordGroup.className = 'word-group';
-        currentWordGroup.style.display = 'flex';
-        currentWordGroup.style.flexWrap = 'wrap';
-        currentWordGroup.style.justifyContent = 'center';
-        currentWordGroup.style.gap = '10px';
+        function createWordGroup() {
+            const group = document.createElement('div');
+            group.className = 'word-group';
+            group.style.display = 'flex';
+            group.style.flexWrap = 'wrap';
+            group.style.justifyContent = 'center';
+            group.style.gap = '10px';
+            return group;
+        }
+
+        function disableBuilder() {
+            completed = true;
+            Array.from(target.querySelectorAll('.letter-btn')).forEach(button => {
+                button.classList.add('disabled');
+                button.disabled = true;
+            });
+            Array.from(pool.querySelectorAll('.letter-btn')).forEach(button => {
+                button.classList.add('disabled');
+                button.disabled = true;
+            });
+        }
+
+        function checkAnswer() {
+            if (completed || pool.children.length !== 0) return;
+            const slots = Array.from(target.querySelectorAll('.letter-slot'));
+            const incorrectSlots = slots.filter(slot => {
+                const button = slot.firstElementChild;
+                return !button || button.dataset.char.toLocaleLowerCase() !== slot.dataset.expectedChar.toLocaleLowerCase();
+            });
+
+            if (incorrectSlots.length === 0) {
+                disableBuilder();
+                onCorrect();
+                return;
+            }
+
+            if (onIncorrect() === true) {
+                disableBuilder();
+                return;
+            }
+            incorrectSlots.forEach(slot => {
+                const button = slot.firstElementChild;
+                if (!button) return;
+                button.classList.add('wrong-anim');
+                setTimeout(() => {
+                    button.classList.remove('wrong-anim');
+                    slot.dataset.filled = 'false';
+                    pool.appendChild(button);
+                }, 400);
+            });
+        }
+
+        let currentWordGroup = createWordGroup();
 
         tokens.forEach((token) => {
             const el = document.createElement('div');
@@ -2369,13 +2851,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     target.appendChild(currentWordGroup);
                 }
                 target.appendChild(el);
-                
-                currentWordGroup = document.createElement('div');
-                currentWordGroup.className = 'word-group';
-                currentWordGroup.style.display = 'flex';
-                currentWordGroup.style.flexWrap = 'wrap';
-                currentWordGroup.style.justifyContent = 'center';
-                currentWordGroup.style.gap = '10px';
+                currentWordGroup = createWordGroup();
             } else {
                 currentWordGroup.appendChild(el);
             }
@@ -2386,20 +2862,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         shuffled.forEach((char) => {
-            const btn = document.createElement('div');
+            const btn = document.createElement('button');
+            btn.type = 'button';
             btn.className = 'letter-btn';
             btn.textContent = char;
             btn.dataset.char = char;
-            
+            btn.setAttribute('aria-label', `Buchstabe ${char}`);
+
             btn.addEventListener('click', () => {
-                if (state.zombieDead || btn.classList.contains('disabled')) return;
-                
+                if (!canInteract() || completed || btn.classList.contains('disabled')) return;
                 if (btn.parentElement === pool) {
                     const firstEmptySlot = target.querySelector('.letter-slot[data-filled="false"]');
                     if (firstEmptySlot) {
                         firstEmptySlot.dataset.filled = 'true';
                         firstEmptySlot.appendChild(btn);
-                        checkWritingAnswer();
+                        checkAnswer();
                     }
                 } else {
                     const slot = btn.parentElement;
@@ -2409,61 +2886,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     pool.appendChild(btn);
                 }
             });
-            
             pool.appendChild(btn);
         });
     }
 
-    function checkWritingAnswer() {
+    function generateWritingUI(vocab) {
         const pool = document.getElementById('writing-pool');
         const target = document.getElementById('writing-target');
-        
-        if (pool.children.length === 0) {
-            let isCorrect = true;
-            const slots = Array.from(target.querySelectorAll('.letter-slot'));
-            
-            slots.forEach(slot => {
-                const btn = slot.firstChild;
-                if (!btn || btn.dataset.char.toLowerCase() !== slot.dataset.expectedChar.toLowerCase()) {
-                    isCorrect = false;
-                }
-            });
-            
-            const dummyBtn = document.createElement('button');
-            
-            if (isCorrect) {
-                Array.from(target.querySelectorAll('.letter-btn')).forEach(btn => {
-                    btn.classList.add('disabled');
-                    btn.style.pointerEvents = 'none';
-                });
+        renderLetterBuilder({
+            pool,
+            target,
+            answer: getPlayableAnswer(state.currentWord.a),
+            canInteract: () => !state.zombieDead,
+            onCorrect: () => {
+                const dummyBtn = document.createElement('button');
                 handleAnswer(state.currentWord.a, dummyBtn);
-            } else {
-                slots.forEach(slot => {
-                    const btn = slot.firstChild;
-                    if (btn && btn.dataset.char.toLowerCase() !== slot.dataset.expectedChar.toLowerCase()) {
-                        btn.classList.add('wrong-anim');
-                        setTimeout(() => {
-                            btn.classList.remove('wrong-anim');
-                            slot.dataset.filled = 'false';
-                            pool.appendChild(btn);
-                        }, 400);
-                    }
-                });
-                
+            },
+            onIncorrect: () => {
+                const dummyBtn = document.createElement('button');
                 handleAnswer('wrong-answer-trigger', dummyBtn);
-                
-                if (state.wrongAttemptsForCurrentWord >= 3) {
-                    Array.from(target.querySelectorAll('.letter-btn')).forEach(btn => {
-                        btn.classList.add('disabled');
-                        btn.style.pointerEvents = 'none';
-                    });
-                    Array.from(pool.children).forEach(btn => {
-                        btn.classList.add('disabled');
-                        btn.style.pointerEvents = 'none';
-                    });
-                }
+                return state.wrongAttemptsForCurrentWord >= 3;
             }
-        }
+        });
     }
 
     function handleAnswer(selectedOption, btn) {
@@ -2472,14 +2916,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const correct = selectedOption === state.currentWord.a;
 
         if (correct) {
+            resolveCurrentCorrectionRetry();
             let newlySecuredMissionTarget = false;
             if (isMissionMode()) {
                 newlySecuredMissionTarget = !state.mission.securedIds.has(state.currentWord.vocab.id);
                 state.mission.securedIds.add(state.currentWord.vocab.id);
-                updateMissionHUD();
+                // Keep the projectile, hit and solution sequence unobstructed.
+                // The next encounter announces the new phase only after the
+                // defeated zombie's complete feedback has finished.
+                updateMissionHUD(true);
             }
 
             // GAMIFICATION: Add XP and Update SRS
+            if (isMissionMode()) state.mission.answerXp += 10;
             addXP(10);
             playerProfile.stats.totalZombies++;
             if (state.currentMode === 'de-foreign-write') playerProfile.stats.writeModeCorrect++;
@@ -2633,8 +3082,10 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreEl.textContent = state.score;
             
             state.wrongAttemptsForCurrentWord++;
+            let appliedSpeedPenalty = 3;
             if (state.wrongAttemptsForCurrentWord >= 3) {
                 state.zombieSpeed = 40; // Blitzschnell
+                appliedSpeedPenalty = 40;
                 // Alle Buttons deaktivieren, damit der Zombie den Jäger sicher schnappt
                 const buttons = document.querySelectorAll('.option-btn');
                 buttons.forEach(b => b.disabled = true);
@@ -2647,6 +3098,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.level = Math.max(1, state.level - 1); // Level Down!
             
             recordWeakness(state.currentWord.q, state.currentWord.a, state.currentWord.vocab);
+            if (isMissionMode()) beginCorrectionConfirmation(appliedSpeedPenalty);
         }
     }
 
@@ -2735,6 +3187,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         hunterContainer.classList.add('wrong');
         setTimeout(() => hunterContainer.classList.remove('wrong'), 400);
+
+        if (isMissionMode()) {
+            beginCorrectionConfirmation();
+            return;
+        }
         
         zombieEl.classList.add('hidden'); // Zombie während Dialog ausblenden
 
@@ -2781,6 +3238,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const delta = timestamp - lastFrameTime;
         lastFrameTime = timestamp;
 
+        if (isMissionMode() && state.mission.transitionActive) {
+            animationId = requestAnimationFrame(gameLoop);
+            return;
+        }
+
         if (!state.zombieDead) {
             const frameSpeed = state.zombieSpeed * (delta / 16.66);
             state.zombiePosition -= frameSpeed;
@@ -2826,6 +3288,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function endGame() {
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
+        clearTimeout(state.correction.confirmationTimer);
+        stopCorrectionAudio();
+        state.correction.activeEntry = null;
+        correctionPanel?.classList.add('hidden');
+        markedRetryBanner?.classList.add('hidden');
+        markedZombieBadge?.classList.add('hidden');
+        screens.game.classList.remove('correction-active');
+        zombieEl.classList.remove('marked-zombie', 'marked-fleeing', 'marked-rescued');
         
         // GAMIFICATION: Update stats & check achievements
         playerProfile.stats.totalRounds++;
@@ -2844,15 +3314,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalTimeSeconds = (Date.now() - state.startTime) / 1000;
         const timePerWord = state.totalAttempts > 0 ? (totalTimeSeconds / state.totalAttempts).toFixed(1) : 0;
         const avgTimeMs = state.totalAttempts > 0 ? (totalTimeSeconds * 1000) / state.totalAttempts : 0;
+        const missionReward = isMissionMode() ? finalizeMissionReward() : null;
 
         const missionResult = document.getElementById('mission-result');
+        const missionProgression = document.getElementById('mission-progression');
         const endScreenTitle = document.getElementById('end-screen-title');
         const changeMissionSettingsBtn = document.getElementById('change-mission-settings-btn');
         if (isMissionMode()) {
             const securedCount = state.mission.securedIds.size;
             const targetCount = state.mission.targetWords.length;
             const missionPercentage = targetCount > 0 ? Math.min(100, (securedCount / targetCount) * 100) : 0;
-            const medal = state.hearts >= 3 ? '🥇' : state.hearts === 2 ? '🥈' : '🥉';
+            const medal = { gold: '🥇', silver: '🥈', bronze: '🥉' }[missionReward.medal];
             if (endScreenTitle) endScreenTitle.textContent = state.mission.completed ? 'Mission erfüllt!' : 'Extraktion erreicht!';
             missionResult?.classList.remove('hidden');
             missionResult?.classList.toggle('incomplete', !state.mission.completed);
@@ -2870,15 +3342,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (endScreenTitle) endScreenTitle.textContent = 'Jagd beendet!';
             missionResult?.classList.add('hidden');
             missionResult?.classList.remove('incomplete');
+            missionProgression?.classList.add('hidden');
             restartBtn.textContent = 'Neue Jagd';
             changeMissionSettingsBtn?.classList.add('hidden');
         }
 
-        checkAchievements({
+        const newlyUnlocked = checkAchievements({
             totalWords: state.totalAttempts,
             correctWords: state.correctAttempts,
             avgTime: avgTimeMs
         });
+        if (missionReward) prepareMissionProgression(missionReward, newlyUnlocked);
         saveProfile(playerProfile);
 
         const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
@@ -2961,6 +3435,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Score-Animation nach Screen-Transition starten
         setTimeout(() => {
             animateScoreCounter(state.score, scoreEl2);
+            if (missionReward) animateMissionProgression(missionReward);
         }, 300);
     }
 

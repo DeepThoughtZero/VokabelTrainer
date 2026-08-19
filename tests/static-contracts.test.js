@@ -68,6 +68,11 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.match(html, /id="mission-encounter-label"/);
     assert.match(html, /id="mission-phase-overlay"/);
     assert.match(html, /id="mission-result"/);
+    assert.match(html, /id="mission-progression"/);
+    assert.match(html, /id="mission-xp-earned"/);
+    assert.match(html, /id="mission-level-fill"/);
+    assert.match(html, /id="profile-rescue-missions"/);
+    assert.match(html, /id="profile-rescue-medals"/);
     assert.doesNotMatch(html, /Klares Lernziel · sichtbares Ende/);
     assert.doesNotMatch(html, /<option value="mission"/);
     assert.match(app, /missionTargetSize:\s*12/);
@@ -76,10 +81,46 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.match(app, /finishMissionIfNeeded/);
     assert.match(app, /currentDuration \*= 1\.45/);
     assert.match(app, /showMissionPhaseTransition/);
+    assert.match(app, /missionPhaseTransitionDurationMs:\s*6000/);
+    assert.match(app, /missionExtractionTransitionDurationMs:\s*4000/);
+    assert.match(app, /state\.mission\.transitionActive/);
+    assert.match(app, /updateMissionHUD\(true\)/);
+    assert.match(app, /finalizeMissionReward/);
+    assert.match(app, /animateMissionProgression/);
+    assert.match(app, /missionsCompleted/);
+    assert.match(app, /erste_rettung/);
+    assert.match(app, /einsatzleiter/);
+    assert.match(app, /goldkommando/);
+    assert.match(app, /wortretter/);
     assert.match(app, /Empfohlene nächste Mission/);
     assert.match(css, /\.mission-route\s*\{/);
     assert.match(css, /\.mission-hud\s*\{/);
     assert.match(css, /\.mission-phase-overlay\s*\{/);
+    assert.match(css, /\.mission-progression\s*\{/);
+    assert.match(css, /\.profile-rescue-career\s*\{/);
+});
+
+test('active correction is mission-only and returns as a visibly marked zombie', () => {
+    const html = read('index.html');
+    const app = read('js/app.js');
+    const css = read('css/style.css');
+    assert.match(html, /id="correction-panel"/);
+    assert.match(html, /id="correction-pool"/);
+    assert.match(html, /id="correction-target"/);
+    assert.match(html, /id="marked-retry-banner"/);
+    assert.match(html, /class="marked-retry-kicker"/);
+    assert.match(html, /class="marked-retry-title"/);
+    assert.match(html, /id="marked-zombie-badge"/);
+    assert.match(app, /createCorrectionSchedule\(state\.correction\.encounterSerial\)/);
+    assert.match(app, /if \(isMissionMode\(\)\) beginCorrectionConfirmation\(appliedSpeedPenalty\)/);
+    assert.match(app, /if \(isMissionMode\(\)\) \{\s*beginCorrectionConfirmation\(\);\s*return;/);
+    assert.match(app, /Free Hunt intentionally keeps its established random draw/);
+    assert.match(app, /resolveCurrentCorrectionRetry/);
+    assert.doesNotMatch(app, /querySelector\('div > span'\)/);
+    assert.match(css, /\.correction-panel\s*\{/);
+    assert.match(css, /\.marked-retry-kicker\s*\{/);
+    assert.match(css, /\.marked-zombie-badge\s*\{/);
+    assert.match(css, /#zombie\.marked-fleeing\s*\{/);
 });
 
 test('course-specific persistence and leaderboard category construction stay separated', () => {

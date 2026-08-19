@@ -116,6 +116,121 @@ test('mission planning limits new words and never repeats a target immediately',
     assert.notEqual(next.id, lastTarget.id, 'mission word repeated without a spacer');
 });
 
+test('mission corrections return after two to four spacer encounters', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+    assert.deepEqual(
+        { ...utilities.createCorrectionSchedule(7, () => 0) },
+        { spacerCount: 2, dueEncounter: 10 }
+    );
+    assert.deepEqual(
+        { ...utilities.createCorrectionSchedule(7, () => 0.5) },
+        { spacerCount: 3, dueEncounter: 11 }
+    );
+    assert.deepEqual(
+        { ...utilities.createCorrectionSchedule(7, () => 0.999999) },
+        { spacerCount: 4, dueEncounter: 12 }
+    );
+
+    const corrections = [
+        { id: 'later', dueEncounter: 12, createdOrder: 1, resolved: false },
+        { id: 'first', dueEncounter: 10, createdOrder: 0, resolved: false }
+    ];
+    assert.equal(utilities.pickDueCorrection(corrections, 9), null);
+    assert.equal(utilities.pickDueCorrection(corrections, 10).id, 'first');
+    assert.equal(utilities.pickDueCorrection(corrections, 9, true).id, 'first');
+});
+
+test('marked mission words stay out of random spacer encounters', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+    const targets = [
+        { id: 'marked' },
+        { id: 'spacer-a' },
+        { id: 'spacer-b' }
+    ];
+    const picked = utilities.pickMissionVocabulary(
+        targets,
+        new Set(),
+        '',
+        () => 0,
+        new Set(['marked'])
+    );
+    assert.equal(picked.id, 'spacer-a');
+});
+
+test('mission rewards favor completed objectives and recovered errors without farming medals', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+    const perfectReward = { ...utilities.calculateMissionReward({
+        answerXp: 120,
+        securedCount: 12,
+        targetCount: 12,
+        recoveredCorrections: 0,
+        hearts: 3,
+        totalAttempts: 12,
+        correctAttempts: 12
+    }) };
+    assert.deepEqual(perfectReward, {
+        answerXp: 120,
+        completionBonusXp: 50,
+        recoveryBonusXp: 0,
+        totalXp: 170,
+        securedCount: 12,
+        recoveredCorrections: 0,
+        completed: true,
+        perfect: true,
+        medal: 'gold'
+    });
+
+    const recoveredReward = { ...utilities.calculateMissionReward({
+        answerXp: 140,
+        securedCount: 12,
+        targetCount: 12,
+        recoveredCorrections: 2,
+        hearts: 2,
+        totalAttempts: 16,
+        correctAttempts: 14
+    }) };
+    assert.equal(recoveredReward.completionBonusXp, 50);
+    assert.equal(recoveredReward.recoveryBonusXp, 30);
+    assert.equal(recoveredReward.totalXp, 220);
+    assert.equal(recoveredReward.perfect, false);
+    assert.equal(recoveredReward.medal, 'silver');
+});
+
+test('rescue career persists completed missions, medals, rescued words and perfect missions', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+    const migrated = { ...utilities.normalizeRescueCareer({ missionsCompleted: 2 }) };
+    assert.deepEqual({ ...migrated.medals }, { gold: 0, silver: 0, bronze: 0 });
+    assert.equal(migrated.rescuedWords, 0);
+
+    const afterGold = utilities.addMissionToRescueCareer(migrated, {
+        completed: true,
+        medal: 'gold',
+        perfect: true,
+        securedCount: 12,
+        recoveredCorrections: 0
+    });
+    assert.equal(afterGold.missionsCompleted, 3);
+    assert.equal(afterGold.medals.gold, 1);
+    assert.equal(afterGold.rescuedWords, 12);
+    assert.equal(afterGold.perfectMissions, 1);
+
+    const afterIncomplete = utilities.addMissionToRescueCareer(afterGold, {
+        completed: false,
+        medal: 'gold',
+        perfect: false,
+        securedCount: 8,
+        recoveredCorrections: 2
+    });
+    assert.equal(afterIncomplete.missionsCompleted, 3);
+    assert.equal(afterIncomplete.medals.gold, 1);
+    assert.equal(afterIncomplete.rescuedWords, 20);
+    assert.equal(afterIncomplete.correctionsRecovered, 2);
+});
+
 test('a first mission contains no more than six entirely new words', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
     const vocabulary = Array.from({ length: 20 }, (_, index) => ({ id: `new-${index + 1}` }));
