@@ -15,6 +15,21 @@ Du kannst das Spiel direkt und bequem in deinem Browser spielen via GitHub Pages
 - **Spannendes Gameplay:** Lerne Vokabeln unter Zeitdruck, während Zombies auf dich zukommen.
 - **Dynamische Schwierigkeit:** Falsche Antworten machen die Zombies schneller!
 - **Detaillierte Auswertung:** Sieh dir am Ende an, wie gut du abgeschnitten hast.
+- **Kursauswahl:** Englisch für Klasse 5 und 6 mit getrennten Lernständen, Bestleistungen und Bestenlisten-Kategorien.
+
+## 🏆 Bestenlisten-Kategorien
+
+Neue Ergebnisse verwenden Kategorien wie `Englisch 5: Unit 1` und `Englisch 6: Unit 1`. Das Google Apps Script muss dafür nicht angepasst werden, da es die Kategorie als freien Text speichert. Die Anzeige behandelt alte Einträge mit `Englisch: …` automatisch als `Englisch 5: …`. Für einheitliche Rohdaten kann die Kategorie-Spalte im Google Sheet trotzdem einmalig entsprechend ersetzt werden.
+
+## 🔊 Vokabel-Audio erzeugen
+
+Klasse 6 verwendet stabile Audio-IDs im Ordner `assets/audio/vocab/en-6`. Fehlende Dateien lassen sich über die lokale Qwen3-TTS-API erzeugen:
+
+```bash
+./generate_audio.sh --course en-6 --only-missing --engine qwen3-builtin
+```
+
+Der Generator prüft die tatsächliche Audiodauer passend zur Wortzahl und wiederholt verdächtig lange Ausgaben automatisch.
 
 ## 🦊 Entwickler
 

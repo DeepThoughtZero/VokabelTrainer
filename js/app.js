@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalAttempts: 0,
         correctAttempts: 0,
         weaknesses: {}, // { 'word': failureCount }
-        direction: 'en-de',
+        direction: 'de-foreign',
         level: 1,
         streak: 0,
         lastHeartRegenTime: 0,
@@ -33,12 +33,49 @@ document.addEventListener('DOMContentLoaded', () => {
         maxStreak: 0,
         settingsPending: false,
         kategorie: '',
+        courseId: 'en-5',
         city: 'london',
         wordsSinceLastBoss: 0,
         bossActive: false,
         bossHealth: 0,
-        bossMaxHealth: 0
+        bossMaxHealth: 0,
+        currentMode: 'de-foreign'
     };
+
+    let activeCourse = window.getCourseById(state.courseId);
+    let activeVocabulary = [];
+
+    function getForeign(vocab) {
+        return String(vocab.foreign ?? vocab.english ?? '');
+    }
+
+    function getGerman(vocab) {
+        return String(vocab.german ?? '');
+    }
+
+    function normalizeVocabulary(courseId, vocabulary) {
+        const pageCounters = new Map();
+        return vocabulary.map((source, index) => {
+            const page = source.page ?? 'x';
+            const count = (pageCounters.get(page) || 0) + 1;
+            pageCounters.set(page, count);
+            return {
+                ...source,
+                id: source.id || `${courseId}-p${page}-${String(count).padStart(3, '0')}`,
+                foreign: getForeign(source),
+                german: getGerman(source),
+                order: source.order ?? index + 1
+            };
+        });
+    }
+
+    function getCourseLabel() {
+        return window.getCourseLabel(activeCourse);
+    }
+
+    function getSrsKey(vocab) {
+        return `${state.courseId}:${vocab.id}`;
+    }
 
     function recordWeakness(q, a, vocabObj) {
         if (!state.weaknesses[q]) {
@@ -122,7 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ========== GAMIFICATION & SRS ==========
     const PROFILE_KEY = 'vokabelzombie_profile';
-    const SRS_KEY = 'vokabelzombie_srs';
+    const SRS_KEY = 'vokabelzombie_srs_v2';
+    const LEGACY_SRS_KEY = 'vokabelzombie_srs';
 
     const ACHIEVEMENTS = [
         { id: 'scharfschuetze', title: 'Scharfschütze', desc: '>95% Trefferquote in einer Runde', icon: '🎯' },
@@ -193,11 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadSRS() {
         try {
             const data = localStorage.getItem(SRS_KEY);
-            if (data) return JSON.parse(data);
+            if (data) {
+                const parsed = JSON.parse(data);
+                if (parsed && parsed.version === 2 && parsed.entries) return parsed;
+            }
         } catch (e) {
             console.warn('localStorage not available:', e);
         }
-        return {};
+        return { version: 2, entries: {} };
     }
 
     function saveSRS(srs) {
@@ -210,6 +251,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let playerProfile = loadProfile();
     let srsData = loadSRS();
+
+    function migrateLegacySRSForEnglish5() {
+        if (state.courseId !== 'en-5' || srsData.legacyEnglish5Migrated) return;
+        try {
+            const legacyRaw = localStorage.getItem(LEGACY_SRS_KEY);
+            const legacy = legacyRaw ? JSON.parse(legacyRaw) : {};
+            activeVocabulary.forEach(vocab => {
+                const oldRecord = legacy[getForeign(vocab)];
+                const key = getSrsKey(vocab);
+                if (oldRecord && !srsData.entries[key]) {
+                    srsData.entries[key] = { ...oldRecord };
+                }
+            });
+            srsData.legacyEnglish5Migrated = true;
+            saveSRS(srsData);
+        } catch (error) {
+            console.warn('Legacy-SRS konnte nicht migriert werden:', error);
+        }
+    }
+
+    function getOrCreateSrsRecord(vocab) {
+        const key = getSrsKey(vocab);
+        if (!srsData.entries[key]) {
+            srsData.entries[key] = { timesCorrect: 0, timesFailed: 0, lastSeen: 0 };
+        }
+        return srsData.entries[key];
+    }
 
     function checkDailyStreak() {
         const today = new Date().toDateString();
@@ -412,23 +480,53 @@ document.addEventListener('DOMContentLoaded', () => {
     checkDailyStreak();
 
     // ========== PERSONAL BESTS (localStorage) ==========
-    const PB_KEY = 'vokabelzombie_personal_bests';
+    const PB_KEY = 'vokabelzombie_personal_bests_v2';
+    const LEGACY_PB_KEY = 'vokabelzombie_personal_bests';
 
-    function loadPersonalBests() {
+    function emptyPersonalBests() {
+        return { highscore: 0, maxStreak: 0, bestAccuracy: 0 };
+    }
+
+    function loadAllPersonalBests() {
         try {
             const data = localStorage.getItem(PB_KEY);
-            return data ? JSON.parse(data) : { highscore: 0, maxStreak: 0, bestAccuracy: 0 };
+            const parsed = data ? JSON.parse(data) : null;
+            return parsed && parsed.version === 2 && parsed.courses
+                ? parsed
+                : { version: 2, courses: {}, legacyEnglish5Migrated: false };
         } catch (e) {
-            return { highscore: 0, maxStreak: 0, bestAccuracy: 0 };
+            return { version: 2, courses: {}, legacyEnglish5Migrated: false };
         }
     }
 
-    function savePersonalBests(pb) {
+    function saveAllPersonalBests(data) {
         try {
-            localStorage.setItem(PB_KEY, JSON.stringify(pb));
+            localStorage.setItem(PB_KEY, JSON.stringify(data));
         } catch (e) {
             console.warn('localStorage not available:', e);
         }
+    }
+
+    function loadPersonalBests() {
+        const all = loadAllPersonalBests();
+        if (state.courseId === 'en-5' && !all.legacyEnglish5Migrated) {
+            try {
+                const legacyRaw = localStorage.getItem(LEGACY_PB_KEY);
+                const legacy = legacyRaw ? JSON.parse(legacyRaw) : null;
+                if (legacy && !all.courses['en-5']) all.courses['en-5'] = legacy;
+            } catch (error) {
+                console.warn('Legacy-Bestwerte konnten nicht migriert werden:', error);
+            }
+            all.legacyEnglish5Migrated = true;
+            saveAllPersonalBests(all);
+        }
+        return { ...emptyPersonalBests(), ...(all.courses[state.courseId] || {}) };
+    }
+
+    function savePersonalBests(pb) {
+        const all = loadAllPersonalBests();
+        all.courses[state.courseId] = pb;
+        saveAllPersonalBests(all);
     }
 
     function checkAndUpdatePersonalBests(score, maxStreak, accuracy) {
@@ -554,6 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const screens = {
         terms: document.getElementById('terms-screen'),
+        course: document.getElementById('course-selection-screen'),
         login: document.getElementById('login-screen'),
         hunter: document.getElementById('hunter-selection-screen'),
         city: document.getElementById('city-selection-screen'),
@@ -565,9 +664,72 @@ document.addEventListener('DOMContentLoaded', () => {
     const acceptTermsBtn = document.getElementById('accept-terms-btn');
     if (acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
-            showScreen('login');
+            showCourseSelectionScreen();
         });
     }
+
+    let pendingGrade = 5;
+    let pendingCourseId = 'en-5';
+
+    function renderSubjectSelection() {
+        const container = document.getElementById('subject-selection');
+        const hint = document.getElementById('course-selection-hint');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const courses = window.COURSES.filter(course => course.grade === pendingGrade);
+        const available = courses.filter(course => course.available && (window.VOCABULARIES[course.id] || []).length > 0);
+        if (!available.some(course => course.id === pendingCourseId)) {
+            pendingCourseId = available[0]?.id || '';
+        }
+
+        courses.forEach(course => {
+            const vocabCount = (window.VOCABULARIES[course.id] || []).length;
+            const enabled = course.available && vocabCount > 0;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'subject-card' + (course.id === pendingCourseId ? ' active' : '');
+            button.dataset.courseId = course.id;
+            button.disabled = !enabled;
+            button.setAttribute('aria-pressed', course.id === pendingCourseId ? 'true' : 'false');
+            button.innerHTML = `${course.subjectLabel}<small>${enabled ? `${vocabCount} Vokabeln` : 'Wird vorbereitet'}</small>`;
+            button.addEventListener('click', () => {
+                pendingCourseId = course.id;
+                renderSubjectSelection();
+            });
+            container.appendChild(button);
+        });
+
+        const selected = window.getCourseById(pendingCourseId);
+        if (hint) {
+            hint.textContent = selected
+                ? `Ausgewählt: ${window.getCourseLabel(selected)}`
+                : 'Für diese Klasse ist noch kein Fach spielbereit.';
+        }
+    }
+
+    document.querySelectorAll('.grade-card').forEach(button => {
+        button.addEventListener('click', () => {
+            pendingGrade = Number(button.dataset.grade);
+            document.querySelectorAll('.grade-card').forEach(card => {
+                const active = card === button;
+                card.classList.toggle('active', active);
+                card.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            renderSubjectSelection();
+        });
+    });
+
+    const confirmCourseBtn = document.getElementById('confirm-course-btn');
+    if (confirmCourseBtn) {
+        confirmCourseBtn.addEventListener('click', () => {
+            if (!pendingCourseId || !activateCourse(pendingCourseId)) return;
+            showHunterScreen();
+        });
+    }
+
+    const changeCourseBtn = document.getElementById('change-course-btn');
+    if (changeCourseBtn) changeCourseBtn.addEventListener('click', showCourseSelectionScreen);
 
     const loginBtn = document.getElementById('login-btn');
     const passwordInput = document.getElementById('secret-password');
@@ -583,7 +745,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleLogin() {
         const input = passwordInput.value.trim();
         if (btoa(input) === SECRET_HASH) {
-            showHunterScreen();
+            loginError.classList.add('hidden');
+            showScreen('terms');
         } else {
             loginError.classList.remove('hidden');
             // Remove animation class and add it back to trigger the shake animation again
@@ -661,7 +824,11 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     // Init
-    initFilters();
+    let preferredCourseId = 'en-5';
+    try {
+        preferredCourseId = localStorage.getItem('vokabelzombie_last_course') || preferredCourseId;
+    } catch (error) {}
+    if (!activateCourse(preferredCourseId)) activateCourse('en-5');
     initCarousel();
     initCityCarousel();
     startBtn.addEventListener('click', startGame);
@@ -708,7 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const showLeaderboardStartBtn = document.getElementById('show-leaderboard-start-btn');
     const handleLeaderboardClick = () => {
         if (typeof window.openLeaderboardDialog === 'function') {
-            window.openLeaderboardDialog(-1, '', '', 0);
+            window.openLeaderboardDialog(-1, '', '', 0, getCourseLabel());
         } else {
             alert("Bestenliste wird noch geladen...");
         }
@@ -787,7 +954,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLeaderboardBtn.addEventListener('click', () => {
             if (typeof window.openLeaderboardDialog === 'function') {
                 const accuracy = state.totalAttempts > 0 ? Math.round((state.correctAttempts / state.totalAttempts) * 100) : 0;
-                window.openLeaderboardDialog(state.score, state.kategorie, accuracy + '%', state.maxStreak);
+                window.openLeaderboardDialog(state.score, state.kategorie, accuracy + '%', state.maxStreak, getCourseLabel());
             } else {
                 alert("Bestenliste wird noch geladen...");
             }
@@ -1101,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initFilters() {
         const container = document.getElementById('learning-path-container');
         
-        if (typeof VOCABULARY === 'undefined' || VOCABULARY.length === 0) {
+        if (activeVocabulary.length === 0) {
             if (container) container.innerHTML = '<p>Lade Vokabeln...</p>';
             return;
         }
@@ -1113,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const parts = new Map();
         const pages = new Map();
 
-        VOCABULARY.forEach(v => {
+        activeVocabulary.forEach(v => {
             if (v.unit) {
                 units.add(v.unit);
                 if (!parts.has(v.unit)) parts.set(v.unit, new Set());
@@ -1127,6 +1294,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        const encodeFilterSegment = window.VocabUtils.encodeFilterSegment;
 
         function createCheckbox(value, label, isAll = false) {
             const lbl = document.createElement('label');
@@ -1229,8 +1398,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const unitList = Array.from(units).sort((a, b) => {
-            if (a === 'Welcome') return -1;
-            if (b === 'Welcome') return 1;
+            const aIsWelcome = a.trim().toLowerCase().startsWith('welcome');
+            const bIsWelcome = b.trim().toLowerCase().startsWith('welcome');
+            if (aIsWelcome && !bIsWelcome) return -1;
+            if (bIsWelcome && !aIsWelcome) return 1;
             return a.localeCompare(b);
         });
         const numUnits = unitList.length;
@@ -1260,13 +1431,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         unitList.forEach((u, index) => {
             const row = index + 2;
+            const unitToken = encodeFilterSegment(u);
 
             // Unit Cell
             const unitCell = document.createElement('div');
             unitCell.className = 'filter-cell unit-cell';
             unitCell.style.gridRow = `${row}`;
             unitCell.style.gridColumn = '2';
-            unitCell.appendChild(createCheckbox(`unit:${u}`, u));
+            unitCell.appendChild(createCheckbox(`unit:${unitToken}`, u));
             container.appendChild(unitCell);
 
             // Part Cell
@@ -1285,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (rankA !== rankB) return rankA - rankB;
                 return a.localeCompare(b);
             });
-            unitParts.forEach(p => partCell.appendChild(createCheckbox(`part:${u}:${p}`, p)));
+            unitParts.forEach(p => partCell.appendChild(createCheckbox(`part:${unitToken}:${encodeFilterSegment(p)}`, p)));
             container.appendChild(partCell);
 
             // Page Cell
@@ -1294,7 +1466,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pageCell.style.gridRow = `${row}`;
             pageCell.style.gridColumn = '4';
             const unitPages = Array.from(pages.get(u) || []).sort((a,b) => a - b);
-            unitPages.forEach(p => pageCell.appendChild(createCheckbox(`page:${u}:${p}`, `${p}`)));
+            unitPages.forEach(p => pageCell.appendChild(createCheckbox(`page:${unitToken}:${p}`, `${p}`)));
             container.appendChild(pageCell);
         });
 
@@ -1308,6 +1480,51 @@ document.addEventListener('DOMContentLoaded', () => {
     function showScreen(screenName) {
         Object.values(screens).forEach(s => s.classList.remove('active'));
         screens[screenName].classList.add('active');
+    }
+
+    function updateDirectionOptions() {
+        const select = document.getElementById('translation-direction');
+        if (!select || !activeCourse) return;
+        const subject = activeCourse.subjectLabel;
+        select.innerHTML = `
+            <option value="foreign-de">${subject} ➔ Deutsch</option>
+            <option value="de-foreign" selected>Deutsch ➔ ${subject}</option>
+            <option value="mixed">Gemischt</option>
+            <option value="de-foreign-write">Deutsch ➔ ${subject} (schreiben)</option>
+        `;
+        state.direction = 'de-foreign';
+    }
+
+    function activateCourse(courseId) {
+        const course = window.getCourseById(courseId);
+        const vocabulary = window.VOCABULARIES[courseId] || [];
+        if (!course || !course.available || vocabulary.length === 0) return false;
+
+        state.courseId = course.id;
+        activeCourse = course;
+        activeVocabulary = normalizeVocabulary(course.id, vocabulary);
+        migrateLegacySRSForEnglish5();
+        updateDirectionOptions();
+        initFilters();
+
+        const title = document.getElementById('learning-path-title');
+        if (title) title.textContent = `Lernpfad – ${getCourseLabel()}`;
+        try {
+            localStorage.setItem('vokabelzombie_last_course', course.id);
+        } catch (error) {}
+        return true;
+    }
+
+    function showCourseSelectionScreen() {
+        pendingGrade = activeCourse?.grade || 5;
+        pendingCourseId = activeCourse?.id || 'en-5';
+        document.querySelectorAll('.grade-card').forEach(card => {
+            const selected = Number(card.dataset.grade) === pendingGrade;
+            card.classList.toggle('active', selected);
+            card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+        renderSubjectSelection();
+        showScreen('course');
     }
 
     function showHunterScreen() {
@@ -1335,7 +1552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startGame() {
-        if (typeof VOCABULARY === 'undefined' || VOCABULARY.length === 0) {
+        if (activeVocabulary.length === 0) {
             alert('Vokabeln werden noch geladen oder sind nicht verfügbar... Bitte warte kurz und versuche es erneut.');
             return;
         }
@@ -1344,27 +1561,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const selectedCheckboxes = Array.from(document.querySelectorAll('.filter-checkbox:checked'));
         const paths = selectedCheckboxes.map(cb => cb.value);
+        const decodeFilterSegment = window.VocabUtils.decodeFilterSegment;
+        const getCategoryUnitName = unit => unit.match(/Unit\s*\d+/i)?.[0] || unit;
         
-        // Immer nur Vokabeln nehmen, bei denen sowohl Englisch als auch Deutsch nicht leer sind
-        const validVocabs = VOCABULARY.filter(v => v.english && v.german && v.english.trim() !== '' && v.german.trim() !== '');
+        // Nur vollständig übersetzte Einträge des aktiven Kurses verwenden.
+        const validVocabs = activeVocabulary.filter(v => getForeign(v).trim() !== '' && getGerman(v).trim() !== '');
 
         if (paths.includes('all') || paths.length === 0) {
             state.vocabPool = [...validVocabs];
         } else {
             state.vocabPool = validVocabs.filter(v => {
                 return paths.some(path => {
-                    if (path.startsWith('unit:')) return v.unit === path.split(':')[1];
+                    if (path.startsWith('unit:')) return v.unit === decodeFilterSegment(path.slice(5));
                     if (path.startsWith('part:')) {
                         const partsArr = path.split(':');
                         if (partsArr.length === 3) {
-                            return v.unit === partsArr[1] && v.part === partsArr[2];
+                            return v.unit === decodeFilterSegment(partsArr[1]) && v.part === decodeFilterSegment(partsArr[2]);
                         }
                         return false;
                     }
                     if (path.startsWith('page:')) {
                         const parts = path.split(':');
                         if (parts.length === 3) {
-                            return v.unit === parts[1] && String(v.page) === parts[2];
+                            return v.unit === decodeFilterSegment(parts[1]) && String(v.page) === parts[2];
                         }
                         return String(v.page) === parts[1];
                     }
@@ -1382,11 +1601,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Wir duplizieren Vokabeln im Pool basierend auf SRS-Daten
         let srsWeightedPool = [];
         state.vocabPool.forEach(vocab => {
-            const engWord = vocab.english;
+            const srsKey = getSrsKey(vocab);
             let weight = 1; // Standard-Gewicht
             
-            if (srsData[engWord]) {
-                const srs = srsData[engWord];
+            if (srsData.entries[srsKey]) {
+                const srs = srsData.entries[srsKey];
                 // Berechne ein Fehler-Ratio
                 const totalAttempts = srs.timesCorrect + srs.timesFailed;
                 if (totalAttempts > 0) {
@@ -1412,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let unitStatus = new Map();
 
         if (paths.includes('all') || paths.length === 0) {
-            const allUnits = [...new Set(VOCABULARY.map(v => {
+            const allUnits = [...new Set(activeVocabulary.map(v => {
                 if (!v.unit) return null;
                 const match = v.unit.match(/Unit\s*\d+/i);
                 return match ? match[0] : v.unit;
@@ -1424,24 +1643,25 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             paths.forEach(p => {
                 if (p.startsWith('unit:')) {
-                    const u = p.split(':')[1];
+                    const u = getCategoryUnitName(decodeFilterSegment(p.slice(5)));
                     if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
                     unitStatus.get(u).full = true;
                 } else if (p.startsWith('part:')) {
                     const partsArr = p.split(':');
-                    const u = partsArr[1];
+                    const u = getCategoryUnitName(decodeFilterSegment(partsArr[1]));
                     if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
                     unitStatus.get(u).partial = true;
                 } else if (p.startsWith('page:')) {
                     const parts = p.split(':');
                     if (parts.length === 3) {
-                        const match = parts[1].match(/Unit\s*\d+/i);
-                        const u = match ? match[0] : parts[1];
+                        const decodedUnit = decodeFilterSegment(parts[1]);
+                        const match = decodedUnit.match(/Unit\s*\d+/i);
+                        const u = match ? match[0] : decodedUnit;
                         if (!unitStatus.has(u)) unitStatus.set(u, { full: false, partial: false });
                         unitStatus.get(u).partial = true;
                     } else {
                         const pageNum = parts[1];
-                        const matchingVocabs = VOCABULARY.filter(v => String(v.page) === pageNum);
+                        const matchingVocabs = activeVocabulary.filter(v => String(v.page) === pageNum);
                         const pageUnits = [...new Set(matchingVocabs.map(v => v.unit).filter(Boolean))];
                         
                         if (pageUnits.length > 0) {
@@ -1474,13 +1694,17 @@ document.addEventListener('DOMContentLoaded', () => {
         formattedUnits.sort();
 
         if (formattedUnits.length === 0) {
-            state.kategorie = "Englisch: Mix";
+            state.kategorie = `${getCourseLabel()}: Mix`;
         } else {
-            state.kategorie = "Englisch: " + formattedUnits.join(', ');
+            state.kategorie = `${getCourseLabel()}: ${formattedUnits.join(', ')}`;
         }
         
-        if (state.direction === 'de-en-write') {
+        if (state.direction === 'de-foreign-write') {
             state.kategorie += ", schreiben";
+        } else if (state.direction === 'mixed') {
+            state.kategorie += ", gemischt";
+        } else if (state.direction === 'foreign-de') {
+            state.kategorie += ", nach Deutsch";
         }
 
         // Reset State
@@ -1533,16 +1757,16 @@ document.addEventListener('DOMContentLoaded', () => {
         animationId = requestAnimationFrame(gameLoop);
     }
 
-    function getQuestionAndAnswer(vocab, isEnToDe) {
-        if (isEnToDe === undefined) {
-            isEnToDe = state.direction === 'en-de';
+    function getQuestionAndAnswer(vocab, isForeignToGerman) {
+        if (isForeignToGerman === undefined) {
+            isForeignToGerman = state.direction === 'foreign-de';
             if (state.direction === 'mixed') {
-                isEnToDe = Math.random() > 0.5;
+                isForeignToGerman = Math.random() > 0.5;
             }
         }
-        return isEnToDe ? 
-            { q: vocab.english, a: vocab.german, vocab: vocab } : 
-            { q: vocab.german, a: vocab.english, vocab: vocab };
+        return isForeignToGerman ?
+            { q: getForeign(vocab), a: getGerman(vocab), vocab: vocab } :
+            { q: getGerman(vocab), a: getForeign(vocab), vocab: vocab };
     }
 
     function spawnZombie() {
@@ -1608,25 +1832,26 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let currentMode = state.direction;
         if (state.direction === 'mixed') {
-            const modes = ['en-de', 'de-en', 'de-en-write'];
+            const modes = ['foreign-de', 'de-foreign', 'de-foreign-write'];
             currentMode = modes[Math.floor(Math.random() * modes.length)];
         }
+        state.currentMode = currentMode;
 
-        let isEnToDe = currentMode === 'en-de';
-        if (currentMode === 'de-en-write') {
-            isEnToDe = false;
+        let isForeignToGerman = currentMode === 'foreign-de';
+        if (currentMode === 'de-foreign-write') {
+            isForeignToGerman = false;
         }
 
-        state.currentWord = getQuestionAndAnswer(vocab, isEnToDe);
+        state.currentWord = getQuestionAndAnswer(vocab, isForeignToGerman);
 
         // Dynamische Schwierigkeit: Zombie wird kontinuierlich schneller bis 100 Vokabeln
         let progress = Math.min(state.correctAttempts / CONFIG.maxVocabsForMaxSpeed, 1.0);
         let maxDuration = CONFIG.maxZombieDuration;
         let minDuration = CONFIG.minZombieDuration;
         
-        if (currentMode === 'de-en-write') {
+        if (currentMode === 'de-foreign-write') {
             // Schreibmodus: Zeit basiert auf der Wortlänge. Zu Beginn 5.0s pro Buchstabe (Faktor 10 langsamer).
-            let letters = state.currentWord.a.replace(/\s+/g, '').length;
+            let letters = tokenizeAnswer(state.currentWord.a).filter(token => token.type === 'letter').length;
             maxDuration = Math.max(10.0, letters * 3.0);
             minDuration = Math.max(3.0, letters * 1.0);
         }
@@ -1658,14 +1883,14 @@ document.addEventListener('DOMContentLoaded', () => {
             zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
         }
 
-        if (currentMode === 'de-en-write') {
+        if (currentMode === 'de-foreign-write') {
             document.getElementById('options-container').classList.add('hidden');
             document.getElementById('writing-container').classList.remove('hidden');
             generateWritingUI(vocab);
         } else {
             document.getElementById('options-container').classList.remove('hidden');
             document.getElementById('writing-container').classList.add('hidden');
-            generateOptions(vocab, isEnToDe);
+            generateOptions(vocab, isForeignToGerman);
         }
     }
 
@@ -1675,31 +1900,32 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let currentMode = state.direction;
         if (state.direction === 'mixed') {
-            const modes = ['en-de', 'de-en', 'de-en-write'];
+            const modes = ['foreign-de', 'de-foreign', 'de-foreign-write'];
             currentMode = modes[Math.floor(Math.random() * modes.length)];
         }
+        state.currentMode = currentMode;
 
-        let isEnToDe = currentMode === 'en-de';
-        if (currentMode === 'de-en-write') {
-            isEnToDe = false;
+        let isForeignToGerman = currentMode === 'foreign-de';
+        if (currentMode === 'de-foreign-write') {
+            isForeignToGerman = false;
         }
 
-        state.currentWord = getQuestionAndAnswer(vocab, isEnToDe);
+        state.currentWord = getQuestionAndAnswer(vocab, isForeignToGerman);
         zombieWordEl.textContent = state.currentWord.q;
         state.wrongAttemptsForCurrentWord = 0; // Fehlerzähler für neues Wort zurücksetzen
         
-        if (currentMode === 'de-en-write') {
+        if (currentMode === 'de-foreign-write') {
             document.getElementById('options-container').classList.add('hidden');
             document.getElementById('writing-container').classList.remove('hidden');
             generateWritingUI(vocab);
         } else {
             document.getElementById('options-container').classList.remove('hidden');
             document.getElementById('writing-container').classList.add('hidden');
-            generateOptions(vocab, isEnToDe);
+            generateOptions(vocab, isForeignToGerman);
         }
     }
 
-    function generateOptions(correctVocab, isEnToDe) {
+    function generateOptions(correctVocab, isForeignToGerman) {
         optionsContainer.innerHTML = '';
         // Dynamische Schwierigkeit: Mehr Auswahlmöglichkeiten je besser der Streak ist (max 8)
         const optionsCount = Math.min(8, 4 + Math.floor(state.streak / CONFIG.streakForExtraOption));
@@ -1709,7 +1935,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Zuerst aus dem aktiven Vokabelpool auffüllen
         while (options.length < optionsCount && attempts < 100) {
             const randomV = state.vocabPool[Math.floor(Math.random() * state.vocabPool.length)];
-            const wrongA = getQuestionAndAnswer(randomV, isEnToDe).a;
+            const wrongA = getQuestionAndAnswer(randomV, isForeignToGerman).a;
             if (!options.includes(wrongA)) {
                 options.push(wrongA);
             }
@@ -1720,8 +1946,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // fülle den Rest aus dem globalen Vokabular auf
         attempts = 0;
         while (options.length < optionsCount && attempts < 100) {
-            const randomV = VOCABULARY[Math.floor(Math.random() * VOCABULARY.length)];
-            const wrongA = getQuestionAndAnswer(randomV, isEnToDe).a;
+            const randomV = activeVocabulary[Math.floor(Math.random() * activeVocabulary.length)];
+            const wrongA = getQuestionAndAnswer(randomV, isForeignToGerman).a;
             if (!options.includes(wrongA) && wrongA && wrongA.trim() !== '') {
                 options.push(wrongA);
             }
@@ -1782,43 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function tokenizeAnswer(answer) {
-        let tokens = [];
-        let i = 0;
-        while (i < answer.length) {
-            let matchedFiller = false;
-            const fillers = ['sb.', 'sth.', 'sb', 'sth', '...'];
-            for (const f of fillers) {
-                if (answer.startsWith(f, i)) {
-                    const nextChar = answer[i + f.length];
-                    if (!nextChar || !/[a-zA-Z]/.test(nextChar)) {
-                        tokens.push({ type: 'fixed', text: f });
-                        i += f.length;
-                        matchedFiller = true;
-                        break;
-                    }
-                }
-            }
-            if (matchedFiller) continue;
-
-            if (answer[i] === '(') {
-                let end = answer.indexOf(')', i);
-                if (end !== -1) {
-                    tokens.push({ type: 'fixed', text: answer.substring(i, end + 1) });
-                    i = end + 1;
-                    continue;
-                }
-            }
-
-            if (!/[a-zA-Z]/.test(answer[i])) {
-                tokens.push({ type: 'fixed', text: answer[i] });
-                i++;
-                continue;
-            }
-
-            tokens.push({ type: 'letter', text: answer[i] });
-            i++;
-        }
-        return tokens;
+        return window.VocabUtils.tokenizeAnswer(answer);
     }
 
     function generateWritingUI(vocab) {
@@ -1975,11 +2165,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // GAMIFICATION: Add XP and Update SRS
             addXP(10);
             playerProfile.stats.totalZombies++;
-            if (state.direction === 'de-en-write') playerProfile.stats.writeModeCorrect++;
-            const engWord = state.currentWord.vocab.english;
-            if (!srsData[engWord]) srsData[engWord] = { timesCorrect: 0, timesFailed: 0, lastSeen: 0 };
-            if (state.wrongAttemptsForCurrentWord === 0) srsData[engWord].timesCorrect++;
-            srsData[engWord].lastSeen = Date.now();
+            if (state.currentMode === 'de-foreign-write') playerProfile.stats.writeModeCorrect++;
+            const srsRecord = getOrCreateSrsRecord(state.currentWord.vocab);
+            if (state.wrongAttemptsForCurrentWord === 0) srsRecord.timesCorrect++;
+            srsRecord.lastSeen = Date.now();
             saveSRS(srsData);
             saveProfile(playerProfile);
 
@@ -2110,10 +2299,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } else {
             // GAMIFICATION: Update SRS failed
-            const engWord = state.currentWord.vocab.english;
-            if (!srsData[engWord]) srsData[engWord] = { timesCorrect: 0, timesFailed: 0, lastSeen: 0 };
-            srsData[engWord].timesFailed++;
-            srsData[engWord].lastSeen = Date.now();
+            const srsRecord = getOrCreateSrsRecord(state.currentWord.vocab);
+            srsRecord.timesFailed++;
+            srsRecord.lastSeen = Date.now();
             saveSRS(srsData);
 
             btn.classList.add('wrong');
@@ -2159,37 +2347,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const enEl = document.getElementById('solution-en');
         const deEl = document.getElementById('solution-de');
         
-        enEl.textContent = state.currentWord.vocab.english;
-        deEl.textContent = state.currentWord.vocab.german;
+        enEl.textContent = getForeign(state.currentWord.vocab);
+        deEl.textContent = getGerman(state.currentWord.vocab);
         
         dialog.classList.remove('hidden');
         
-        // Dateiname analog zu generate_audio.sh bauen
-        const filename = state.currentWord.vocab.english.replace(/\//g, '_') + '.mp3';
-        const audio = new Audio('assets/audio/' + filename);
+        const legacyFilename = getForeign(state.currentWord.vocab).replace(/\//g, '_') + '.mp3';
+        const audioPath = state.currentWord.vocab.audio
+            || (state.courseId === 'en-5' ? `assets/audio/${legacyFilename}` : '');
+        const audio = audioPath ? new Audio(audioPath) : null;
         
         let dialogClosed = false;
+        let fallbackTimer = null;
 
         const safeClose = () => {
             if (!dialogClosed) {
                 dialogClosed = true;
+                if (fallbackTimer) clearTimeout(fallbackTimer);
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
                 closeSolutionDialog();
             }
         };
         
-        audio.onended = () => {
-            safeClose();
-        };
-        
-        audio.onerror = () => {
-            safeClose();
-        };
-        
-        audio.play().catch(err => {
-            console.log("Audio playback failed or file not found:", err);
-            // 2 Sekunden Fallback, wenn Audio fehlt
-            setTimeout(safeClose, 2000);
-        });
+        if (audio) {
+            audio.onended = safeClose;
+            audio.onerror = safeClose;
+            audio.play().catch(err => {
+                console.log("Audio playback failed or file not found:", err);
+                setTimeout(safeClose, 900);
+            });
+            fallbackTimer = setTimeout(safeClose, 20000);
+        } else {
+            setTimeout(safeClose, 900);
+        }
     }
 
     function closeSolutionDialog() {

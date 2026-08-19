@@ -5,7 +5,8 @@ set -Eeuo pipefail
 #
 # Verwendung:
 #   ./generate_audio.sh                  # Alle Audios neu generieren (Standard-Engine)
-#   ./generate_audio.sh --only-missing   # Nur fehlende Audios generieren
+#   ./generate_audio.sh --only-missing   # Nur fehlende Klasse-5-Audios generieren
+#   ./generate_audio.sh --course en-6 --only-missing
 #
 # Engines:
 #   ENGINE=voxtral     – Voxtral-TTS (Standard), Port 8091
@@ -20,6 +21,7 @@ set -Eeuo pipefail
 # ── Argumente parsen ──
 ONLY_MISSING=false
 PAGE_FILTER=""
+COURSE_ID="en-5"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +33,10 @@ while [[ $# -gt 0 ]]; do
       PAGE_FILTER="$2"
       shift 2
       ;;
+    --course)
+      COURSE_ID="$2"
+      shift 2
+      ;;
     --engine)
       ENGINE="$2"
       shift 2
@@ -40,7 +46,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --help|-h)
-      echo "Verwendung: $0 [--only-missing] [--page <seite>] [--engine <name>] [--voice <name>]"
+      echo "Verwendung: $0 [--course en-5|en-6] [--only-missing] [--page <seite>] [--engine <name>] [--voice <name>]"
       exit 0
       ;;
     *)
@@ -51,7 +57,16 @@ while [[ $# -gt 0 ]]; do
 done
 
 ENGINE="${ENGINE:-qwen3-builtin}"
-OUTPUT_DIR="${OUTPUT_DIR:-assets/audio}"
+if [[ "$COURSE_ID" == "en-5" ]]; then
+  VOCAB_FILE="js/vocabs.js"
+  OUTPUT_DIR="${OUTPUT_DIR:-assets/audio}"
+elif [[ "$COURSE_ID" == "en-6" ]]; then
+  VOCAB_FILE="js/vocabs_en_6.js"
+  OUTPUT_DIR="${OUTPUT_DIR:-assets/audio/vocab/en-6}"
+else
+  echo "Nicht unterstützter Kurs: $COURSE_ID" >&2
+  exit 1
+fi
 
 if [[ "$ENGINE" == "chatterbox" ]]; then
   API_URL="${API_URL:-http://127.0.0.1:4123/v1/audio/speech}"
@@ -91,6 +106,8 @@ require_cmd() {
 
 require_cmd curl
 require_cmd jq
+require_cmd ffmpeg
+require_cmd ffprobe
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -172,8 +189,12 @@ echo "Engine: $ENGINE | Ziel: $OUTPUT_DIR"
 echo "Stimme: $VOICE"
 echo "---"
 
-# Lese alle Vokabeln aus js/vocabs.js
-jq_input=$(sed -e 's/^const VOCABULARY = //' -e 's/;$//' -e 's/\/\/.*//' js/vocabs.js)
+# Lese die Vokabeln des gewählten Kurses.
+if [[ "$COURSE_ID" == "en-5" ]]; then
+  jq_input=$(sed -e '/^\/\//d' -e 's/^const VOCABULARY = //' -e '/^window\.VOCABULARIES/d' -e 's/;$//' "$VOCAB_FILE")
+else
+  jq_input=$(sed -e '/^\/\//d' -e "s/^window.VOCABULARIES\['en-6'\] = //" -e 's/;$//' "$VOCAB_FILE")
+fi
 
 if [[ -n "$PAGE_FILTER" ]]; then
   jq_items=$(echo "$jq_input" | jq -c "map(select(.page == $PAGE_FILTER))")
@@ -185,15 +206,18 @@ count_current=0
 
 while IFS= read -r item; do
   count_current=$((count_current + 1))
-  english=$(jq -r '.english' <<<"$item")
-  
-  # Dateiname anpassen (Schrägstriche ersetzen, um Pfadprobleme zu vermeiden)
-  filename=$(echo "$english" | sed 's/\//_/g')
+  if [[ "$COURSE_ID" == "en-5" ]]; then
+    foreign=$(jq -r '.english' <<<"$item")
+    filename=$(echo "$foreign" | sed 's/\//_/g')
+  else
+    foreign=$(jq -r '.foreign' <<<"$item")
+    filename=$(jq -r '.id' <<<"$item")
+  fi
   filepath="$OUTPUT_DIR/${filename}.mp3"
   count_total=$((count_total + 1))
 
   # Text für TTS vorbereiten
-  text="$english"
+  text="$foreign"
   # Whitelist: Klammern entfernen und Text behalten / direkt ausschreiben
   text=$(echo "$text" \
     | sed 's/(to)/to/g' \
@@ -237,7 +261,7 @@ while IFS= read -r item; do
     continue
   fi
 
-  max_retries=10
+  max_retries=3
   attempt=1
   success=false
 
@@ -249,13 +273,16 @@ while IFS= read -r item; do
       rm -f "$filepath.tmp.mp3"
       
       filesize=$(stat -c%s "$filepath" 2>/dev/null || echo 0)
-      if [[ $filesize -lt 30720 ]]; then
-        echo "✅ OK ($((filesize/1024)) KB)"
+      duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$filepath" 2>/dev/null || echo 0)
+      word_count=$(wc -w <<<"$text")
+      max_duration=$(awk -v words="$word_count" 'BEGIN { limit = words * 1.2 + 3; if (limit < 4) limit = 4; printf "%.1f", limit }')
+      if awk -v duration="$duration" -v maximum="$max_duration" 'BEGIN { exit !(duration >= 0.2 && duration <= maximum) }'; then
+        printf '✅ OK (%d KB, %.1f s)\n' "$((filesize/1024))" "$duration"
         success=true
         count_generated=$((count_generated + 1))
         break
       else
-        echo "⚠️ Zu groß ($((filesize/1024)) KB) -> Wiederholung"
+        printf '⚠️ Ungültige Dauer (%.1f s; erlaubt: 0,2–%.1f s) -> Wiederholung\n' "$duration" "$max_duration"
         rm -f "$filepath"
       fi
     else
@@ -277,4 +304,3 @@ echo "  Generiert: $count_generated"
 echo "  Übersprungen: $count_skipped"
 echo "  Fehler: $count_failed"
 echo "═══════════════════════════════════"
-

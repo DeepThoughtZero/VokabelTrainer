@@ -112,6 +112,101 @@ body {
     text-align: center;
 }
 
+.course-selection-box {
+    max-width: 1100px;
+    margin-top: 45px;
+    padding: 45px 55px;
+    text-align: center;
+}
+
+.course-intro {
+    color: #ddd;
+    font-size: 1.7rem;
+    line-height: 1.45;
+    margin-bottom: 30px;
+}
+
+.course-step {
+    margin-bottom: 28px;
+}
+
+.course-step h2 {
+    color: var(--accent-color);
+    font-size: 2rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.grade-selection,
+.subject-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+}
+
+.grade-card,
+.subject-card {
+    min-height: 105px;
+    padding: 18px 22px;
+    color: white;
+    background: rgba(255, 255, 255, 0.06);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 2rem;
+    font-family: 'Roboto', sans-serif;
+    font-weight: bold;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.grade-card:hover,
+.subject-card:not(:disabled):hover {
+    transform: translateY(-3px);
+    border-color: var(--accent-color);
+}
+
+.grade-card.active,
+.subject-card.active {
+    color: #07150d;
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 22px rgba(0, 255, 136, 0.45);
+}
+
+.subject-card small {
+    display: block;
+    margin-top: 8px;
+    font-size: 1rem;
+    font-weight: normal;
+}
+
+.subject-card:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    filter: grayscale(0.8);
+}
+
+.course-selection-hint {
+    min-height: 1.8em;
+    margin: 12px 0 20px;
+    color: #ffda6a;
+    font-size: 1.25rem;
+}
+
+.course-change-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 20;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.9);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.25rem;
+}
+
 .mysterious-text {
     font-size: 1.8rem;
     color: #ccc;

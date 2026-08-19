@@ -1,0 +1,358 @@
+{
+  "courseId": "en-6",
+  "pageRange": [
+    285,
+    318
+  ],
+  "uniquePages": 34,
+  "sourcePhotos": 39,
+  "entryCount": 869,
+  "pageCounts": {
+    "285": 23,
+    "286": 28,
+    "287": 21,
+    "288": 33,
+    "289": 44,
+    "290": 26,
+    "291": 21,
+    "292": 21,
+    "293": 19,
+    "294": 15,
+    "295": 24,
+    "296": 18,
+    "297": 25,
+    "298": 18,
+    "299": 22,
+    "300": 23,
+    "301": 26,
+    "302": 25,
+    "303": 27,
+    "304": 24,
+    "305": 28,
+    "306": 30,
+    "307": 36,
+    "308": 32,
+    "309": 36,
+    "310": 28,
+    "311": 30,
+    "312": 23,
+    "313": 21,
+    "314": 20,
+    "315": 30,
+    "316": 26,
+    "317": 25,
+    "318": 21
+  },
+  "units": {
+    "Welcome back to Brighton": 28,
+    "Unit 1: Holiday stories": 195,
+    "Unit 2: Let's buy something cool": 147,
+    "Unit 3: Helping out": 143,
+    "Unit 4: Out of town": 201,
+    "Unit 5: Great days, great people": 155
+  },
+  "parts": {
+    "": 55,
+    "Part A": 241,
+    "Part B": 249,
+    "Part C": 324
+  },
+  "removedExtractionArtifacts": [
+    {
+      "page": 297,
+      "foreign": "fought",
+      "reason": "Simple-past form printed below the headword, not a separate vocabulary row."
+    },
+    {
+      "page": 297,
+      "foreign": "held out",
+      "reason": "Simple-past form printed below the headword, not a separate vocabulary row."
+    },
+    {
+      "page": 297,
+      "foreign": "paid",
+      "reason": "Simple-past form printed below the headword, not a separate vocabulary row."
+    },
+    {
+      "page": 304,
+      "foreign": "hung up",
+      "reason": "Simple-past form printed below the headword, not a separate vocabulary row."
+    }
+  ],
+  "deduplicatedRepeatedRows": [
+    {
+      "page": 302,
+      "foreign": "a ten-minute walk",
+      "reason": "Die Zeile steht einmal als Vokabel und wird im unmittelbar folgenden Merkkasten nur wiederholt."
+    }
+  ],
+  "duplicatePairs": [
+    {
+      "foreign": "(to) ride a bike",
+      "german": "Rad fahren",
+      "count": 3
+    },
+    {
+      "foreign": "(to) see",
+      "german": "sehen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) give",
+      "german": "geben",
+      "count": 2
+    },
+    {
+      "foreign": "(to) read",
+      "german": "lesen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) forget",
+      "german": "vergessen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) hold",
+      "german": "halten",
+      "count": 2
+    },
+    {
+      "foreign": "(to) speak",
+      "german": "sprechen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) stand",
+      "german": "stehen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) swim",
+      "german": "schwimmen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) tell",
+      "german": "erzählen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) write",
+      "german": "schreiben",
+      "count": 2
+    },
+    {
+      "foreign": "(to) fly",
+      "german": "fliegen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) ring",
+      "german": "klingeln, läuten",
+      "count": 2
+    },
+    {
+      "foreign": "(to) wear",
+      "german": "tragen",
+      "count": 2
+    },
+    {
+      "foreign": "(to) win",
+      "german": "gewinnen",
+      "count": 2
+    },
+    {
+      "foreign": "wonderful",
+      "german": "wunderbar",
+      "count": 2
+    },
+    {
+      "foreign": "(to) mean",
+      "german": "bedeuten",
+      "count": 2
+    }
+  ],
+  "sources": [
+    {
+      "page": 285,
+      "selected": "PXL_20260817_124608540.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 286,
+      "selected": "PXL_20260817_124935642.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 287,
+      "selected": "PXL_20260817_124942038.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 288,
+      "selected": "PXL_20260817_124949187.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 289,
+      "selected": "PXL_20260817_124958588.jpg",
+      "alternatives": [
+        "PXL_20260817_124955437.jpg"
+      ]
+    },
+    {
+      "page": 290,
+      "selected": "PXL_20260817_125005176.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 291,
+      "selected": "PXL_20260817_125009218.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 292,
+      "selected": "PXL_20260817_125014217.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 293,
+      "selected": "PXL_20260817_125019022.jpg",
+      "alternatives": [
+        "PXL_20260817_125017773.jpg"
+      ]
+    },
+    {
+      "page": 294,
+      "selected": "PXL_20260817_125026301.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 295,
+      "selected": "PXL_20260817_125030692.MP.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 296,
+      "selected": "PXL_20260817_125035515.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 297,
+      "selected": "PXL_20260817_125039861.jpg",
+      "alternatives": [
+        "PXL_20260817_125038806.jpg"
+      ]
+    },
+    {
+      "page": 298,
+      "selected": "PXL_20260817_125047206.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 299,
+      "selected": "PXL_20260817_125054831.jpg",
+      "alternatives": [
+        "PXL_20260817_125054059.jpg"
+      ]
+    },
+    {
+      "page": 300,
+      "selected": "PXL_20260817_125100973.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 301,
+      "selected": "PXL_20260817_125104135.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 302,
+      "selected": "PXL_20260817_125110542.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 303,
+      "selected": "PXL_20260817_125113423.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 304,
+      "selected": "PXL_20260817_125124773.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 305,
+      "selected": "PXL_20260817_125130641.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 306,
+      "selected": "PXL_20260817_125136933.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 307,
+      "selected": "PXL_20260817_125142878.jpg",
+      "alternatives": [
+        "PXL_20260817_125142165.jpg"
+      ]
+    },
+    {
+      "page": 308,
+      "selected": "PXL_20260817_125148252.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 309,
+      "selected": "PXL_20260817_125152718.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 310,
+      "selected": "PXL_20260817_125158176.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 311,
+      "selected": "PXL_20260817_125202582.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 312,
+      "selected": "PXL_20260817_125207968.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 313,
+      "selected": "PXL_20260817_125212169.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 314,
+      "selected": "PXL_20260817_125218028.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 315,
+      "selected": "PXL_20260817_125222660.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 316,
+      "selected": "PXL_20260817_125230994.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 317,
+      "selected": "PXL_20260817_125236765.jpg",
+      "alternatives": []
+    },
+    {
+      "page": 318,
+      "selected": "PXL_20260817_125243080.jpg",
+      "alternatives": []
+    }
+  ]
+}

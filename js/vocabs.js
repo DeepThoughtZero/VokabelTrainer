@@ -1036,3 +1036,7 @@ const VOCABULARY = [
   { "english": "poor", "german": "arm", "unit": "Unit 4", "part": "Part G", "page": 261 },
   { "english": "(to) sigh", "german": "seufzen", "unit": "Unit 4", "part": "Part G", "page": 261 }
 ];
+
+// Keep the historical constant for backwards compatibility while registering
+// the data as the explicit class-5 English course.
+window.VOCABULARIES['en-5'] = VOCABULARY;

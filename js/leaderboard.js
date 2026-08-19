@@ -15,10 +15,16 @@ let lastSavedEntry = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const filterSelect = document.getElementById('kategorie-filter');
+    const courseSelect = document.getElementById('kurs-filter');
     const sortSelect = document.getElementById('sort-filter');
     
     if (filterSelect) {
         filterSelect.addEventListener('change', () => {
+            filterAndRenderLeaderboard();
+        });
+    }
+    if (courseSelect) {
+        courseSelect.addEventListener('change', () => {
             filterAndRenderLeaderboard();
         });
     }
@@ -39,9 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function updateCategoryDropdown(entries) {
     const filterSelect = document.getElementById('kategorie-filter');
+    const courseSelect = document.getElementById('kurs-filter');
     if (!filterSelect) return;
     
-    const categories = new Set(entries.map(e => e.kategorie).filter(k => k));
+    const categories = new Set(entries.map(e => normalizeCategory(e.kategorie)).filter(k => k));
     
     // Save current value
     const currentVal = filterSelect.value;
@@ -58,18 +65,52 @@ function updateCategoryDropdown(entries) {
     if (Array.from(filterSelect.options).some(o => o.value === currentVal)) {
         filterSelect.value = currentVal;
     }
+
+    if (courseSelect) {
+        const currentCourse = courseSelect.value;
+        const courses = new Set(entries.map(entry => getCourseFromCategory(entry.kategorie)).filter(Boolean));
+        courseSelect.innerHTML = '<option value="">Alle Kurse</option>';
+        [...courses].sort().forEach(course => {
+            const option = document.createElement('option');
+            option.value = course;
+            option.textContent = course;
+            courseSelect.appendChild(option);
+        });
+        if ([...courseSelect.options].some(option => option.value === currentCourse)) {
+            courseSelect.value = currentCourse;
+        }
+    }
+}
+
+function getCourseFromCategory(category) {
+    const value = normalizeCategory(category);
+    const current = value.match(/^(Englisch|Französisch|Latein)\s*(\d+)\s*:/i);
+    if (current) {
+        const subject = current[1].charAt(0).toUpperCase() + current[1].slice(1).toLowerCase();
+        return `${subject} ${current[2]}`;
+    }
+    return '';
+}
+
+function normalizeCategory(category) {
+    return String(category || '').trim().replace(/^Englisch\s*:/i, 'Englisch 5:');
 }
 
 function filterAndRenderLeaderboard() {
     const filterSelect = document.getElementById('kategorie-filter');
+    const courseSelect = document.getElementById('kurs-filter');
     const sortSelect = document.getElementById('sort-filter');
     
     const categoryFilter = filterSelect ? filterSelect.value : '';
+    const courseFilter = courseSelect ? courseSelect.value : '';
     const sortBy = sortSelect ? sortSelect.value : 'score';
 
     let filtered = [...allLeaderboardEntries];
+    if (courseFilter) {
+        filtered = filtered.filter(entry => getCourseFromCategory(entry.kategorie) === courseFilter);
+    }
     if (categoryFilter) {
-        filtered = filtered.filter(entry => entry.kategorie === categoryFilter);
+        filtered = filtered.filter(entry => normalizeCategory(entry.kategorie) === categoryFilter);
     }
     
     // Sort
@@ -190,9 +231,8 @@ function renderLeaderboard(entries) {
 
         const safeName = escapeHtml(entry.name || 'Anonym');
         const safeScore = escapeHtml(entry.score);
-        let safeKategorie = escapeHtml(entry.kategorie || '-');
-        safeKategorie = safeKategorie.replace('Englisch: ', 'Englisch:<br>');
-        safeKategorie = safeKategorie.replace('Englisch - ', 'Englisch<br>- ');
+        let safeKategorie = escapeHtml(normalizeCategory(entry.kategorie) || '-');
+        safeKategorie = safeKategorie.replace(/^((?:Englisch|Französisch|Latein)\s*\d+):\s*/, '$1:<br>');
         safeKategorie = safeKategorie.replace(', schreiben', '<br>schreiben');
         let quoteVal = entry.trefferquote;
         if (typeof quoteVal === 'number') {
@@ -245,7 +285,7 @@ function renderLeaderboard(entries) {
     }).join('');
 }
 
-window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStreak) {
+window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStreak, courseLabel = '') {
     const dialog = document.getElementById('leaderboard-dialog');
     dialog.classList.remove('hidden');
     
@@ -253,9 +293,13 @@ window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStrea
     
     // Auto-filter by current category
     const filterSelect = document.getElementById('kategorie-filter');
+    const courseSelect = document.getElementById('kurs-filter');
     if (filterSelect) {
         // Will be applied after loading
-        filterSelect.dataset.pendingFilter = kategorie;
+        filterSelect.dataset.pendingFilter = normalizeCategory(kategorie);
+    }
+    if (courseSelect) {
+        courseSelect.dataset.pendingCourse = courseLabel || getCourseFromCategory(kategorie);
     }
     
     if (score >= 0) {
@@ -293,8 +337,9 @@ window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStrea
                 
                 // Set filter to current category to see own rank
                 if (filterSelect) {
-                    if (Array.from(filterSelect.options).some(o => o.value === kategorie)) {
-                        filterSelect.value = kategorie;
+                    const normalizedCategory = normalizeCategory(kategorie);
+                    if (Array.from(filterSelect.options).some(o => o.value === normalizedCategory)) {
+                        filterSelect.value = normalizedCategory;
                     }
                 }
                 filterAndRenderLeaderboard();
@@ -310,6 +355,13 @@ window.openLeaderboardDialog = function(score, kategorie, trefferquote, maxStrea
     
     document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="7" style="text-align:center;">Lade Bestenliste...</td></tr>';
     loadLeaderboard().then(() => {
+        if (courseSelect && courseSelect.dataset.pendingCourse) {
+            const pendingCourse = courseSelect.dataset.pendingCourse;
+            if (Array.from(courseSelect.options).some(option => option.value === pendingCourse)) {
+                courseSelect.value = pendingCourse;
+            }
+            delete courseSelect.dataset.pendingCourse;
+        }
         if (filterSelect && filterSelect.dataset.pendingFilter) {
             const pending = filterSelect.dataset.pendingFilter;
             if (Array.from(filterSelect.options).some(o => o.value === pending)) {

@@ -13,14 +13,14 @@
     <div id="weather-overlay"></div>
     <div id="app-container">
         <!-- Terms Screen -->
-        <section id="terms-screen" class="screen active">
+        <section id="terms-screen" class="screen">
             <h1 class="title">Zombie Hunter</h1>
             <div class="glass login-box" style="max-width: 1200px; width: 95%; padding: 30px;">
                 <h2 style="color: var(--accent-color); margin-bottom: 20px; font-size: 2.2rem;">Überlebensregeln (AGBs & Datenschutz)</h2>
                 <div style="text-align: left; font-size: 1.6rem; margin-bottom: 25px; line-height: 1.6; max-height: 700px; overflow-y: auto; padding-right: 15px;">
                     <p><strong>1. Altersempfehlung:</strong> Du musst mindestens 6 Jahre alt sein. Warum? Weil die Zombies wirklich böse und gruselig aussehen und dir sonst Alpträume bereiten könnten! 🧟‍♂️</p>
                     <br>
-                    <p><strong>2. Datenschutz:</strong> Wenn du erfolgreich auf Zombiejagd gehst und dich in der Weltrangliste eintragen möchtest, speichern wir deinen gewählten Namen, deinen Score sowie das aktuelle Datum. Wenn du magst, verwende gerne nur deinen Vornamen oder einen coolen Spitznamen. Weitere personenbezogene Daten werden nicht erfasst.</p>
+                    <p><strong>2. Datenschutz:</strong> Wenn du erfolgreich auf Zombiejagd gehst und dich in der Weltrangliste eintragen möchtest, speichern wir deinen gewählten Namen, deinen Score, Klasse und Fach, Lernpfad und Spielmodus, Trefferquote, längsten Streak sowie das aktuelle Datum. Wenn du magst, verwende gerne nur deinen Vornamen oder einen coolen Spitznamen. Deine konkrete Schulklasse, Schule und dein Alter werden nicht erfasst.</p>
                     <br>
                     <p><strong>3. Haftungsausschluss:</strong> Die Nutzung des Spiels erfolgt auf eigene Gefahr. Wir übernehmen keine Haftung für entstandene Schäden oder schlechte Noten im Vokabeltest.</p>
                     <br>
@@ -30,8 +30,32 @@
             </div>
         </section>
 
+        <!-- Course Selection Screen -->
+        <section id="course-selection-screen" class="screen">
+            <h1 class="title">Mission auswählen</h1>
+            <div class="glass course-selection-box">
+                <p class="course-intro">Wähle zuerst deine Klassenstufe und danach das Fach, in dem du die Zombie-Horde bekämpfen willst.</p>
+
+                <div class="course-step">
+                    <h2>Klasse</h2>
+                    <div id="grade-selection" class="grade-selection" role="radiogroup" aria-label="Klassenstufe">
+                        <button type="button" class="grade-card active" data-grade="5" aria-pressed="true">Klasse 5</button>
+                        <button type="button" class="grade-card" data-grade="6" aria-pressed="false">Klasse 6</button>
+                    </div>
+                </div>
+
+                <div class="course-step">
+                    <h2>Fach</h2>
+                    <div id="subject-selection" class="subject-selection" role="radiogroup" aria-label="Fach"></div>
+                </div>
+
+                <p id="course-selection-hint" class="course-selection-hint" aria-live="polite"></p>
+                <button id="confirm-course-btn" class="btn-primary" type="button">Mission übernehmen</button>
+            </div>
+        </section>
+
         <!-- Login Screen -->
-        <section id="login-screen" class="screen">
+        <section id="login-screen" class="screen active">
             <h1 class="title">Zombie Hunter</h1>
             <div class="glass login-box">
                 <p class="mysterious-text">Der Nebel verdichtet sich.<br>Bist du Freund oder Feind?<br>Gib das Kodewort ein!</p>
@@ -45,6 +69,7 @@
 
         <!-- Hunter Selection Screen -->
         <section id="hunter-selection-screen" class="screen">
+            <button id="change-course-btn" class="btn-secondary course-change-btn" type="button" title="Klasse oder Fach ändern">📚 Klasse/Fach</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
                 <button id="profile-hunter-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-hunter-btn" class="gear-btn" title="Weltrangliste">🏆</button>
@@ -114,7 +139,7 @@
                 <button id="show-leaderboard-start-btn" class="gear-btn" title="Weltrangliste">🏆</button>
                 <button id="info-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
             </div>
-            <h1 class="title">Lernpfad Einstellen</h1>
+            <h1 class="title" id="learning-path-title">Lernpfad einstellen</h1>
             <div id="daily-streak-display" style="text-align: center; margin-top: -10px; margin-bottom: 15px; font-size: 1.8rem; color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.5); font-weight: bold; display: none;">🔥 <span id="daily-streak-count">0</span></div>
             
             <div class="menu-box glass">
@@ -129,10 +154,10 @@
                     <div class="form-group direction-group">
                         <label for="translation-direction">Abfrage-Modus:</label>
                         <select id="translation-direction">
-                            <option value="en-de">Englisch ➔ Deutsch</option>
-                            <option value="de-en" selected>Deutsch ➔ Englisch</option>
+                            <option value="foreign-de">Englisch ➔ Deutsch</option>
+                            <option value="de-foreign" selected>Deutsch ➔ Englisch</option>
                             <option value="mixed">Gemischt</option>
-                            <option value="de-en-write">Deutsch ➔ Englisch (schreiben)</option>
+                            <option value="de-foreign-write">Deutsch ➔ Englisch (schreiben)</option>
                         </select>
                     </div>
                     
@@ -260,7 +285,12 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 15px; display: flex; flex-direction: row; gap: 10px; align-items: center; justify-content: center; flex-wrap: nowrap;">
-                <label for="kategorie-filter" style="margin: 0; font-size: 1.2rem;">Filtern:</label>
+                <label for="kurs-filter" style="margin: 0; font-size: 1.2rem;">Kurs:</label>
+                <select id="kurs-filter" style="padding: 5px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; width: auto;">
+                    <option value="">Alle Kurse</option>
+                </select>
+
+                <label for="kategorie-filter" style="margin: 0; margin-left: 15px; font-size: 1.2rem;">Lernpfad:</label>
                 <select id="kategorie-filter" style="padding: 5px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; width: auto;">
                     <option value="">Alle Kategorien</option>
                 </select>
@@ -348,8 +378,11 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/courses.js"></script>
     <script src="js/leaderboard.js"></script>
     <script src="js/vocabs.js"></script>
+    <script src="js/vocabs_en_6.js"></script>
+    <script src="js/vocab_utils.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

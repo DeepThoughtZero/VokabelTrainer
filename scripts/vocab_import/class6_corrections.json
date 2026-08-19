@@ -1,0 +1,83 @@
+{
+  "remove": [
+    { "page": 297, "foreign": "fought", "reason": "Simple-past form printed below the headword, not a separate vocabulary row." },
+    { "page": 297, "foreign": "held out", "reason": "Simple-past form printed below the headword, not a separate vocabulary row." },
+    { "page": 297, "foreign": "paid", "reason": "Simple-past form printed below the headword, not a separate vocabulary row." },
+    { "page": 304, "foreign": "hung up", "reason": "Simple-past form printed below the headword, not a separate vocabulary row." }
+  ],
+  "replace": [
+    {
+      "page": 287,
+      "foreign": "onto sth.",
+      "values": { "german": "auf etwas (hinauf)" },
+      "reason": "Unbeabsichtigtes Leerzeichen innerhalb der Klammer entfernt."
+    },
+    {
+      "page": 290,
+      "foreign": "lady, p/ ladies",
+      "values": { "foreign": "lady, pl ladies" },
+      "reason": "Die kursive Pluralabkürzung 'pl' wurde auf dem Foto als 'p/' erkannt."
+    },
+    {
+      "page": 290,
+      "foreign": "gentleman, p/ gentlemen",
+      "values": { "foreign": "gentleman, pl gentlemen" },
+      "reason": "Die kursive Pluralabkürzung 'pl' wurde auf dem Foto als 'p/' erkannt."
+    },
+    {
+      "page": 296,
+      "foreign": "sidekick (informal)",
+      "values": { "foreign": "sidekick (infml)" },
+      "reason": "Abkürzung wie im Buch wiederhergestellt."
+    },
+    {
+      "page": 301,
+      "foreign": "buddy (informal)",
+      "values": { "foreign": "buddy (infml)" },
+      "reason": "Abkürzung wie im Buch wiederhergestellt."
+    },
+    {
+      "page": 302,
+      "foreign": "a ten-minute walk",
+      "values": { "german": "ein zehnminütiger Spaziergang" },
+      "reason": "Fehlenden Buchstaben in 'zehnminütiger' ergänzt."
+    },
+    {
+      "page": 303,
+      "foreign": "salad cream (no pl.)",
+      "values": { "foreign": "salad cream (no pl)" },
+      "reason": "Interpunktion wie im Buch wiederhergestellt."
+    },
+    {
+      "page": 315,
+      "foreign": "diary p/ diaries",
+      "values": { "foreign": "diary pl diaries" },
+      "reason": "Die kursive Pluralabkürzung 'pl' wurde auf dem Foto als 'p/' erkannt."
+    },
+    {
+      "page": 316,
+      "foreign": "industry, pl. industries",
+      "values": { "foreign": "industry, pl industries" },
+      "reason": "Pluralabkürzung wie im Buch ohne Punkt übernommen."
+    },
+    {
+      "page": 316,
+      "foreign": "colony, pl. colonies",
+      "values": { "foreign": "colony, pl colonies" },
+      "reason": "Pluralabkürzung wie im Buch ohne Punkt übernommen."
+    },
+    {
+      "page": 316,
+      "foreign": "mouse, pl. mice",
+      "values": { "foreign": "mouse, pl mice" },
+      "reason": "Pluralabkürzung wie im Buch ohne Punkt übernommen."
+    }
+  ],
+  "deduplicate": [
+    {
+      "page": 302,
+      "foreign": "a ten-minute walk",
+      "reason": "Die Zeile steht einmal als Vokabel und wird im unmittelbar folgenden Merkkasten nur wiederholt."
+    }
+  ]
+}
