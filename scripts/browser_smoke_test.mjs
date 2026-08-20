@@ -304,6 +304,11 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     await client.send('Page.addScriptToEvaluateOnNewDocument', {
         source: `(() => {
             const entries = ${JSON.stringify(mockEntries)};
+            let randomSeed = 0x5eed1234;
+            Math.random = () => {
+                randomSeed = (Math.imul(1664525, randomSeed) + 1013904223) >>> 0;
+                return randomSeed / 0x100000000;
+            };
             const originalFetch = window.fetch.bind(window);
             window.fetch = (input, init) => {
                 const url = String(input);
@@ -345,6 +350,14 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     await waitForCondition(client, `document.querySelector('#city-selection-screen.active')`, 'Stadtauswahl aktiv');
     await click(client, '#confirm-city-btn');
     await waitForCondition(client, `document.querySelector('#mission-selection-screen.active')`, 'Einsatzwahl aktiv');
+    const defaultPlayStyleState = await evaluate(client, `({
+        activeStyle: document.querySelector('.play-style-card.active')?.dataset.playStyle,
+        order: [...document.querySelectorAll('.play-style-card')].map(card => card.dataset.playStyle),
+    })`);
+    assert.equal(defaultPlayStyleState.activeStyle, 'hunt');
+    assert.deepEqual(defaultPlayStyleState.order, ['hunt', 'mission']);
+
+    await click(client, '[data-play-style="mission"]');
     const missionSelectionState = await evaluate(client, `({
         activeStyle: document.querySelector('.play-style-card.active')?.dataset.playStyle,
         routeStops: document.querySelectorAll('.mission-route-stop').length,
@@ -355,69 +368,133 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     assert.equal(missionSelectionState.objective, 'Brich durch die Horde – und stürze den Boss!');
     await assertInsideViewport(client, '.mission-command-center');
     await click(client, '#confirm-play-style-btn');
-    await waitForCondition(client, `document.querySelector('#start-screen.active')`, 'Lernpfad aktiv');
-
-    const learningPathState = await evaluate(client, `({
-        title: document.querySelector('#learning-path-title').textContent.trim(),
-        firstUnit: document.querySelector('.unit-cell .filter-checkbox-label')?.textContent.trim(),
-        checked: document.querySelectorAll('.filter-checkbox:checked').length,
+    await waitForCondition(client, `document.querySelector('#halo-screen.active.is-planning')`, 'Stadtkarte zur Zielwahl aktiv');
+    const planningState = await evaluate(client, `({
+        districts: document.querySelectorAll('.halo-district').length,
+        targets: document.querySelectorAll('.halo-district.target').length,
+        clickable: [...document.querySelectorAll('.halo-district')].every(tile => !tile.disabled),
+        startScreenActive: document.querySelector('#start-screen').classList.contains('active'),
+        button: document.querySelector('#halo-deploy-btn').textContent.trim(),
     })`);
-    assert.equal(learningPathState.title, 'Lernpfad – Englisch 6');
-    assert.equal(learningPathState.firstUnit, 'Welcome back to Brighton');
-    assert.ok(learningPathState.checked > 0, 'Lernpfad enthält keine aktive Auswahl');
+    assert.ok(planningState.districts >= 5, 'Buchstadt enthält zu wenige auswählbare Viertel');
+    assert.equal(planningState.targets, 1);
+    assert.equal(planningState.clickable, true);
+    assert.equal(planningState.startScreenActive, false, 'Rettungsmission zeigt noch den alten Lernpfad-Dialog');
+    assert.equal(planningState.button, 'Briefing im Hubschrauber starten');
+    await assertInsideViewport(client, '.halo-city-map');
+    const directMapState = await evaluate(client, `({
+        mapBackground: getComputedStyle(document.querySelector('.halo-city-map')).backgroundImage,
+        mapBorder: getComputedStyle(document.querySelector('.halo-city-map')).borderTopWidth,
+        targetBackground: getComputedStyle(document.querySelector('.halo-district.target')).backgroundImage,
+        bodyBackground: getComputedStyle(document.body).backgroundImage,
+        markerScales: [...document.querySelectorAll('.halo-district')].map(tile => getComputedStyle(tile).getPropertyValue('--map-scale').trim()),
+    })`);
+    assert.equal(directMapState.mapBackground, 'none', 'Stadtwahl liegt noch auf einem Dialoghintergrund');
+    assert.equal(directMapState.mapBorder, '0px', 'Stadtwahl besitzt noch einen Dialograhmen');
+    assert.match(directMapState.targetBackground, /radial-gradient/, 'Zielgebiet ist auf der Stadt nicht hervorgehoben');
+    assert.match(directMapState.bodyBackground, /background_halo_city\.webp/, 'Stadtbild füllt den äußeren Hintergrund nicht');
+    assert.ok(new Set(directMapState.markerScales).size >= 6, 'Stadtviertel besitzen keine perspektivische Tiefenstaffelung');
 
-    await click(client, '#show-leaderboard-start-btn');
-    await waitForCondition(client, `!document.querySelector('#leaderboard-dialog').classList.contains('hidden')`, 'Bestenliste geöffnet');
-    await waitForCondition(client, `document.querySelector('#klassen-filter').value === '6'`, 'aktiver Kurs als Klassenfilter übernommen');
-    await waitForCondition(client, `document.querySelectorAll('#leaderboard-body tr').length === 2`, 'Klasse 6 initial gefiltert');
-    await evaluate(client, `(() => {
-        const select = document.querySelector('#klassen-filter');
-        select.value = '';
-        select.dispatchEvent(new Event('change', { bubbles: true }));
+    const selectedDistrictChanged = await evaluate(client, `(() => {
+        const previous = document.querySelector('.halo-district.target')?.getAttribute('aria-label');
+        const next = [...document.querySelectorAll('.halo-district')].find(tile => !tile.classList.contains('target'));
+        next?.click();
+        return Boolean(next) && document.querySelector('.halo-district.target')?.getAttribute('aria-label') !== previous;
     })()`);
-    await waitForCondition(client, `document.querySelectorAll('#leaderboard-body tr').length === 4`, 'Bestenlistendaten geladen');
-
-    const groupedFilters = await evaluate(client, `({
-        grades: [...document.querySelectorAll('#klassen-filter option')].map(option => option.textContent.trim()),
-        groups: [...document.querySelectorAll('#kategorie-filter optgroup')].map(group => group.label),
-        labels: [...document.querySelectorAll('.leaderboard-filter-field label')].map(label => label.textContent.trim()),
+    assert.equal(selectedDistrictChanged, true, 'Stadtviertel ließ sich nicht direkt in der Karte auswählen');
+    await click(client, '#halo-deploy-btn');
+    await waitForCondition(client, `document.querySelector('#command-center-screen.active')`, 'Kommandozentrale aktiv');
+    const commandCenterState = await evaluate(client, `({
+        german: document.querySelector('#command-german-word').textContent.trim(),
+        foreign: document.querySelector('#command-foreign-word').textContent.trim(),
+        letters: document.querySelectorAll('#command-letter-pool .letter-btn').length,
+        audioLabel: document.querySelector('#command-replay-audio-btn').textContent.trim(),
+        radioMessage: document.querySelector('#command-radio-message').textContent.trim(),
     })`);
-    assert.deepEqual(groupedFilters.grades, ['Alle Klassen', 'Klasse 5', 'Klasse 6']);
-    assert.deepEqual(groupedFilters.groups, ['Klasse 5 · Englisch', 'Klasse 6 · Englisch']);
-    assert.deepEqual(groupedFilters.labels, ['Klasse', 'Lernpfad', 'Sortieren nach']);
+    assert.ok(commandCenterState.german, 'Kommandozentrale zeigt kein deutsches Wort');
+    assert.ok(commandCenterState.foreign, 'Kommandozentrale zeigt kein englisches Wort');
+    assert.ok(commandCenterState.letters > 0, 'Kommandozentrale enthält keine Buchstabenaufgabe');
+    assert.match(commandCenterState.audioLabel, /Funk wiederholen/);
+    assert.match(commandCenterState.radioMessage, /^Echo One to Rescue Team\./);
+    assert.match(commandCenterState.radioMessage, /zombie radar/i);
+    await assertInsideViewport(client, '.command-center-layout');
 
-    for (const selector of [
-        '#leaderboard-dialog',
-        '.leaderboard-filters',
-        '.leaderboard-filter-field:nth-child(1) label',
-        '.leaderboard-filter-field:nth-child(2) label',
-        '.leaderboard-filter-field:nth-child(3) label',
-    ]) {
-        await assertInsideViewport(client, selector);
+    for (let briefingStep = 0; briefingStep < 3; briefingStep++) {
+        const progressBefore = await evaluate(client, `document.querySelector('#command-word-progress-label').textContent.trim()`);
+        const solved = await evaluate(client, `(() => {
+            const slots = [...document.querySelectorAll('#command-letter-target .letter-slot')];
+            let concealedAfterFirstLetter = false;
+            slots.forEach((slot, index) => {
+                const character = slot.dataset.expectedChar;
+                const button = [...document.querySelectorAll('#command-letter-pool .letter-btn')]
+                    .find(candidate => candidate.dataset.char.toLocaleLowerCase() === character.toLocaleLowerCase());
+                if (!button) return;
+                button.click();
+                if (index === 0) concealedAfterFirstLetter = document.querySelector('#command-vocab-card').classList.contains('solution-concealed');
+            });
+            return {
+                secured: document.querySelector('#command-vocab-card').classList.contains('word-secured'),
+                concealedAfterFirstLetter,
+            };
+        })()`);
+        assert.equal(solved.secured, true, `Briefing-Wort ${briefingStep + 1} konnte nicht zusammengesetzt werden`);
+        assert.equal(solved.concealedAfterFirstLetter, true, 'Englische Lösung blieb beim Schreiben sichtbar');
+        if (briefingStep < 2) {
+            await waitForCondition(client, `document.querySelector('#command-word-progress-label').textContent.trim() !== ${JSON.stringify(progressBefore)}`, 'automatischer Wortwechsel');
+        }
     }
 
-    await evaluate(client, `(() => {
-        const select = document.querySelector('#klassen-filter');
-        select.value = '6';
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-    })()`);
-    await waitForCondition(client, `document.querySelectorAll('#leaderboard-body tr').length === 2`, 'Klasse 6 gefiltert');
-    const classSixState = await evaluate(client, `({
-        paths: [...document.querySelectorAll('#kategorie-filter option')].map(option => option.textContent.trim()),
-        rows: [...document.querySelectorAll('#leaderboard-body tr')].map(row => row.textContent),
-        groups: document.querySelectorAll('#kategorie-filter optgroup').length,
+    await waitForCondition(client, `document.querySelector('#halo-screen.active.is-jumping')`, 'HALO-Absprung aktiv');
+    const haloState = await evaluate(client, `({
+        districts: document.querySelectorAll('.halo-district').length,
+        targets: document.querySelectorAll('.halo-district.target').length,
+        activeDistrict: document.querySelector('#halo-active-district').textContent.trim(),
+        jumping: document.querySelector('#halo-screen').classList.contains('is-jumping'),
+        planning: document.querySelector('#halo-screen').classList.contains('is-planning'),
+        operativeImages: document.querySelectorAll('.halo-operative img').length,
+        operativeExtras: document.querySelectorAll('.halo-operative span').length,
+        landingDistrict: document.querySelector('#halo-landing-district').textContent.trim(),
+        altitudeRemoved: !document.querySelector('#halo-altitude'),
+        mapHidden: getComputedStyle(document.querySelector('.halo-city-map')).display === 'none',
+        deployHidden: getComputedStyle(document.querySelector('.halo-deploy-panel')).display === 'none',
     })`);
-    assert.equal(classSixState.groups, 0);
-    assert.deepEqual(classSixState.paths, [
-        'Alle Lernpfade',
-        'U1 · U2 · U3 · U4 · U5 · Welcome back',
-        'U3 (Mix) · U4',
-    ]);
-    assert.ok(classSixState.rows.every(row => row.includes('Englisch 6')), 'Klassenfilter enthält fremde Einträge');
-
-    await click(client, '#close-leaderboard-btn');
-    await click(client, '#start-btn');
-    await waitForCondition(client, `document.querySelector('#game-screen.active')`, 'Spielscreen aktiv');
+    assert.ok(haloState.districts >= 5, 'Buchstadt enthält zu wenige Viertel');
+    assert.equal(haloState.targets, 1);
+    assert.ok(haloState.activeDistrict);
+    assert.equal(haloState.jumping, true);
+    assert.equal(haloState.planning, false);
+    assert.equal(haloState.operativeImages, 1);
+    assert.equal(haloState.operativeExtras, 0, 'HALO zeigt noch eine zweite Fallschirmfigur');
+    assert.equal(haloState.altitudeRemoved, true);
+    assert.equal(haloState.mapHidden, true, 'Gebäudekarte wird beim Absprung erneut gezeigt');
+    assert.equal(haloState.deployHidden, true, 'HALO verlangt noch eine zusätzliche Landebestätigung');
+    assert.ok(haloState.landingDistrict);
+    const jumpStart = await evaluate(client, `(() => {
+        const operative = document.querySelector('.halo-operative').getBoundingClientRect();
+        const beacon = document.querySelector('.halo-landing-beacon').getBoundingClientRect();
+        return {
+            width: operative.width,
+            distance: Math.hypot(
+                operative.left + operative.width / 2 - (beacon.left + beacon.width / 2),
+                operative.top + operative.height / 2 - (beacon.top + beacon.height / 2)
+            ),
+        };
+    })()`);
+    await sleep(1_800);
+    const jumpApproach = await evaluate(client, `(() => {
+        const operative = document.querySelector('.halo-operative').getBoundingClientRect();
+        const beacon = document.querySelector('.halo-landing-beacon').getBoundingClientRect();
+        return {
+            width: operative.width,
+            distance: Math.hypot(
+                operative.left + operative.width / 2 - (beacon.left + beacon.width / 2),
+                operative.top + operative.height / 2 - (beacon.top + beacon.height / 2)
+            ),
+        };
+    })()`);
+    assert.ok(jumpApproach.width < jumpStart.width, 'Fallschirmspringer wird beim Zielanflug nicht kleiner');
+    assert.ok(jumpApproach.distance < jumpStart.distance, 'Fallschirmspringer fliegt nicht zum gewählten Stadtviertel');
+    await waitForCondition(client, `document.querySelector('#game-screen.active')`, 'automatische Landung im Zielviertel', 6_000);
     await waitForCondition(client, `!document.querySelector('#mission-hud').classList.contains('hidden')`, 'Missionsfortschritt sichtbar');
     await waitForCondition(client, `document.querySelectorAll('#options-container .option-btn').length >= 4`, 'Antwortmöglichkeiten sichtbar');
     const missionHudState = await evaluate(client, `({
@@ -431,10 +508,10 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
             return element.scrollWidth > element.clientWidth + 1;
         }),
     })`);
-    assert.equal(missionHudState.phase, 'Aufklärung');
-    assert.match(missionHudState.objective, /^0 \/ (?:6|12) gesichert$/);
+    assert.equal(missionHudState.phase, 'Angriffswelle');
+    assert.match(missionHudState.objective, /^0 \/ \d+ gesichert$/);
     assert.equal(missionHudState.encounter, '⚔ 1 / 20');
-    assert.equal(missionHudState.transition, 'Gebiet scannen');
+    assert.equal(missionHudState.transition, 'Die Horde ist da!');
     assert.equal(missionHudState.transitionVisible, true);
     assert.equal(missionHudState.clipped, false, 'Missionsstatus in der Titelleiste ist abgeschnitten');
     await assertInsideViewport(client, '#mission-hud');
@@ -497,25 +574,30 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     const correctionSolved = await evaluate(client, `(() => {
         const pool = document.querySelector('#correction-pool');
         const slots = [...document.querySelectorAll('#correction-target .letter-slot')];
-        for (const slot of slots) {
+        let concealedAfterFirstLetter = false;
+        for (let index = 0; index < slots.length; index++) {
+            const slot = slots[index];
             const expected = slot.dataset.expectedChar.toLocaleLowerCase();
             const button = [...pool.querySelectorAll('.letter-btn')]
                 .find(candidate => candidate.dataset.char.toLocaleLowerCase() === expected);
-            if (!button) return false;
+            if (!button) return { solved: false, concealedAfterFirstLetter };
             button.click();
+            if (index === 0) concealedAfterFirstLetter = document.querySelector('#correction-panel').classList.contains('solution-concealed');
         }
-        return true;
+        return { solved: true, concealedAfterFirstLetter };
     })()`);
-    assert.equal(correctionSolved, true, 'Buchstabenbestätigung konnte nicht gelöst werden');
+    assert.equal(correctionSolved.solved, true, 'Buchstabenbestätigung konnte nicht gelöst werden');
+    assert.equal(correctionSolved.concealedAfterFirstLetter, true, 'Fehlerlösung blieb beim Schreiben sichtbar');
     await waitForCondition(client, `document.querySelector('#correction-panel').classList.contains('confirmed')`, 'Korrektur bestätigt');
     await waitForCondition(client, `document.querySelector('#correction-panel').classList.contains('hidden')`, 'Korrektur geschlossen', 5_000);
 
     for (let spacerIndex = 0; spacerIndex < correctionState.spacerCount; spacerIndex++) {
         await waitForCondition(client, `
             !document.querySelector('#options-container').classList.contains('hidden')
+            && !document.querySelector('#zombie').classList.contains('knockback')
             && [...document.querySelectorAll('#options-container .option-btn')].some(button => !button.disabled)
-        `, `Zwischenwort ${spacerIndex + 1} spielbereit`, 5_000);
-        const previousQuestion = await evaluate(client, `document.querySelector('#zombie-word').textContent.trim()`);
+        `, `Zwischenwort ${spacerIndex + 1} spielbereit`, 20_000);
+        const previousEncounter = await evaluate(client, `document.querySelector('#mission-encounter-label').textContent.trim()`);
         const correctSpacerClicked = await evaluate(client, `(() => {
             const correctButton = [...document.querySelectorAll('#options-container .option-btn')]
                 .find(button => button.dataset.correct === 'true');
@@ -524,18 +606,37 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
             return true;
         })()`);
         assert.equal(correctSpacerClicked, true, `Zwischenwort ${spacerIndex + 1} konnte nicht beantwortet werden`);
-        await waitForCondition(client, `
-            !document.querySelector('#marked-retry-banner').classList.contains('hidden')
-            || (
-                document.querySelector('#zombie-word').textContent.trim() !== ${JSON.stringify(previousQuestion)}
-                && [...document.querySelectorAll('#options-container .option-btn')].some(button => !button.disabled)
-            )
-        `, `Begegnung nach Zwischenwort ${spacerIndex + 1}`, 5_000);
+        try {
+            await waitForCondition(client, `
+                !document.querySelector('#marked-retry-banner').classList.contains('hidden')
+                || (
+                    document.querySelector('#mission-encounter-label').textContent.trim() !== ${JSON.stringify(previousEncounter)}
+                    && [...document.querySelectorAll('#options-container .option-btn')].some(button => !button.disabled)
+                )
+            `, `Begegnung nach Zwischenwort ${spacerIndex + 1}`, 20_000);
+        } catch (error) {
+            const state = await evaluate(client, `({
+                encounter: document.querySelector('#mission-encounter-label').textContent.trim(),
+                phase: document.querySelector('#mission-phase-label').textContent.trim(),
+                phaseOverlay: document.querySelector('#mission-phase-overlay-title').textContent.trim(),
+                phaseOverlayVisible: !document.querySelector('#mission-phase-overlay').classList.contains('hidden'),
+                markedBannerVisible: !document.querySelector('#marked-retry-banner').classList.contains('hidden'),
+                correctionVisible: !document.querySelector('#correction-panel').classList.contains('hidden'),
+                solutionVisible: !document.querySelector('#solution-dialog').classList.contains('hidden'),
+                enabledOptions: [...document.querySelectorAll('#options-container .option-btn')].filter(button => !button.disabled).length,
+                zombieClasses: document.querySelector('#zombie').className,
+            })`);
+            throw new Error(`${error.message}: ${JSON.stringify(state)}`);
+        }
     }
 
     await waitForCondition(client, `!document.querySelector('#marked-retry-banner').classList.contains('hidden')`, 'markierter Zombie zurückgekehrt', 5_000);
+    await waitForCondition(client, `
+        !document.querySelector('#zombie').classList.contains('knockback')
+        && [...document.querySelectorAll('#options-container .option-btn')]
+            .some(button => button.dataset.correct === 'true' && !button.disabled)
+    `, 'markierter Zombie schussbereit', 5_000);
     const markedReturnState = await evaluate(client, `({
-        badge: !document.querySelector('#marked-zombie-badge').classList.contains('hidden'),
         markedClass: document.querySelector('#zombie').classList.contains('marked-zombie'),
         symbol: document.querySelector('#marked-retry-banner .marked-retry-symbol').textContent.trim(),
         kicker: document.querySelector('#marked-retry-banner .marked-retry-kicker').textContent.trim(),
@@ -548,7 +649,6 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
                 && symbol.getBoundingClientRect().right <= copy.getBoundingClientRect().left;
         })(),
     })`);
-    assert.equal(markedReturnState.badge, true);
     assert.equal(markedReturnState.markedClass, true);
     assert.equal(markedReturnState.symbol, '⟳');
     assert.equal(markedReturnState.kicker, 'Markierter Zombie');
@@ -558,11 +658,17 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     const markedZombieSecured = await evaluate(client, `(() => {
         const correctButton = [...document.querySelectorAll('#options-container .option-btn')]
             .find(button => button.dataset.correct === 'true');
-        if (!correctButton || correctButton.disabled) return false;
+        if (!correctButton || correctButton.disabled) return { clicked: false };
         correctButton.click();
-        return true;
+        return {
+            clicked: true,
+            resolved: document.querySelector('#marked-retry-banner').classList.contains('resolved'),
+            kicker: document.querySelector('#marked-retry-banner .marked-retry-kicker').textContent.trim(),
+            marked: document.querySelector('#zombie').classList.contains('marked-zombie'),
+        };
     })()`);
-    assert.equal(markedZombieSecured, true, 'Markierter Zombie konnte nicht gesichert werden');
+    assert.equal(markedZombieSecured.clicked, true, 'Markierter Zombie konnte nicht gesichert werden');
+    assert.equal(markedZombieSecured.resolved, true, `Rückholstatus wurde beim Treffer nicht gesetzt: ${JSON.stringify(markedZombieSecured)}`);
     await waitForCondition(client, `document.querySelector('#marked-retry-banner').classList.contains('resolved')`, 'Spur gesichert');
     const securedBannerState = await evaluate(client, `({
         symbol: document.querySelector('#marked-retry-banner .marked-retry-symbol').textContent.trim(),

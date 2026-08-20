@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
         streakForExtraOption: 3,
         streakForHeart: 10,
         missionTargetSize: 12,
-        missionNewWordLimit: 6,
+        missionNewWordLimit: 3,
         missionMaxEncounters: 20,
         missionBossWordCount: 3,
         missionPhaseTransitionDurationMs: 6000,
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bossHealth: 0,
         bossMaxHealth: 0,
         currentMode: 'de-foreign',
-        playStyle: 'mission',
+        playStyle: 'hunt',
         lastVocabId: '',
         correction: {
             queue: [],
@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             encounterSerial: 0,
             createdOrder: 0,
             confirmationTimer: null,
+            resolvedBannerTimer: null,
             audio: null
         },
         mission: {
@@ -69,7 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
             transitionActive: false,
             startXp: 0,
             answerXp: 0,
-            recoveredCorrectionIds: new Set()
+            recoveredCorrectionIds: new Set(),
+            briefingWords: [],
+            briefingIndex: 0,
+            districts: [],
+            activeDistrictId: '',
+            activeDistrictLabel: ''
         }
     };
 
@@ -123,6 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentUIAudio = null;
     let missionPhaseTransitionTimer = null;
+    let missionBriefingAudio = null;
+    const MISSION_RADIO_INTRO_PATHS = Array.from(
+        { length: 5 },
+        (_, index) => `assets/audio/ui/mission_radio_password_intro_${index + 1}.mp3`
+    );
+    let missionRadioAudio = null;
+    let lastMissionRadioIntroIndex = -1;
+    let missionRadioStatic = null;
+    let missionRadioWordTimer = null;
+    let missionRadioFallbackTimer = null;
+    let missionBriefingAdvanceTimer = null;
+    let haloDeploymentTimer = null;
+    let haloMode = 'planning';
 
     function playUIAudio(filename) {
         if (currentUIAudio) {
@@ -514,6 +533,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function finalizeMissionReward() {
+        const previousCareer = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
+        const districtAlreadyCleared = previousCareer.clearedDistricts.includes(state.mission.activeDistrictId);
         const reward = window.VocabUtils.calculateMissionReward({
             answerXp: state.mission.answerXp,
             securedCount: state.mission.securedIds.size,
@@ -521,19 +542,31 @@ document.addEventListener('DOMContentLoaded', () => {
             recoveredCorrections: state.mission.recoveredCorrectionIds.size,
             hearts: state.hearts,
             totalAttempts: state.totalAttempts,
-            correctAttempts: state.correctAttempts
+            correctAttempts: state.correctAttempts,
+            currentMissionStreak: previousCareer.currentStreak,
+            districtAlreadyCleared
         });
-        const bonusXp = reward.completionBonusXp + reward.recoveryBonusXp;
+        const bonusXp = reward.completionBonusXp
+            + reward.recoveryBonusXp
+            + reward.survivalBonusXp
+            + reward.liberationBonusXp
+            + reward.streakBonusXp;
         if (bonusXp > 0) addXP(bonusXp);
+        const careerReward = {
+            ...reward,
+            districtId: state.mission.activeDistrictId
+        };
         playerProfile.stats.rescue = window.VocabUtils.addMissionToRescueCareer(
             playerProfile.stats.rescue,
-            reward
+            careerReward
         );
         return {
             ...reward,
             startXp: state.mission.startXp,
             endXp: playerProfile.xp,
-            career: playerProfile.stats.rescue
+            career: playerProfile.stats.rescue,
+            districtId: state.mission.activeDistrictId,
+            districtLabel: state.mission.activeDistrictLabel
         };
     }
 
@@ -562,8 +595,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mission-xp-earned').textContent = '0';
         document.getElementById('mission-answer-xp').textContent = reward.answerXp;
         document.getElementById('mission-completion-xp').textContent = `+${reward.completionBonusXp}`;
+        document.getElementById('mission-liberation-xp').textContent = `+${reward.liberationBonusXp}`;
+        document.getElementById('mission-survival-xp').textContent = `+${reward.survivalBonusXp}`;
+        document.getElementById('mission-streak-xp').textContent = `+${reward.streakBonusXp}`;
         document.getElementById('mission-recovery-xp').textContent = `+${reward.recoveryBonusXp}`;
         document.getElementById('mission-career-count').textContent = reward.career.missionsCompleted;
+        document.getElementById('mission-career-streak').textContent = reward.career.currentStreak;
         document.getElementById('mission-career-words').textContent = reward.career.rescuedWords;
         document.getElementById('mission-career-perfect').textContent = reward.career.perfectMissions;
         document.getElementById('mission-career-medals').textContent = [
@@ -572,6 +609,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `🥉 ${reward.career.medals.bronze}`
         ].join(' · ');
         renderMissionLevelProgress(reward.startXp);
+
+        const districtPanel = document.getElementById('mission-district-cleared');
+        const districtName = document.getElementById('mission-district-cleared-name');
+        const districtCleared = reward.completed && Boolean(reward.districtId);
+        districtPanel?.classList.toggle('hidden', !districtCleared);
+        if (districtCleared && districtName) {
+            districtName.textContent = reward.districtLabel || 'Neues Viertel';
+        }
 
         const unlockPanel = document.getElementById('mission-achievement-unlock');
         const unlockTitle = document.getElementById('mission-achievement-unlock-title');
@@ -844,6 +889,8 @@ document.addEventListener('DOMContentLoaded', () => {
         city: document.getElementById('city-selection-screen'),
         mission: document.getElementById('mission-selection-screen'),
         start: document.getElementById('start-screen'),
+        command: document.getElementById('command-center-screen'),
+        halo: document.getElementById('halo-screen'),
         game: document.getElementById('game-screen'),
         end: document.getElementById('end-screen')
     };
@@ -960,7 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const correctionTarget = document.getElementById('correction-target');
     const correctionFeedback = document.getElementById('correction-feedback');
     const markedRetryBanner = document.getElementById('marked-retry-banner');
-    const markedZombieBadge = document.getElementById('marked-zombie-badge');
 
     // Boss Sprite Sheet Animation
     const zombieSpriteCanvas = document.getElementById('zombie-sprite-canvas');
@@ -993,6 +1039,20 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'sf', name: 'San Francisco', img: 'assets/background_sf.png' }
     ];
 
+    const MISSION_DISTRICT_MAP_POINTS = [
+        { x: 22, y: 22, scale: 0.64 }, { x: 31, y: 17, scale: 0.58 },
+        { x: 41, y: 24, scale: 0.68 }, { x: 51, y: 16, scale: 0.58 },
+        { x: 62, y: 23, scale: 0.66 }, { x: 72, y: 18, scale: 0.60 },
+        { x: 81, y: 27, scale: 0.70 }, { x: 12, y: 51, scale: 0.84 },
+        { x: 26, y: 43, scale: 0.78 }, { x: 38, y: 55, scale: 0.92 },
+        { x: 51, y: 45, scale: 0.84 }, { x: 63, y: 56, scale: 0.94 },
+        { x: 76, y: 44, scale: 0.82 }, { x: 89, y: 52, scale: 0.88 },
+        { x: 8, y: 83, scale: 1.06 }, { x: 23, y: 72, scale: 0.98 },
+        { x: 37, y: 88, scale: 1.16 }, { x: 51, y: 76, scale: 1.04 },
+        { x: 65, y: 89, scale: 1.17 }, { x: 80, y: 73, scale: 1.00 },
+        { x: 93, y: 85, scale: 1.12 }
+    ];
+
     let currentHunterIndex = 0;
     let currentCityIndex = 0;
     const CAROUSEL_SETS = 30;
@@ -1015,18 +1075,12 @@ document.addEventListener('DOMContentLoaded', () => {
         preferredCourseId = localStorage.getItem('vokabelzombie_last_course') || preferredCourseId;
     } catch (error) {}
     if (!activateCourse(preferredCourseId)) activateCourse('en-5');
-    try {
-        const preferredPlayStyle = localStorage.getItem('vokabelzombie_last_play_style');
-        if (preferredPlayStyle === 'mission' || preferredPlayStyle === 'hunt') {
-            state.playStyle = preferredPlayStyle;
-        }
-    } catch (error) {}
     initCarousel();
     initCityCarousel();
     startBtn.addEventListener('click', startGame);
     restartBtn.addEventListener('click', () => {
         if (state.playStyle === 'mission') {
-            startGame();
+            beginMissionDistrictSelection();
         } else {
             showHunterScreen();
         }
@@ -1056,7 +1110,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.play-style-card').forEach(button => {
         button.addEventListener('click', () => selectPlayStyle(button.dataset.playStyle));
     });
-    document.getElementById('confirm-play-style-btn').addEventListener('click', showStartScreen);
+    document.getElementById('confirm-play-style-btn').addEventListener('click', () => {
+        if (isMissionMode()) beginMissionDistrictSelection();
+        else showStartScreen();
+    });
+    document.getElementById('back-from-command-btn').addEventListener('click', () => {
+        clearTimeout(missionBriefingAdvanceTimer);
+        stopMissionBriefingAudio();
+        beginMissionDistrictSelection(state.mission.activeDistrictId);
+    });
+    document.getElementById('command-replay-audio-btn').addEventListener('click', playCurrentBriefingAudio);
+    document.getElementById('back-from-halo-btn').addEventListener('click', () => {
+        stopHaloSequence();
+        if (haloMode === 'planning') showMissionSelectionScreen();
+        else beginMissionDistrictSelection(state.mission.activeDistrictId);
+    });
+    document.getElementById('halo-deploy-btn').addEventListener('click', () => {
+        const deployButton = document.getElementById('halo-deploy-btn');
+        if (deployButton.disabled) return;
+        if (haloMode === 'planning') {
+            startGame();
+            return;
+        }
+        stopHaloSequence();
+        launchGameSession();
+    });
 
     settingsBtn.addEventListener('click', () => {
         state.settingsPending = true;
@@ -1684,9 +1762,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showScreen(screenName) {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
         Object.values(screens).forEach(s => s.classList.remove('active'));
         screens[screenName].classList.add('active');
+        const appContainer = document.getElementById('app-container');
+        if (appContainer) {
+            appContainer.scrollTop = 0;
+            appContainer.scrollLeft = 0;
+            requestAnimationFrame(() => {
+                appContainer.scrollTop = 0;
+                appContainer.scrollLeft = 0;
+            });
+        }
         document.body.classList.toggle('game-active', screenName === 'game');
+        document.body.classList.toggle('halo-active', screenName === 'halo');
+        document.body.classList.toggle('command-active', screenName === 'command');
         if (screenName !== 'game') {
             document.body.classList.remove('orientation-notice-dismissed');
         }
@@ -1834,11 +1926,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getMissionPhase() {
-        const securedCount = state.mission.securedIds.size;
         const remainingCount = getMissionRemainingCount();
         if (state.mission.completed || remainingCount === 0) return 'extract';
         if (state.bossActive || remainingCount <= getMissionBossTargetCount()) return 'boss';
-        if (securedCount < 3) return 'scout';
         return 'attack';
     }
 
@@ -1848,19 +1938,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const presentations = {
             scout: {
                 icon: '📡',
-                kicker: 'Phase 1 · Aufklärung',
+                kicker: 'Phase 2 · Aufklärung',
                 title: 'Gebiet scannen',
                 detail: 'Drei ruhige Ziele. Präge dir jedes Wort ein.'
             },
             attack: {
                 icon: '🧟',
-                kicker: 'Phase 2 · Angriffswelle',
+                kicker: 'Phase 3 · Angriffswelle',
                 title: 'Die Horde ist da!',
                 detail: 'Das Tempo steigt. Halte die Linie und sichere das Gebiet.'
             },
             boss: {
                 icon: '👑',
-                kicker: 'Phase 3 · Bossalarm',
+                kicker: 'Phase 4 · Bossalarm',
                 title: 'Anführer gesichtet',
                 detail: 'Die letzten Schlüsselwörter entscheiden über die Stadt.'
             },
@@ -1907,12 +1997,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const percentage = targetCount > 0 ? Math.min(100, (securedCount / targetCount) * 100) : 0;
         const phase = getMissionPhase();
         const phaseLabels = {
+            briefing: 'Briefing',
             scout: 'Aufklärung',
             attack: 'Angriffswelle',
             boss: 'Boss-Zone',
             extract: 'Extraktion'
         };
-        const phaseOrder = ['scout', 'attack', 'boss', 'extract'];
+        const phaseOrder = ['briefing', 'scout', 'attack', 'boss', 'extract'];
         const activePhaseIndex = phaseOrder.indexOf(phase);
 
         const phaseLabel = document.getElementById('mission-phase-label');
@@ -1990,16 +2081,397 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function isKnownMissionWord(vocab) {
+        const record = srsData.entries[getSrsKey(vocab)];
+        return Boolean(record && record.timesCorrect > 0);
+    }
+
+    function getVocabularyAudioPath(vocab) {
+        if (!vocab) return '';
+        const legacyFilename = getForeign(vocab).replace(/\//g, '_') + '.mp3';
+        return vocab.audio || (state.courseId === 'en-5' ? `assets/audio/${legacyFilename}` : '');
+    }
+
+    function stopMissionBriefingAudio() {
+        clearTimeout(missionRadioWordTimer);
+        missionRadioWordTimer = null;
+        clearTimeout(missionRadioFallbackTimer);
+        missionRadioFallbackTimer = null;
+        if (missionRadioStatic) {
+            try { missionRadioStatic.stop(); } catch (error) { /* already stopped */ }
+            missionRadioStatic = null;
+        }
+        if (missionRadioAudio) {
+            missionRadioAudio.onended = null;
+            missionRadioAudio.onerror = null;
+            missionRadioAudio.pause();
+            missionRadioAudio.currentTime = 0;
+            missionRadioAudio = null;
+        }
+        if (missionBriefingAudio) {
+            missionBriefingAudio.pause();
+            missionBriefingAudio.currentTime = 0;
+            missionBriefingAudio = null;
+        }
+    }
+
+    function getMissionRadioMessage() {
+        return `${getMissionRadioIntro()} …`;
+    }
+
+    function getMissionRadioIntro() {
+        return 'Echo One to Rescue Team. The next password to jam the zombie radar is';
+    }
+
+    function playMissionRadioChirp() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(1180, audioCtx.currentTime);
+        oscillator.frequency.setValueAtTime(760, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.055, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        oscillator.connect(gain);
+        gain.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.18);
+    }
+
+    function startMissionRadioStatic() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const duration = 0.16;
+        const buffer = audioCtx.createBuffer(1, Math.ceil(audioCtx.sampleRate * duration), audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let index = 0; index < data.length; index++) {
+            const envelope = Math.sin((index / data.length) * Math.PI);
+            data[index] = (Math.random() * 2 - 1) * envelope;
+        }
+        const source = audioCtx.createBufferSource();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+        source.buffer = buffer;
+        source.loop = true;
+        filter.type = 'bandpass';
+        filter.frequency.value = 1650;
+        filter.Q.value = 0.8;
+        gain.gain.value = 0.012;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        source.start();
+        missionRadioStatic = source;
+    }
+
+    function finishMissionRadioIntro(vocab, radioAudio) {
+        if (missionRadioAudio !== radioAudio) return;
+        clearTimeout(missionRadioFallbackTimer);
+        missionRadioFallbackTimer = null;
+        radioAudio.onended = null;
+        radioAudio.onerror = null;
+        missionRadioAudio = null;
+        if (missionRadioStatic) {
+            try { missionRadioStatic.stop(); } catch (error) { /* already stopped */ }
+            missionRadioStatic = null;
+        }
+        missionRadioWordTimer = setTimeout(() => {
+            missionRadioWordTimer = null;
+            playMissionWordAudio(vocab);
+        }, 650);
+    }
+
+    function pickMissionRadioIntroPath() {
+        if (MISSION_RADIO_INTRO_PATHS.length === 1) return MISSION_RADIO_INTRO_PATHS[0];
+        const index = lastMissionRadioIntroIndex < 0
+            ? Math.floor(Math.random() * MISSION_RADIO_INTRO_PATHS.length)
+            : (() => {
+                const candidate = Math.floor(Math.random() * (MISSION_RADIO_INTRO_PATHS.length - 1));
+                return candidate >= lastMissionRadioIntroIndex ? candidate + 1 : candidate;
+            })();
+        lastMissionRadioIntroIndex = index;
+        return MISSION_RADIO_INTRO_PATHS[index];
+    }
+
+    function playMissionWordAudio(vocab) {
+        const audioPath = getVocabularyAudioPath(vocab);
+        if (!audioPath || !screens.command?.classList.contains('active')) return;
+        missionBriefingAudio = new Audio(audioPath);
+        missionBriefingAudio.play().catch(error => {
+            console.log('Mission briefing audio playback failed:', error);
+        });
+    }
+
+    function playCurrentBriefingAudio() {
+        if (!screens.command?.classList.contains('active')) return;
+        const vocab = state.mission.briefingWords[state.mission.briefingIndex];
+        if (!vocab) return;
+        stopMissionBriefingAudio();
+        const message = getMissionRadioMessage();
+        const messageElement = document.getElementById('command-radio-message');
+        if (messageElement) messageElement.textContent = message;
+        playMissionRadioChirp();
+        const radioAudio = new Audio(pickMissionRadioIntroPath());
+        missionRadioAudio = radioAudio;
+        const finishRadioIntro = () => finishMissionRadioIntro(vocab, radioAudio);
+        radioAudio.onended = finishRadioIntro;
+        radioAudio.onerror = finishRadioIntro;
+        startMissionRadioStatic();
+        missionRadioFallbackTimer = setTimeout(finishRadioIntro, 9000);
+        radioAudio.play().catch(error => {
+            console.log('Mission radio intro playback failed:', error);
+            finishRadioIntro();
+        });
+    }
+
+    function getActiveMissionDistrict() {
+        return state.mission.districts.find(district => district.id === state.mission.activeDistrictId) || null;
+    }
+
+    function renderMissionBriefingWord() {
+        const words = state.mission.briefingWords;
+        const index = Math.min(state.mission.briefingIndex, Math.max(0, words.length - 1));
+        const vocab = words[index];
+        if (!vocab) {
+            beginHaloSequence();
+            return;
+        }
+
+        state.mission.briefingIndex = index;
+        const district = getActiveMissionDistrict();
+        const card = document.getElementById('command-vocab-card');
+        const newTargetCount = state.mission.targetWords.filter(target => !isKnownMissionWord(target)).length;
+        const knownTargetCount = Math.max(0, state.mission.targetWords.length - newTargetCount);
+        const progress = ((index + 1) / words.length) * 100;
+        clearTimeout(missionBriefingAdvanceTimer);
+        card?.classList.remove('word-secured', 'solution-concealed');
+
+        document.getElementById('command-district-name').textContent = district
+            ? `${district.label} · ${district.subtitle}`
+            : 'Zielviertel';
+        document.getElementById('command-district-detail').textContent = district
+            ? `${newTargetCount} neu · ${knownTargetCount} bekannt. Mission abschließen und ${district.label} grün markieren.`
+            : 'Unit und Part werden als Stadtviertel sichtbar.';
+        document.getElementById('command-word-progress-label').textContent = `Wort ${index + 1} von ${words.length}`;
+        document.getElementById('command-word-progress-fill').style.width = `${progress}%`;
+        document.getElementById('command-word-status').textContent = isKnownMissionWord(vocab)
+            ? 'Einsatzwort auffrischen'
+            : 'Neues Zielwort';
+        document.getElementById('command-german-word').textContent = getGerman(vocab);
+        document.getElementById('command-foreign-label').textContent = activeCourse?.subjectLabel || 'Fremdsprache';
+        document.getElementById('command-foreign-word').textContent = getForeign(vocab);
+        document.getElementById('command-radio-message').textContent = getMissionRadioMessage();
+        document.getElementById('command-feedback').textContent = '';
+
+        renderLetterBuilder({
+            pool: document.getElementById('command-letter-pool'),
+            target: document.getElementById('command-letter-target'),
+            answer: getPlayableAnswer(getForeign(vocab)),
+            canInteract: () => screens.command.classList.contains('active') && !card?.classList.contains('word-secured'),
+            onStart: () => card?.classList.add('solution-concealed'),
+            onCorrect: () => {
+                card?.classList.add('word-secured');
+                document.getElementById('command-feedback').textContent = index === words.length - 1
+                    ? '✓ Zielwort erkannt. Absprungroute wird geöffnet …'
+                    : '✓ Zielwort erkannt. Nächstes Wort wird geladen …';
+                missionBriefingAdvanceTimer = setTimeout(advanceMissionBriefing, 1050);
+            },
+            onIncorrect: () => {
+                document.getElementById('command-feedback').textContent = 'Fast – prüfe die Reihenfolge und versuche es noch einmal.';
+                return false;
+            }
+        });
+
+        setTimeout(playCurrentBriefingAudio, 260);
+    }
+
+    function beginMissionBriefing() {
+        stopHaloSequence();
+        clearTimeout(missionBriefingAdvanceTimer);
+        state.mission.briefingIndex = 0;
+        showScreen('command');
+        renderMissionBriefingWord();
+    }
+
+    function advanceMissionBriefing() {
+        const card = document.getElementById('command-vocab-card');
+        if (!card?.classList.contains('word-secured')) return;
+        clearTimeout(missionBriefingAdvanceTimer);
+        stopMissionBriefingAudio();
+        if (state.mission.briefingIndex >= state.mission.briefingWords.length - 1) {
+            beginHaloSequence();
+            return;
+        }
+        state.mission.briefingIndex++;
+        renderMissionBriefingWord();
+    }
+
+    function renderHaloDistricts() {
+        const container = document.getElementById('halo-district-grid');
+        if (!container) return;
+        container.innerHTML = '';
+        const career = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
+        const cleared = new Set(career.clearedDistricts);
+        const activeDistrict = getActiveMissionDistrict();
+
+        state.mission.districts.forEach((district, index) => {
+            const isCleared = cleared.has(district.id);
+            const isTarget = district.id === state.mission.activeDistrictId;
+            const tile = document.createElement('button');
+            tile.type = 'button';
+            tile.className = 'halo-district' + (isCleared ? ' cleared' : '') + (isTarget ? ' target' : '');
+            tile.disabled = haloMode !== 'planning';
+            tile.setAttribute('aria-pressed', isTarget ? 'true' : 'false');
+            tile.setAttribute('aria-label', `${district.label}, ${district.subtitle}: ${isCleared ? 'befreit' : isTarget ? 'ausgewähltes Ziel' : 'umkämpft'}`);
+            const mapPoint = MISSION_DISTRICT_MAP_POINTS[index % MISSION_DISTRICT_MAP_POINTS.length];
+            tile.style.setProperty('--map-x', `${mapPoint.x}%`);
+            tile.style.setProperty('--map-y', `${mapPoint.y}%`);
+            tile.style.setProperty('--map-scale', mapPoint.scale);
+
+            const cuboid = document.createElement('span');
+            cuboid.className = 'district-cuboid';
+            cuboid.setAttribute('aria-hidden', 'true');
+            cuboid.appendChild(document.createElement('i'));
+            const label = document.createElement('strong');
+            label.textContent = district.label;
+            const subtitle = document.createElement('small');
+            subtitle.textContent = district.subtitle;
+            tile.append(cuboid, label, subtitle);
+            tile.addEventListener('click', () => selectMissionDistrict(district.id));
+            container.appendChild(tile);
+        });
+
+        document.getElementById('halo-active-district').textContent = activeDistrict
+            ? `${activeDistrict.label} · ${activeDistrict.subtitle}`
+            : 'Zielviertel';
+        document.getElementById('halo-district-counter').textContent = `${state.mission.districts.filter(district => cleared.has(district.id)).length} / ${state.mission.districts.length} befreit`;
+    }
+
+    function selectMissionDistrict(districtId) {
+        if (haloMode !== 'planning') return;
+        const district = state.mission.districts.find(candidate => candidate.id === districtId);
+        if (!district) return;
+        state.mission.activeDistrictId = district.id;
+        state.mission.activeDistrictLabel = `${district.label} · ${district.subtitle}`;
+        renderHaloDistricts();
+        document.getElementById('halo-deploy-status').textContent = `${district.label} · ${district.subtitle} markiert · ${district.vocabCount} Wörter im Viertel`;
+        const deployButton = document.getElementById('halo-deploy-btn');
+        deployButton.disabled = false;
+        deployButton.textContent = 'Briefing im Hubschrauber starten';
+    }
+
+    function beginMissionDistrictSelection(preferredDistrictId = '') {
+        stopMissionBriefingAudio();
+        clearTimeout(missionBriefingAdvanceTimer);
+        stopHaloSequence();
+        haloMode = 'planning';
+
+        const validVocabs = activeVocabulary.filter(vocab => getForeign(vocab).trim() && getGerman(vocab).trim());
+        const districts = window.VocabUtils.createVocabularyDistricts(validVocabs, state.courseId);
+        const career = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
+        const preferred = districts.find(district => district.id === preferredDistrictId) || null;
+        const suggested = window.VocabUtils.pickNextMissionDistrict(districts, preferred, career.clearedDistricts);
+        state.mission.districts = districts;
+        state.mission.activeDistrictId = suggested?.id || '';
+        state.mission.activeDistrictLabel = suggested ? `${suggested.label} · ${suggested.subtitle}` : '';
+
+        const selectedCity = CITIES.find(city => city.id === state.city);
+        document.getElementById('halo-city-name').textContent = selectedCity?.name || 'der Stadt';
+        document.getElementById('halo-phase-badge').textContent = 'Phase 1 · Zielgebiet wählen';
+        document.getElementById('halo-title').firstChild.textContent = 'Einsatzkarte ';
+        document.getElementById('halo-subtitle').textContent = 'Wo soll das Rettungsteam landen?';
+        document.getElementById('halo-map-eyebrow').textContent = 'Zielgebiet direkt markieren';
+        document.getElementById('back-from-halo-btn').textContent = '⬅ Einsatzwahl';
+        const deployButton = document.getElementById('halo-deploy-btn');
+        deployButton.disabled = !suggested;
+        deployButton.textContent = 'Briefing im Hubschrauber starten';
+        document.getElementById('halo-deploy-status').textContent = suggested
+            ? `${suggested.label} · ${suggested.subtitle} als nächstes Ziel vorgeschlagen`
+            : 'Markiere eine Unit und einen Part auf der Stadtkarte.';
+
+        showScreen('halo');
+        screens.halo.classList.add('is-planning');
+        renderHaloDistricts();
+    }
+
+    function stopHaloSequence() {
+        clearTimeout(haloDeploymentTimer);
+        haloDeploymentTimer = null;
+        screens.halo?.classList.remove('is-jumping');
+    }
+
+    function beginHaloSequence() {
+        stopMissionBriefingAudio();
+        stopHaloSequence();
+        haloMode = 'deployment';
+        const selectedCity = CITIES.find(city => city.id === state.city);
+        const activeDistrict = getActiveMissionDistrict();
+        const activeDistrictIndex = Math.max(0, state.mission.districts.findIndex(district => district.id === state.mission.activeDistrictId));
+        const mapPoint = MISSION_DISTRICT_MAP_POINTS[activeDistrictIndex % MISSION_DISTRICT_MAP_POINTS.length];
+        const haloLandingX = 3 + (mapPoint.x * 0.94);
+        const haloLandingY = 7 + (mapPoint.y * 0.83);
+        screens.halo.style.setProperty('--landing-x', `${haloLandingX}%`);
+        screens.halo.style.setProperty('--landing-y', `${haloLandingY}%`);
+        screens.halo.style.setProperty('--landing-scale', Math.max(0.58, Math.min(1, mapPoint.scale * 0.86)));
+        const deployButton = document.getElementById('halo-deploy-btn');
+        const deployStatus = document.getElementById('halo-deploy-status');
+
+        document.getElementById('halo-city-name').textContent = selectedCity?.name || 'der Stadt';
+        document.getElementById('halo-phase-badge').textContent = 'Phase 3 · HALO-Absprung';
+        document.getElementById('halo-title').firstChild.textContent = 'HALO über ';
+        document.getElementById('halo-subtitle').textContent = '';
+        document.getElementById('halo-map-eyebrow').textContent = 'Markierte Landezone';
+        document.getElementById('back-from-halo-btn').textContent = '⬅ Stadtkarte';
+        document.getElementById('halo-landing-district').textContent = activeDistrict
+            ? `${activeDistrict.label} · ${activeDistrict.subtitle}`
+            : 'markierte Landezone';
+        deployButton.disabled = true;
+        deployStatus.textContent = 'Absprung läuft · Kurs auf das Zielviertel';
+        showScreen('halo');
+        screens.halo.classList.remove('is-planning');
+        void screens.halo.offsetWidth;
+        screens.halo.classList.add('is-jumping');
+
+        haloDeploymentTimer = setTimeout(() => {
+            stopHaloSequence();
+            launchGameSession();
+        }, 4800);
+    }
+
+    function launchGameSession() {
+        state.gameRunning = true;
+        state.startTime = Date.now();
+        state.lastTimestamp = performance.now();
+        const selectedCity = CITIES.find(c => c.id === state.city) || CITIES[0];
+        document.body.style.backgroundImage = `url('${selectedCity.img}')`;
+
+        const weatherOverlay = document.getElementById('weather-overlay');
+        if (weatherOverlay) {
+            weatherOverlay.className = '';
+            if (state.city !== 'buehl' && Math.random() < 0.4) {
+                weatherOverlay.classList.add('weather-rain');
+            }
+        }
+
+        updateHeartsUI();
+        updateMissionHUD();
+        scoreEl.textContent = state.score;
+        showScreen('game');
+        spawnZombie();
+        lastFrameTime = performance.now();
+        animationId = requestAnimationFrame(gameLoop);
+    }
+
     function startGame() {
         if (activeVocabulary.length === 0) {
             alert('Vokabeln werden noch geladen oder sind nicht verfügbar... Bitte warte kurz und versuche es erneut.');
             return;
         }
 
-        state.direction = document.getElementById('translation-direction').value;
+        const requestedMissionDistrictId = isMissionMode() ? state.mission.activeDistrictId : '';
+        state.direction = isMissionMode() ? 'de-foreign' : document.getElementById('translation-direction').value;
 
         const selectedCheckboxes = Array.from(document.querySelectorAll('.filter-checkbox:checked'));
-        const paths = selectedCheckboxes.map(cb => cb.value);
+        const paths = isMissionMode() ? ['all'] : selectedCheckboxes.map(cb => cb.value);
         const decodeFilterSegment = window.VocabUtils.decodeFilterSegment;
         const getCategoryUnitName = unit => unit.match(/Unit\s*\d+/i)?.[0] || unit;
         
@@ -2037,8 +2509,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let missionTargets = [];
+        let missionBriefingWords = [];
+        let missionDistricts = [];
+        let activeMissionDistrict = null;
         if (isMissionMode()) {
-            missionTargets = selectMissionTargets(state.vocabPool);
+            missionDistricts = window.VocabUtils.createVocabularyDistricts(validVocabs, state.courseId);
+            const selectedDistricts = missionDistricts;
+            const clearedDistrictIds = new Set(
+                window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue).clearedDistricts
+            );
+            const preliminaryTargets = selectMissionTargets(state.vocabPool);
+            activeMissionDistrict = selectedDistricts.find(district => district.id === requestedMissionDistrictId)
+                || window.VocabUtils.pickMissionDistrict(preliminaryTargets, state.courseId);
+            if (!requestedMissionDistrictId) {
+                activeMissionDistrict = window.VocabUtils.pickNextMissionDistrict(
+                    selectedDistricts,
+                    activeMissionDistrict,
+                    clearedDistrictIds
+                );
+            }
+            const districtPool = activeMissionDistrict
+                ? state.vocabPool.filter(vocab => (
+                    window.VocabUtils.getVocabularyDistrict(vocab, state.courseId).id === activeMissionDistrict.id
+                ))
+                : state.vocabPool;
+            missionTargets = selectMissionTargets(districtPool);
+            if (missionTargets.length === 0) missionTargets = preliminaryTargets;
+            missionBriefingWords = missionTargets.filter(vocab => !isKnownMissionWord(vocab)).slice(0, CONFIG.missionNewWordLimit);
+            if (missionBriefingWords.length === 0) {
+                missionBriefingWords = missionTargets.slice(0, Math.min(3, missionTargets.length));
+            }
+            activeMissionDistrict = window.VocabUtils.pickMissionDistrict(missionTargets, state.courseId) || activeMissionDistrict;
             state.vocabPool = [...missionTargets];
         } else {
             // GAMIFICATION: Apply SRS weights to the classic endless hunt.
@@ -2151,11 +2652,11 @@ document.addEventListener('DOMContentLoaded', () => {
         state.hearts = 3;
         state.score = 0;
         state.zombieSpeed = 1.5;
-        state.gameRunning = true;
+        state.gameRunning = false;
         state.totalAttempts = 0;
         state.correctAttempts = 0;
         state.weaknesses = {};
-        state.startTime = Date.now();
+        state.startTime = 0;
         state.level = 1;
         state.streak = 0;
         state.maxStreak = 0;
@@ -2180,6 +2681,7 @@ document.addEventListener('DOMContentLoaded', () => {
             encounterSerial: 0,
             createdOrder: 0,
             confirmationTimer: null,
+            resolvedBannerTimer: null,
             audio: null
         };
         state.mission = {
@@ -2194,12 +2696,18 @@ document.addEventListener('DOMContentLoaded', () => {
             transitionActive: false,
             startXp: playerProfile.xp,
             answerXp: 0,
-            recoveredCorrectionIds: new Set()
+            recoveredCorrectionIds: new Set(),
+            briefingWords: missionBriefingWords,
+            briefingIndex: 0,
+            districts: missionDistricts,
+            activeDistrictId: activeMissionDistrict?.id || '',
+            activeDistrictLabel: activeMissionDistrict
+                ? `${activeMissionDistrict.label} · ${activeMissionDistrict.subtitle}`
+                : ''
         };
         settingsBtn.classList.remove('pending');
         correctionPanel?.classList.add('hidden');
         markedRetryBanner?.classList.add('hidden');
-        markedZombieBadge?.classList.add('hidden');
         screens.game.classList.remove('correction-active');
         
         updateBoostUI();
@@ -2207,28 +2715,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedHunter = HUNTERS.find(h => h.id === state.hunterType) || HUNTERS[0];
         hunterEl.src = selectedHunter.img;
         
-        const selectedCity = CITIES.find(c => c.id === state.city) || CITIES[0];
-        document.body.style.backgroundImage = `url('${selectedCity.img}')`;
-
-        // Initialize weather overlay
-        const weatherOverlay = document.getElementById('weather-overlay');
-        if (weatherOverlay) {
-            weatherOverlay.className = '';
-            // 40% chance of rain, but never in Bühl (indoors)
-            if (state.city !== 'buehl' && Math.random() < 0.4) {
-                weatherOverlay.classList.add('weather-rain');
-            }
+        if (isMissionMode()) {
+            beginMissionBriefing();
+        } else {
+            launchGameSession();
         }
-
-        updateHeartsUI();
-        updateMissionHUD();
-        scoreEl.textContent = state.score;
-
-        showScreen('game');
-        spawnZombie();
-        
-        lastFrameTime = performance.now();
-        animationId = requestAnimationFrame(gameLoop);
     }
 
     function getQuestionAndAnswer(vocab, isForeignToGerman) {
@@ -2342,19 +2833,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setMarkedZombieUI(correctionEntry) {
         const isMarked = Boolean(correctionEntry);
+        const preserveResolvedBanner = !isMarked && markedRetryBanner?.classList.contains('resolved');
         zombieEl.classList.remove('marked-fleeing', 'marked-rescued');
         zombieEl.classList.toggle('marked-zombie', isMarked);
-        markedRetryBanner?.classList.toggle('hidden', !isMarked);
-        markedRetryBanner?.classList.remove('resolved');
-        markedZombieBadge?.classList.toggle('hidden', !isMarked);
-
-        if (markedZombieBadge) {
-            const symbol = markedZombieBadge.querySelector('span');
-            const label = markedZombieBadge.querySelector('strong');
-            if (symbol) symbol.textContent = '⟳';
-            if (label) label.textContent = 'RÜCKKEHRER';
+        clearTimeout(state.correction.resolvedBannerTimer);
+        state.correction.resolvedBannerTimer = null;
+        if (preserveResolvedBanner) {
+            state.correction.resolvedBannerTimer = setTimeout(() => {
+                markedRetryBanner?.classList.add('hidden');
+                markedRetryBanner?.classList.remove('resolved');
+                state.correction.resolvedBannerTimer = null;
+            }, 1500);
+        } else {
+            markedRetryBanner?.classList.toggle('hidden', !isMarked);
+            markedRetryBanner?.classList.remove('resolved');
         }
-        if (markedRetryBanner) {
+        if (markedRetryBanner && !preserveResolvedBanner) {
             const symbol = markedRetryBanner.querySelector('.marked-retry-symbol');
             const kicker = markedRetryBanner.querySelector('.marked-retry-kicker');
             const title = markedRetryBanner.querySelector('.marked-retry-title');
@@ -2375,7 +2869,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('writing-container').classList.add('hidden');
         markedRetryBanner?.classList.add('hidden');
 
-        correctionPanel?.classList.remove('hidden', 'confirmed');
+        correctionPanel?.classList.remove('hidden', 'confirmed', 'solution-concealed');
         const emblemSymbol = correctionPanel?.querySelector('.correction-mark-emblem > span');
         if (emblemSymbol) emblemSymbol.textContent = '⟳';
         document.getElementById('correction-question').textContent = entry.question;
@@ -2395,6 +2889,7 @@ document.addEventListener('DOMContentLoaded', () => {
             target: correctionTarget,
             answer: playableAnswer,
             canInteract: () => Boolean(state.correction.activeEntry),
+            onStart: () => correctionPanel?.classList.add('solution-concealed'),
             onCorrect: completeCorrectionConfirmation,
             onIncorrect: () => {
                 correctionFeedback.textContent = 'Fast – die markierten Buchstaben springen zurück. Versuch es noch einmal.';
@@ -2404,7 +2899,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setZombieWord(`${entry.answer}  ✓`);
         zombieEl.classList.remove('dead', 'walking', 'hidden');
         zombieEl.classList.add('marked-zombie', 'marked-fleeing');
-        markedZombieBadge?.classList.remove('hidden');
         zombieEl.style.opacity = '1';
         playCorrectionAudio(entry.vocab);
     }
@@ -2425,7 +2919,6 @@ document.addEventListener('DOMContentLoaded', () => {
             correctionPanel?.classList.remove('confirmed');
             screens.game.classList.remove('correction-active');
             zombieEl.classList.remove('marked-fleeing', 'marked-zombie');
-            markedZombieBadge?.classList.add('hidden');
             state.correction.activeEntry = null;
             state.correction.currentRetry = null;
 
@@ -2446,12 +2939,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.correction.currentRetry = null;
         zombieEl.classList.add('marked-rescued');
 
-        if (markedZombieBadge) {
-            const symbol = markedZombieBadge.querySelector('span');
-            const label = markedZombieBadge.querySelector('strong');
-            if (symbol) symbol.textContent = '✓';
-            if (label) label.textContent = 'GESICHERT';
-        }
         if (markedRetryBanner) {
             markedRetryBanner.classList.add('resolved');
             const symbol = markedRetryBanner.querySelector('.marked-retry-symbol');
@@ -2752,7 +3239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return window.VocabUtils.tokenizeAnswer(answer);
     }
 
-    function renderLetterBuilder({ pool, target, answer, canInteract, onCorrect, onIncorrect }) {
+    function renderLetterBuilder({ pool, target, answer, canInteract, onStart, onCorrect, onIncorrect }) {
         pool.innerHTML = '';
         target.innerHTML = '';
         const tokens = tokenizeAnswer(answer);
@@ -2763,6 +3250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
         }
         let completed = false;
+        let started = false;
 
         function createWordGroup() {
             const group = document.createElement('div');
@@ -2867,6 +3355,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (btn.parentElement === pool) {
                     const firstEmptySlot = target.querySelector('.letter-slot[data-filled="false"]');
                     if (firstEmptySlot) {
+                        if (!started) {
+                            started = true;
+                            if (typeof onStart === 'function') onStart();
+                        }
                         firstEmptySlot.dataset.filled = 'true';
                         firstEmptySlot.appendChild(btn);
                         checkAnswer();
@@ -2909,7 +3401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const correct = selectedOption === state.currentWord.a;
 
         if (correct) {
-            resolveCurrentCorrectionRetry();
+            const recoveredCorrectionRetry = resolveCurrentCorrectionRetry();
             let newlySecuredMissionTarget = false;
             if (isMissionMode()) {
                 newlySecuredMissionTarget = !state.mission.securedIds.has(state.currentWord.vocab.id);
@@ -3055,7 +3547,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             scoreEl.textContent = state.score;
                             showScorePopup(bossBonus, state.zombiePosition, 200);
                         }
-                        killZombie();
+                        killZombie(recoveredCorrectionRetry);
                     }
                 }, 300);
             }, 50);
@@ -3095,7 +3587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function killZombie() {
+    function killZombie(holdResolvedBanner = false) {
         zombieEl.classList.remove('walking');
         zombieEl.classList.add('dead');
         
@@ -3103,7 +3595,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         setTimeout(() => {
             showSolutionDialog(spawnZombie);
-        }, 600);
+        }, holdResolvedBanner ? 1500 : 600);
     }
 
     function showSolutionDialog(onClose) {
@@ -3286,7 +3778,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.correction.activeEntry = null;
         correctionPanel?.classList.add('hidden');
         markedRetryBanner?.classList.add('hidden');
-        markedZombieBadge?.classList.add('hidden');
         screens.game.classList.remove('correction-active');
         zombieEl.classList.remove('marked-zombie', 'marked-fleeing', 'marked-rescued');
         
@@ -3312,7 +3803,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const missionResult = document.getElementById('mission-result');
         const missionProgression = document.getElementById('mission-progression');
         const endScreenTitle = document.getElementById('end-screen-title');
+        const endScreen = document.getElementById('end-screen');
         const changeMissionSettingsBtn = document.getElementById('change-mission-settings-btn');
+        endScreen?.classList.toggle('mission-summary-mode', isMissionMode());
         if (isMissionMode()) {
             const securedCount = state.mission.securedIds.size;
             const targetCount = state.mission.targetWords.length;
@@ -3329,8 +3822,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `${securedCount} von ${targetCount} Zielwörtern gesichert · ${state.mission.encounters} Begegnungen`
                 : `${securedCount} von ${targetCount} Zielwörtern gesichert · Extraktion nach ${state.mission.encounters} Begegnungen`;
             document.getElementById('mission-result-progress').style.width = `${missionPercentage}%`;
-            restartBtn.textContent = 'Empfohlene nächste Mission';
-            changeMissionSettingsBtn?.classList.remove('hidden');
+            restartBtn.textContent = 'Zum nächsten HALO-Sprung';
+            changeMissionSettingsBtn?.classList.add('hidden');
         } else {
             if (endScreenTitle) endScreenTitle.textContent = 'Jagd beendet!';
             missionResult?.classList.add('hidden');
@@ -3350,7 +3843,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
         if (showLeaderboardBtn) {
-            showLeaderboardBtn.style.display = 'inline-block';
+            showLeaderboardBtn.style.display = isMissionMode() ? 'none' : 'inline-block';
         }
 
         // Animated Score Counter (statt sofortige Anzeige)

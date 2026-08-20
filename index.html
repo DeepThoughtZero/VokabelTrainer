@@ -142,21 +142,12 @@
         <!-- Play Style Selection Screen -->
         <section id="mission-selection-screen" class="screen mission-selection-screen">
             <button id="back-to-city-from-mission-btn" class="btn-secondary screen-back-btn" type="button" title="Zurück zur Stadtauswahl">⬅ Zurück</button>
-            <h1 class="title">Einsatz auswählen</h1>
+            <h1 class="title">Einsatz wählen</h1>
             <p class="mission-screen-kicker">Wie willst du <span id="mission-city-name">die Stadt</span> retten?</p>
 
             <div class="mission-command-center glass">
                 <div class="play-style-grid" role="radiogroup" aria-label="Spielart">
-                    <button class="play-style-card active" type="button" data-play-style="mission" aria-pressed="true">
-                        <span class="play-style-recommendation">Empfohlen</span>
-                        <span class="play-style-icon" aria-hidden="true">🎯</span>
-                        <span class="play-style-copy">
-                            <strong>Rettungsmission</strong>
-                            <small>Orte die Horde. Stürze den Boss. Rette die Stadt.</small>
-                        </span>
-                        <span class="play-style-check" aria-hidden="true">✓</span>
-                    </button>
-                    <button class="play-style-card" type="button" data-play-style="hunt" aria-pressed="false">
+                    <button class="play-style-card active" type="button" data-play-style="hunt" aria-pressed="true">
                         <span class="play-style-icon" aria-hidden="true">♾️</span>
                         <span class="play-style-copy">
                             <strong>Freie Jagd</strong>
@@ -164,9 +155,18 @@
                         </span>
                         <span class="play-style-check" aria-hidden="true">✓</span>
                     </button>
+                    <button class="play-style-card" type="button" data-play-style="mission" aria-pressed="false">
+                        <span class="play-style-recommendation">Neu</span>
+                        <span class="play-style-icon" aria-hidden="true">🎯</span>
+                        <span class="play-style-copy">
+                            <strong>Rettungsmission</strong>
+                            <small>Lerne Zielwörter. Springe ab. Befreie ein Stadtviertel.</small>
+                        </span>
+                        <span class="play-style-check" aria-hidden="true">✓</span>
+                    </button>
                 </div>
 
-                <div id="mission-briefing" class="mission-briefing-panel">
+                <div id="mission-briefing" class="mission-briefing-panel hidden">
                     <div class="mission-briefing-heading">
                         <div>
                             <span class="mission-eyebrow">Neuer Notruf · Operation Morgenrot</span>
@@ -176,17 +176,17 @@
                         <div class="mission-duration"><span aria-hidden="true">⏱</span><strong>≈ 5 Min.</strong></div>
                     </div>
 
-                    <div class="mission-route" aria-label="Missionspfad: Briefing, Aufklärung, Angriff, Boss und Extraktion">
+                    <div class="mission-route" aria-label="Missionspfad: Aufklärung, Briefing, Angriff, Boss und Extraktion">
                         <div class="mission-route-line" aria-hidden="true"></div>
                         <div class="mission-route-stop complete">
-                            <span class="mission-route-node" aria-hidden="true">📡</span>
-                            <strong>Briefing</strong>
-                            <small>Notruf empfangen</small>
+                            <span class="mission-route-node" aria-hidden="true">🗺️</span>
+                            <strong>Aufklärung</strong>
+                            <small>Stadtviertel wählen</small>
                         </div>
                         <div class="mission-route-stop">
-                            <span class="mission-route-node" aria-hidden="true">🧭</span>
-                            <strong>Aufklärung</strong>
-                            <small>3 Ziele orten</small>
+                            <span class="mission-route-node" aria-hidden="true">🚁</span>
+                            <strong>Briefing</strong>
+                            <small>3 neue Wörter</small>
                         </div>
                         <div class="mission-route-stop">
                             <span class="mission-route-node" aria-hidden="true">🧟</span>
@@ -206,14 +206,14 @@
                     </div>
 
                     <div class="mission-rules">
-                        <span><strong>12</strong> Wörter im Einsatz</span>
+                        <span><strong>bis 12</strong> Wörter im Einsatz</span>
                         <span><strong>20</strong> Chancen bis zum Abflug</span>
-                        <span><strong>6</strong> unbekannte Wörter max.</span>
+                        <span><strong>3</strong> neue Wörter pro Mission</span>
                         <span><strong>🥇</strong> Gold für 3 Herzen</span>
                     </div>
                 </div>
 
-                <div id="hunt-briefing" class="hunt-briefing-panel hidden">
+                <div id="hunt-briefing" class="hunt-briefing-panel">
                     <span class="hunt-briefing-icon" aria-hidden="true">🧟‍♂️</span>
                     <div>
                         <span class="mission-eyebrow">Klassische Endlosjagd</span>
@@ -222,7 +222,7 @@
                     </div>
                 </div>
 
-                <button id="confirm-play-style-btn" class="btn-primary mission-confirm-btn" type="button">Mission vorbereiten</button>
+                <button id="confirm-play-style-btn" class="btn-primary mission-confirm-btn" type="button">Jagd vorbereiten</button>
             </div>
         </section>
 
@@ -238,12 +238,12 @@
             <div id="daily-streak-display" style="text-align: center; margin-top: -10px; margin-bottom: 15px; font-size: 1.8rem; color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.5); font-weight: bold; display: none;">🔥 <span id="daily-streak-count">0</span></div>
             
             <div class="menu-box glass">
-                <div id="selected-play-style-banner" class="selected-play-style-banner mission-selected">
-                    <span id="selected-play-style-icon" class="selected-play-style-icon" aria-hidden="true">🎯</span>
+                <div id="selected-play-style-banner" class="selected-play-style-banner hunt-selected">
+                    <span id="selected-play-style-icon" class="selected-play-style-icon" aria-hidden="true">♾️</span>
                     <div>
                         <span class="mission-eyebrow">Gewählter Einsatz</span>
-                        <strong id="selected-play-style-title">Rettungsmission</strong>
-                        <small id="selected-play-style-summary">Horde orten · Boss besiegen · Stadt retten</small>
+                        <strong id="selected-play-style-title">Freie Jagd</strong>
+                        <small id="selected-play-style-summary">Jage ohne Limit – bis dein letztes Herz fällt</small>
                     </div>
                     <button id="change-play-style-btn" type="button">Ändern</button>
                 </div>
@@ -265,8 +265,105 @@
                         </select>
                     </div>
                     
-                    <button id="start-btn" class="btn-primary">Mission starten</button>
+                    <button id="start-btn" class="btn-primary">Jagd beginnen</button>
                 </div>
+            </div>
+        </section>
+
+        <!-- Mission Briefing: learn new target words before deployment -->
+        <section id="command-center-screen" class="screen command-center-screen notranslate" translate="no">
+            <div class="command-center-shade" aria-hidden="true"></div>
+            <button id="back-from-command-btn" class="btn-secondary screen-back-btn" type="button">⬅ Stadtkarte</button>
+
+            <header class="command-center-header">
+                <span class="command-phase-badge">Phase 2 · Hubschrauber-Briefing</span>
+                <h1>Mobile Kommandozentrale</h1>
+                <p>Auf dem Weg zur Absprungzone: drei neue Zielwörter hören, tarnen und selbst entschlüsseln.</p>
+            </header>
+
+            <div class="command-center-layout">
+                <article id="command-vocab-card" class="command-vocab-card glass">
+                    <span id="command-word-status" class="command-word-status">Neues Zielwort</span>
+                    <div class="command-briefing-meta">
+                        <div>
+                            <small>Zielgebiet</small>
+                            <strong id="command-district-name">Zielviertel wird geladen</strong>
+                            <span id="command-district-detail">Unit und Part werden als Stadtviertel sichtbar.</span>
+                        </div>
+                        <div class="command-word-progress" aria-label="Fortschritt im Briefing">
+                            <span id="command-word-progress-label">Wort 1 von 3</span>
+                            <div><i id="command-word-progress-fill"></i></div>
+                        </div>
+                    </div>
+                    <div class="command-radio-transmission" aria-live="polite">
+                        <span class="command-radio-icon" aria-hidden="true">📻</span>
+                        <div>
+                            <small>LIVE · ECHO ONE</small>
+                            <p id="command-radio-message">Echo One to Rescue Team. The next password to jam the zombie radar is …</p>
+                        </div>
+                        <span class="command-radio-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                    </div>
+                    <div class="command-language-row">
+                        <div>
+                            <small>Deutsch</small>
+                            <strong id="command-german-word">Wort</strong>
+                        </div>
+                        <span aria-hidden="true">→</span>
+                        <div>
+                            <small id="command-foreign-label">Englisch</small>
+                            <strong id="command-foreign-word">word</strong>
+                        </div>
+                        <button id="command-replay-audio-btn" class="command-audio-btn" type="button" title="Funkspruch erneut abspielen">📻 Funk wiederholen</button>
+                    </div>
+
+                    <div class="command-builder">
+                        <p>Baue das englische Wort aus den Einsatzcodes:</p>
+                        <div id="command-letter-target" class="letter-target command-letter-target" aria-label="Zusammengesetzte Lösung"></div>
+                        <div id="command-letter-pool" class="letter-pool command-letter-pool" aria-label="Verfügbare Buchstaben"></div>
+                    </div>
+
+                    <p id="command-feedback" class="visually-hidden" role="status" aria-live="polite"></p>
+                </article>
+            </div>
+        </section>
+
+        <!-- HALO insertion and persistent book-district map -->
+        <section id="halo-screen" class="screen halo-screen notranslate" translate="no">
+            <button id="back-from-halo-btn" class="btn-secondary screen-back-btn" type="button">⬅ Einsatzwahl</button>
+
+            <header class="halo-header">
+                <span id="halo-phase-badge" class="command-phase-badge">Phase 1 · Zielgebiet wählen</span>
+                <h1 id="halo-title">Einsatzkarte <span id="halo-city-name">der Stadt</span></h1>
+                <p id="halo-subtitle">Wähle Unit und Part direkt als Stadtviertel. Dort findet deine nächste Rettungsmission statt.</p>
+            </header>
+
+            <div id="halo-jump-stage" class="halo-jump-stage">
+                <div class="halo-helicopter" aria-hidden="true"><span>🚁</span><i></i></div>
+                <div class="halo-speed-lines" aria-hidden="true"></div>
+                <div class="halo-operative" aria-hidden="true">
+                    <img id="halo-hunter-img" src="assets/halo_hunter_parachute.webp" alt="">
+                </div>
+                <div class="halo-landing-beacon" aria-hidden="true">
+                    <i></i>
+                    <span>ZIELGEBIET</span>
+                    <strong id="halo-landing-district">Unit · Part</strong>
+                </div>
+            </div>
+
+            <aside class="halo-city-map">
+                <div class="halo-map-heading">
+                    <div>
+                        <span id="halo-map-eyebrow" class="mission-eyebrow">Zielgebiet direkt markieren</span>
+                        <h2 id="halo-active-district">Stadtviertel auswählen</h2>
+                    </div>
+                    <span id="halo-district-counter">0 / 0 befreit</span>
+                </div>
+                <div id="halo-district-grid" class="halo-district-grid" aria-label="Stadtviertel nach Units und Parts"></div>
+            </aside>
+
+            <div class="halo-deploy-panel glass">
+                <span id="halo-deploy-status">Markiere eine Unit und einen Part auf der Stadtkarte.</span>
+                <button id="halo-deploy-btn" class="btn-primary" type="button" disabled>Briefing im Hubschrauber starten</button>
             </div>
         </section>
 
@@ -289,7 +386,8 @@
                     </div>
                     <div class="mission-hud-track" aria-hidden="true"><span id="mission-hud-progress"></span></div>
                     <div class="mission-hud-steps" aria-hidden="true">
-                        <span class="active" data-mission-phase="scout">🧭</span>
+                        <span class="complete" data-mission-phase="briefing">📡</span>
+                        <span class="complete" data-mission-phase="scout">🪂</span>
                         <span data-mission-phase="attack">🧟</span>
                         <span data-mission-phase="boss">👑</span>
                         <span data-mission-phase="extract">🚁</span>
@@ -373,10 +471,6 @@
                     <img src="assets/hunter_commanderneon.png" alt="Hunter" class="sprite-img" id="hunter-img">
                 </div>
                 <div id="zombie" class="entity">
-                    <div id="marked-zombie-badge" class="marked-zombie-badge hidden" aria-label="Markierter Zombie kehrt zurück">
-                        <span aria-hidden="true">⟳</span>
-                        <strong>RÜCKKEHRER</strong>
-                    </div>
                     <div id="boss-health-bar" class="hidden"></div>
                     <div id="zombie-word" class="word-bubble">Word</div>
                     <img src="assets/zombie01.png" alt="Zombie" class="sprite-img" id="zombie-img">
@@ -409,7 +503,10 @@
                     </div>
                     <div class="mission-xp-breakdown" aria-label="Aufteilung der Missions-XP">
                         <span><strong id="mission-answer-xp">0</strong> Antwort-XP</span>
-                        <span><strong id="mission-completion-xp">+0</strong> Missionsziel</span>
+                        <span><strong id="mission-completion-xp">+0</strong> Rettungsziel</span>
+                        <span><strong id="mission-liberation-xp">+0</strong> Viertel</span>
+                        <span><strong id="mission-survival-xp">+0</strong> Team intakt</span>
+                        <span><strong id="mission-streak-xp">+0</strong> Einsatzserie</span>
                         <span><strong id="mission-recovery-xp">+0</strong> zurückgeholt</span>
                     </div>
                     <div class="mission-level-progress">
@@ -419,24 +516,29 @@
                         </div>
                         <div class="mission-level-track" aria-hidden="true"><span id="mission-level-fill"></span></div>
                     </div>
-                    <div class="mission-career-strip">
+                        <div class="mission-career-strip">
                         <span><strong id="mission-career-count">0</strong> Missionen</span>
+                        <span>🔥 <strong id="mission-career-streak">0</strong> in Folge</span>
                         <span id="mission-career-medals">🥇 0 · 🥈 0 · 🥉 0</span>
                         <span><strong id="mission-career-words">0</strong> Wörter gerettet</span>
                         <span><strong id="mission-career-perfect">0</strong> perfekt</span>
-                    </div>
-                    <div id="mission-achievement-unlock" class="mission-achievement-unlock hidden">
+                        </div>
+                        <div id="mission-district-cleared" class="mission-district-cleared hidden">
+                            <span aria-hidden="true">🏙️</span>
+                            <div><small>Stadtviertel befreit</small><strong id="mission-district-cleared-name">Unit · Part</strong></div>
+                        </div>
+                        <div id="mission-achievement-unlock" class="mission-achievement-unlock hidden">
                         <span>🏅 Neues Abzeichen</span>
                         <strong id="mission-achievement-unlock-title">Erste Rettung</strong>
                     </div>
                 </div>
-                <div class="final-score-display">
+                <div id="final-score-display" class="final-score-display">
                     <h3>Score</h3>
                     <div id="stat-final-score">0</div>
                     <div id="new-record-indicator" class="new-record hidden">🎉 Neuer Rekord!</div>
                     <button id="show-leaderboard-btn" class="btn-secondary" style="margin-top: 15px; font-size: 1.5rem; padding: 10px 20px; font-family: 'Roboto', sans-serif;">Trage dich in die Weltrangliste ein</button>
                 </div>
-                <div class="visual-stats">
+                <div id="visual-stats" class="visual-stats">
                     <div class="stat-item">
                         <h3>Erfolgsquote</h3>
                         <div class="pie-chart" id="accuracy-pie">
@@ -466,7 +568,7 @@
                 </div>
                 <div class="end-actions">
                     <button id="restart-btn" class="btn-primary">Neue Jagd</button>
-                    <button id="change-mission-settings-btn" class="btn-secondary hidden" type="button">Lernpfad ändern</button>
+                    <button id="change-mission-settings-btn" class="btn-secondary hidden" type="button">Einsatz ändern</button>
                 </div>
                 <div class="weaknesses">
                     <h3>Deine Schwächen:</h3>

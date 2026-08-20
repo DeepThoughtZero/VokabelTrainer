@@ -31,6 +31,58 @@ window.VocabUtils = Object.freeze({
         return 'normal';
     },
 
+    getVocabularyDistrict(vocab, courseId = '') {
+        const unit = String(vocab?.unit || 'Ohne Unit').trim() || 'Ohne Unit';
+        const part = String(vocab?.part || 'Basis').trim() || 'Basis';
+        const shortUnit = unit.match(/Unit\s*\d+/i)?.[0] || unit.replace(/^Welcome back to\s+/i, 'Welcome ');
+        const scope = String(courseId || 'course');
+        return {
+            id: [scope, unit, part].map(value => encodeURIComponent(value)).join(':'),
+            unit,
+            part,
+            label: shortUnit,
+            subtitle: part
+        };
+    },
+
+    createVocabularyDistricts(vocabulary, courseId = '') {
+        const districts = new Map();
+        for (const vocab of Array.from(vocabulary || [])) {
+            const district = this.getVocabularyDistrict(vocab, courseId);
+            if (!districts.has(district.id)) {
+                districts.set(district.id, { ...district, vocabCount: 0 });
+            }
+            districts.get(district.id).vocabCount++;
+        }
+        return [...districts.values()];
+    },
+
+    pickMissionDistrict(targetWords, courseId = '') {
+        const counts = new Map();
+        const firstSeen = new Map();
+        Array.from(targetWords || []).forEach((vocab, index) => {
+            const district = this.getVocabularyDistrict(vocab, courseId);
+            counts.set(district.id, (counts.get(district.id) || 0) + 1);
+            if (!firstSeen.has(district.id)) firstSeen.set(district.id, { district, index });
+        });
+        return [...firstSeen.values()]
+            .sort((left, right) => {
+                const countDifference = (counts.get(right.district.id) || 0) - (counts.get(left.district.id) || 0);
+                return countDifference || left.index - right.index;
+            })[0]?.district || null;
+    },
+
+    pickNextMissionDistrict(districts, preferredDistrict, clearedDistrictIds = []) {
+        const availableDistricts = Array.from(districts || []);
+        const cleared = new Set(Array.from(clearedDistrictIds || [], String));
+        const nextUnclearedDistrict = availableDistricts.find(district => !cleared.has(district.id));
+        if (nextUnclearedDistrict) return nextUnclearedDistrict;
+        if (preferredDistrict && availableDistricts.some(district => district.id === preferredDistrict.id)) {
+            return preferredDistrict;
+        }
+        return availableDistricts[0] || null;
+    },
+
     createMissionTargetSet(vocabulary, options = {}) {
         const requestedTargetSize = Number(options.targetSize);
         const requestedNewWordLimit = Number(options.newWordLimit);
@@ -39,7 +91,7 @@ window.VocabUtils = Object.freeze({
             : 12;
         const newWordLimit = Number.isFinite(requestedNewWordLimit) && requestedNewWordLimit >= 0
             ? Math.floor(requestedNewWordLimit)
-            : 6;
+            : 3;
         const isKnown = typeof options.isKnown === 'function' ? options.isKnown : () => false;
         const random = typeof options.random === 'function' ? options.random : Math.random;
         const uniqueVocabulary = [];
@@ -120,9 +172,14 @@ window.VocabUtils = Object.freeze({
         const hearts = Math.max(0, Math.floor(Number(result.hearts) || 0));
         const totalAttempts = Math.max(0, Math.floor(Number(result.totalAttempts) || 0));
         const correctAttempts = Math.max(0, Math.floor(Number(result.correctAttempts) || 0));
+        const currentMissionStreak = Math.max(0, Math.floor(Number(result.currentMissionStreak) || 0));
+        const districtAlreadyCleared = Boolean(result.districtAlreadyCleared);
         const completed = targetCount > 0 && securedCount >= targetCount;
-        const completionBonusXp = completed ? 50 : 0;
-        const recoveryBonusXp = recoveredCorrections * 15;
+        const completionBonusXp = completed ? 120 : 0;
+        const recoveryBonusXp = recoveredCorrections * 25;
+        const survivalBonusXp = completed ? (hearts >= 3 ? 75 : hearts === 2 ? 40 : 20) : 0;
+        const liberationBonusXp = completed ? (districtAlreadyCleared ? 25 : 100) : 0;
+        const streakBonusXp = completed ? Math.min(100, (currentMissionStreak + 1) * 20) : 0;
         const perfect = completed
             && hearts >= 3
             && totalAttempts === correctAttempts
@@ -132,7 +189,10 @@ window.VocabUtils = Object.freeze({
             answerXp,
             completionBonusXp,
             recoveryBonusXp,
-            totalXp: answerXp + completionBonusXp + recoveryBonusXp,
+            survivalBonusXp,
+            liberationBonusXp,
+            streakBonusXp,
+            totalXp: answerXp + completionBonusXp + recoveryBonusXp + survivalBonusXp + liberationBonusXp + streakBonusXp,
             securedCount,
             recoveredCorrections,
             completed,
@@ -152,7 +212,12 @@ window.VocabUtils = Object.freeze({
             },
             rescuedWords: Math.max(0, Math.floor(Number(value.rescuedWords) || 0)),
             perfectMissions: Math.max(0, Math.floor(Number(value.perfectMissions) || 0)),
-            correctionsRecovered: Math.max(0, Math.floor(Number(value.correctionsRecovered) || 0))
+            correctionsRecovered: Math.max(0, Math.floor(Number(value.correctionsRecovered) || 0)),
+            currentStreak: Math.max(0, Math.floor(Number(value.currentStreak) || 0)),
+            bestStreak: Math.max(0, Math.floor(Number(value.bestStreak) || 0)),
+            clearedDistricts: Array.isArray(value.clearedDistricts)
+                ? [...new Set(value.clearedDistricts.map(String).filter(Boolean))]
+                : []
         };
     },
 
@@ -164,9 +229,17 @@ window.VocabUtils = Object.freeze({
 
         if (reward.completed) {
             career.missionsCompleted++;
+            career.currentStreak++;
+            career.bestStreak = Math.max(career.bestStreak, career.currentStreak);
             const medal = ['gold', 'silver', 'bronze'].includes(reward.medal) ? reward.medal : 'bronze';
             career.medals[medal]++;
             if (reward.perfect) career.perfectMissions++;
+            const districtId = String(reward.districtId || '');
+            if (districtId && !career.clearedDistricts.includes(districtId)) {
+                career.clearedDistricts.push(districtId);
+            }
+        } else {
+            career.currentStreak = 0;
         }
         return career;
     },

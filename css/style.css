@@ -30,6 +30,18 @@ body {
     align-items: flex-end;
 }
 
+body.halo-active {
+    background-image: url('../assets/background_halo_city.webp') !important;
+    background-position: center;
+    background-size: cover;
+}
+
+body.command-active {
+    background-image: url('../assets/background_helicopter_command.webp') !important;
+    background-position: center;
+    background-size: cover;
+}
+
 #app-container {
     width: 1920px;
     height: 1200px;
@@ -309,7 +321,7 @@ body {
 
 .play-style-grid {
     display: grid;
-    grid-template-columns: 1.35fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
     margin-bottom: 28px;
 }
@@ -672,6 +684,984 @@ body {
     border: 1px solid currentColor;
     border-radius: 8px;
     cursor: pointer;
+}
+
+/* Mission briefing in the command center */
+.command-center-screen,
+.halo-screen {
+    isolation: isolate;
+    overflow: hidden;
+    padding: 52px 70px 70px;
+}
+
+.command-center-screen::before,
+.halo-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -3;
+    background-position: center;
+    background-size: cover;
+    transform: scale(1.02);
+}
+
+.command-center-screen::before {
+    background-image: url('../assets/background_helicopter_command.webp');
+}
+
+body.command-active .command-center-screen::before,
+body.halo-active .halo-screen::before {
+    background-image: none;
+}
+
+.command-center-shade {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+}
+
+.command-center-shade {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 24%, rgba(0, 0, 0, 0.28) 100%),
+        radial-gradient(circle at 58% 55%, rgba(0, 255, 136, 0.1), transparent 34%);
+}
+
+.command-center-header,
+.halo-header {
+    position: relative;
+    z-index: 2;
+    max-width: 1300px;
+    margin: 0 auto 30px;
+    text-align: center;
+}
+
+.command-phase-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 7px 18px;
+    color: #07150d;
+    background: var(--accent-color);
+    border-radius: 999px;
+    box-shadow: 0 0 24px rgba(0, 255, 136, 0.38);
+    font-size: 0.95rem;
+    font-weight: 1000;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.command-center-header h1,
+.halo-header h1 {
+    margin: 8px 0 3px;
+    color: #fff;
+    font-family: 'Creepster', cursive;
+    font-size: 4.2rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 24px rgba(0, 255, 136, 0.54), 0 5px 18px #000;
+}
+
+.command-center-header p,
+.halo-header p {
+    color: #d4ded9;
+    font-size: 1.3rem;
+    text-shadow: 0 2px 8px #000;
+}
+
+.halo-header p:empty {
+    display: none;
+}
+
+.command-center-layout {
+    position: relative;
+    z-index: 2;
+    width: min(1400px, 84%);
+    margin: 0 auto;
+}
+
+.command-vocab-card {
+    width: 100%;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+    border-color: rgba(0, 255, 136, 0.34);
+    background: linear-gradient(145deg, rgba(3, 18, 13, 0.84), rgba(0, 0, 0, 0.76));
+    backdrop-filter: blur(5px);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.72), inset 0 0 34px rgba(0, 255, 136, 0.04);
+}
+
+.command-word-progress {
+    width: min(300px, 34%);
+    margin: 0;
+}
+
+.command-word-progress > span {
+    display: block;
+    margin-bottom: 8px;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: bold;
+}
+
+.command-word-progress > div {
+    height: 12px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.72);
+    border: 1px solid rgba(0, 255, 136, 0.34);
+    border-radius: 999px;
+}
+
+.command-word-progress i {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #00b964, #7dffbc);
+    box-shadow: 0 0 14px rgba(0, 255, 136, 0.64);
+    transition: width 0.45s ease;
+}
+
+.command-vocab-card {
+    position: relative;
+    display: flex;
+    min-height: 520px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 28px 36px 24px;
+}
+
+.command-briefing-meta {
+    display: flex;
+    gap: 28px;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin: 17px 0 8px;
+}
+
+.command-briefing-meta > div:first-child {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.command-briefing-meta small {
+    color: #72ffb5;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+}
+
+.command-briefing-meta strong {
+    overflow: hidden;
+    color: #fff;
+    font-size: 1.28rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.command-briefing-meta > div:first-child > span {
+    overflow: hidden;
+    color: #aebbb6;
+    font-size: 0.88rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.command-vocab-card.word-secured {
+    border-color: #8dffc7;
+    box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.14), 0 22px 60px rgba(0, 0, 0, 0.72), inset 0 0 46px rgba(0, 255, 136, 0.1);
+}
+
+#command-foreign-word,
+#correction-answer {
+    transition: opacity 0.28s ease, filter 0.28s ease, transform 0.28s ease;
+}
+
+.command-vocab-card.solution-concealed #command-foreign-word,
+.correction-panel.solution-concealed #correction-answer {
+    opacity: 0.08;
+    filter: blur(8px);
+    transform: translateY(-2px) scale(0.98);
+    user-select: none;
+}
+
+.command-vocab-card.word-secured #command-foreign-word,
+.correction-panel.confirmed #correction-answer {
+    opacity: 1;
+    filter: none;
+    transform: none;
+}
+
+.command-word-status {
+    position: absolute;
+    top: 0;
+    left: 40px;
+    padding: 7px 16px;
+    color: #07150d;
+    background: #ffca43;
+    border-radius: 0 0 10px 10px;
+    font-size: 0.9rem;
+    font-weight: 1000;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.command-radio-transmission {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    margin: 18px 0 12px;
+    padding: 13px 17px;
+    color: #d9fff0;
+    background: linear-gradient(90deg, rgba(0, 21, 16, 0.96), rgba(0, 70, 47, 0.82));
+    border: 1px solid rgba(0, 255, 136, 0.42);
+    border-radius: 13px;
+    box-shadow: inset 0 0 24px rgba(0, 255, 136, 0.06), 0 0 20px rgba(0, 255, 136, 0.08);
+}
+
+.command-radio-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    font-size: 2.2rem;
+    background: rgba(0, 0, 0, 0.48);
+    border-radius: 11px;
+}
+
+.command-radio-transmission small {
+    color: #75ffb8;
+    font-size: 0.78rem;
+    font-weight: 1000;
+    letter-spacing: 2.2px;
+}
+
+.command-radio-transmission p {
+    margin-top: 3px;
+    color: #fff;
+    font-size: 1.08rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.command-radio-wave {
+    display: flex;
+    height: 42px;
+    gap: 4px;
+    align-items: center;
+}
+
+.command-radio-wave i {
+    width: 4px;
+    height: 12px;
+    background: #59ffac;
+    border-radius: 999px;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.72);
+    animation: radioWave 0.75s ease-in-out infinite alternate;
+}
+
+.command-radio-wave i:nth-child(2) { animation-delay: -0.2s; }
+.command-radio-wave i:nth-child(3) { animation-delay: -0.45s; }
+.command-radio-wave i:nth-child(4) { animation-delay: -0.3s; }
+.command-radio-wave i:nth-child(5) { animation-delay: -0.55s; }
+
+@keyframes radioWave {
+    from { height: 8px; opacity: 0.5; }
+    to { height: 36px; opacity: 1; }
+}
+
+.command-language-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+    margin-top: 0;
+    padding: 22px 25px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.045), rgba(0, 255, 136, 0.075));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+}
+
+.command-language-row > div {
+    min-width: 0;
+}
+
+.command-language-row small {
+    display: block;
+    margin-bottom: 4px;
+    color: #7dffbc;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.command-language-row strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: #fff;
+    font-size: clamp(1.55rem, 2.1vw, 2.75rem);
+    line-height: 1.12;
+}
+
+.command-language-row > span {
+    color: var(--accent-color);
+    font-size: 2.4rem;
+    text-align: center;
+}
+
+.command-audio-btn {
+    min-width: 150px;
+    padding: 12px 15px;
+    color: #07150d;
+    background: #7dffbc;
+    border: 0;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.24);
+}
+
+.command-builder {
+    margin: 18px 0;
+}
+
+.command-builder > p {
+    margin-bottom: 10px;
+    color: #c8d2cd;
+    font-size: 1.05rem;
+    text-align: center;
+}
+
+.command-builder .letter-target,
+.command-builder .letter-pool {
+    min-height: 88px;
+    gap: 10px;
+    padding: 10px;
+    border-width: 1px;
+    background: rgba(0, 0, 0, 0.66);
+}
+
+.command-builder .letter-target {
+    margin-bottom: 10px;
+    background: rgba(5, 42, 25, 0.72);
+}
+
+.command-builder .word-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 7px !important;
+}
+
+.command-builder .letter-slot {
+    width: 40px;
+    height: 47px;
+    border-bottom-width: 3px;
+}
+
+.command-builder .letter-btn {
+    min-width: 40px;
+    min-height: 47px;
+    padding: 6px 10px;
+    font-size: 1.7rem;
+}
+
+.command-builder .fixed-token {
+    font-size: 1.45rem;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+}
+
+/* HALO insertion and 3D book-district map */
+.halo-screen::before {
+    background-image: url('../assets/background_halo_city.webp');
+}
+
+.halo-header {
+    max-width: 1500px;
+    margin-bottom: 18px;
+}
+
+.halo-header h1 {
+    font-size: 3.7rem;
+}
+
+.halo-header h1 span {
+    color: var(--accent-color);
+}
+
+.halo-jump-stage {
+    position: absolute;
+    top: 205px;
+    left: 62px;
+    bottom: 115px;
+    width: 49%;
+    overflow: hidden;
+    border: 1px solid rgba(125, 220, 255, 0.2);
+    border-radius: 24px;
+    background: radial-gradient(circle at 50% 36%, rgba(93, 179, 255, 0.13), transparent 42%);
+    box-shadow: inset 0 0 60px rgba(2, 8, 17, 0.72), 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.halo-helicopter {
+    position: absolute;
+    top: 28px;
+    left: 44px;
+    z-index: 3;
+    color: #b7c6cb;
+    filter: grayscale(1) brightness(0.54) drop-shadow(0 10px 14px #000);
+    transform: rotate(-8deg);
+}
+
+.halo-helicopter span {
+    font-size: 7rem;
+}
+
+.halo-helicopter i {
+    position: absolute;
+    top: 20px;
+    left: -24px;
+    width: 160px;
+    height: 5px;
+    background: rgba(196, 221, 229, 0.52);
+    border-radius: 50%;
+    animation: haloRotor 0.11s linear infinite;
+}
+
+.halo-speed-lines {
+    position: absolute;
+    inset: -20% 0;
+    opacity: 0;
+    background: repeating-linear-gradient(102deg, transparent 0 55px, rgba(184, 225, 255, 0.18) 57px 60px, transparent 63px 108px);
+}
+
+.halo-operative {
+    position: absolute;
+    top: 44%;
+    left: 12%;
+    z-index: 5;
+    width: clamp(260px, 30vw, 460px);
+    aspect-ratio: 2 / 3;
+    transform: translate(-50%, -50%) scale(1.12) rotate(-8deg);
+    opacity: 0;
+    filter: drop-shadow(0 22px 22px rgba(0, 0, 0, 0.92));
+}
+
+.halo-operative img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.halo-screen.is-jumping .halo-operative {
+    animation: haloFreefall 4.8s cubic-bezier(0.12, 0.52, 0.3, 1) both;
+}
+
+.halo-screen.is-jumping .halo-speed-lines {
+    animation: haloSpeed 0.5s linear 0.8s 6 both;
+}
+
+.halo-landing-beacon {
+    position: absolute;
+    right: 34px;
+    bottom: 28px;
+    display: grid;
+    z-index: 4;
+    min-width: 178px;
+    justify-items: center;
+    color: #ffe08a;
+    text-shadow: 0 2px 8px #000;
+}
+
+.halo-landing-beacon i {
+    width: 120px;
+    height: 42px;
+    margin-bottom: 7px;
+    border: 3px solid #ffbd31;
+    border-radius: 50%;
+    box-shadow: 0 0 0 8px rgba(255, 183, 42, 0.15), 0 0 30px rgba(255, 183, 42, 0.72), inset 0 0 24px rgba(255, 183, 42, 0.35);
+    animation: landingBeaconPulse 1.1s ease-in-out infinite;
+}
+
+.halo-landing-beacon span {
+    font-size: 0.76rem;
+    letter-spacing: 2px;
+}
+
+.halo-landing-beacon strong {
+    margin-top: 3px;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.halo-city-map {
+    position: absolute;
+    top: 205px;
+    right: 62px;
+    bottom: 115px;
+    width: 45%;
+    max-height: none;
+    margin: 0;
+    overflow: hidden;
+    padding: 24px 26px 20px;
+    border-color: rgba(0, 255, 136, 0.35);
+    background: linear-gradient(145deg, rgba(1, 15, 17, 0.93), rgba(0, 0, 0, 0.84));
+    box-shadow: 0 22px 64px rgba(0, 0, 0, 0.64), inset 0 0 45px rgba(0, 255, 136, 0.035);
+}
+
+.halo-map-heading {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 13px;
+    border-bottom: 1px solid rgba(0, 255, 136, 0.18);
+}
+
+.halo-map-heading h2 {
+    color: #fff;
+    font-size: 2rem;
+}
+
+.halo-map-heading > span {
+    padding: 8px 12px;
+    color: #7dffbc;
+    white-space: nowrap;
+    background: rgba(0, 255, 136, 0.09);
+    border: 1px solid rgba(0, 255, 136, 0.23);
+    border-radius: 999px;
+    font-weight: bold;
+}
+
+.halo-district-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    height: calc(100% - 120px);
+    padding: 17px 3px 11px;
+    overflow-y: auto;
+    scrollbar-color: rgba(0, 255, 136, 0.55) rgba(0, 0, 0, 0.35);
+    scrollbar-width: thin;
+}
+
+.halo-district-grid::-webkit-scrollbar {
+    width: 7px;
+}
+
+.halo-district-grid::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 999px;
+}
+
+.halo-district-grid::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 136, 0.55);
+    border-radius: 999px;
+}
+
+.halo-district {
+    position: relative;
+    display: flex;
+    min-height: 107px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 5px 10px;
+    color: #9ba7ab;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 11px;
+    font-family: 'Roboto', sans-serif;
+    appearance: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.halo-district:not(:disabled):hover,
+.halo-district:not(:disabled):focus-visible {
+    z-index: 2;
+    transform: translateY(-6px);
+    border-color: rgba(125, 255, 188, 0.75);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.16), 0 12px 26px rgba(0, 0, 0, 0.62);
+}
+
+.halo-district:disabled {
+    cursor: default;
+}
+
+.district-cuboid {
+    position: relative;
+    display: block;
+    width: 58px;
+    height: 38px;
+    margin-bottom: 7px;
+    background: linear-gradient(145deg, #252e31, #101719);
+    border: 1px solid #455157;
+    box-shadow: 12px 10px 0 #080c0e, 0 0 18px rgba(92, 121, 130, 0.22);
+    transform: skewY(-8deg) rotate(-2deg);
+    transform-style: preserve-3d;
+}
+
+.district-cuboid::before {
+    content: '';
+    position: absolute;
+    right: -13px;
+    top: 5px;
+    width: 13px;
+    height: 38px;
+    background: #090e10;
+    border: 1px solid #303a3e;
+    transform: skewY(38deg);
+    transform-origin: left top;
+}
+
+.district-cuboid::after {
+    content: '';
+    position: absolute;
+    top: -11px;
+    left: 5px;
+    width: 57px;
+    height: 12px;
+    background: #354247;
+    border: 1px solid #596970;
+    transform: skewX(-39deg);
+    transform-origin: left bottom;
+}
+
+.district-cuboid i {
+    position: absolute;
+    inset: 8px 7px;
+    z-index: 2;
+    background: repeating-linear-gradient(90deg, rgba(151, 183, 190, 0.28) 0 4px, transparent 4px 9px);
+}
+
+.halo-district strong {
+    width: 100%;
+    overflow: hidden;
+    color: #d5dcdf;
+    font-size: 0.9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.halo-district small {
+    margin-top: 2px;
+    color: #7f8c91;
+    font-size: 0.74rem;
+}
+
+.halo-district.target {
+    color: #ffd46b;
+    background: rgba(255, 174, 0, 0.1);
+    border-color: rgba(255, 190, 50, 0.72);
+    box-shadow: inset 0 0 24px rgba(255, 173, 0, 0.08), 0 0 18px rgba(255, 174, 0, 0.17);
+    animation: targetDistrictPulse 1.45s ease-in-out infinite;
+}
+
+.halo-district.target .district-cuboid {
+    background: linear-gradient(145deg, #7a4b0d, #2a1702);
+    border-color: #ffc856;
+    box-shadow: 12px 10px 0 #170c01, 0 0 24px rgba(255, 179, 20, 0.55);
+}
+
+.halo-district.target .district-cuboid::after { background: #b77817; border-color: #ffdb7a; }
+.halo-district.target .district-cuboid::before { background: #281300; border-color: #7f4b00; }
+
+.halo-district.cleared {
+    color: #7dffbc;
+    background: rgba(0, 255, 136, 0.075);
+    border-color: rgba(0, 255, 136, 0.42);
+}
+
+.halo-district.cleared .district-cuboid {
+    background: linear-gradient(145deg, #087343, #022c19);
+    border-color: #65ffb1;
+    box-shadow: 12px 10px 0 #00160c, 0 0 24px rgba(0, 255, 136, 0.38);
+}
+
+.halo-district.cleared .district-cuboid::after { background: #12a660; border-color: #8affc5; }
+.halo-district.cleared .district-cuboid::before { background: #003c21; border-color: #087b45; }
+
+.halo-district.target.cleared {
+    border-color: #d8ff82;
+    box-shadow: 0 0 22px rgba(130, 255, 117, 0.4);
+}
+
+.halo-map-legend {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    color: #aab5b1;
+    font-size: 0.84rem;
+}
+
+.halo-map-legend span {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.district-legend {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #394449;
+    border-radius: 3px;
+}
+
+.district-legend.target { background: #ffb82e; box-shadow: 0 0 8px #ffb82e; }
+.district-legend.cleared { background: #00e880; box-shadow: 0 0 8px #00e880; }
+
+.halo-deploy-panel {
+    position: absolute;
+    right: 62px;
+    bottom: 34px;
+    display: flex;
+    width: 45%;
+    max-height: none;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 12px 16px 12px 22px;
+    overflow: hidden;
+    border-color: rgba(0, 255, 136, 0.34);
+}
+
+.halo-deploy-panel span {
+    color: #c9d4cf;
+    font-size: 1rem;
+}
+
+.halo-deploy-panel .btn-primary {
+    width: auto;
+    min-width: 245px;
+    margin: 0;
+    padding: 11px 20px;
+}
+
+.halo-deploy-panel .btn-primary:disabled {
+    cursor: wait;
+    opacity: 0.44;
+    filter: grayscale(0.7);
+}
+
+.halo-screen.is-planning .halo-header {
+    margin-bottom: 12px;
+}
+
+.halo-screen.is-planning .halo-jump-stage {
+    display: none;
+}
+
+.halo-screen.is-planning .halo-city-map {
+    top: 188px;
+    left: 54px;
+    right: 54px;
+    bottom: 112px;
+    width: auto;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.halo-screen.is-planning .halo-map-heading {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 5;
+    width: min(620px, 66%);
+    padding: 7px 16px;
+    border: 1px solid rgba(0, 255, 136, 0.28);
+    border-radius: 999px;
+    background: rgba(0, 12, 13, 0.7);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
+    transform: translateX(-50%);
+    backdrop-filter: blur(7px);
+}
+
+.halo-screen.is-planning .halo-map-heading h2 {
+    font-size: 1.18rem;
+}
+
+.halo-screen.is-planning #halo-map-eyebrow {
+    display: none;
+}
+
+.halo-screen.is-planning .halo-district-grid {
+    position: absolute;
+    inset: 50px 0 0;
+    display: block;
+    height: auto;
+    padding: 0;
+    overflow: visible;
+}
+
+.halo-screen.is-planning .halo-district {
+    position: absolute;
+    left: var(--map-x);
+    top: var(--map-y);
+    width: 138px;
+    min-height: 94px;
+    padding: 6px 2px 8px;
+    overflow: visible;
+    background: transparent;
+    border-color: transparent;
+    border-radius: 50%;
+    text-shadow: 0 2px 8px #000, 0 0 4px #000;
+    box-shadow: none;
+    transform: translate(-50%, -50%) scale(var(--map-scale));
+    transform-origin: 50% 85%;
+}
+
+.halo-screen.is-planning .halo-district.target {
+    background: radial-gradient(ellipse at 50% 68%, rgba(255, 177, 31, 0.32), transparent 62%);
+    border-color: transparent;
+    box-shadow: none;
+    animation: none;
+}
+
+.halo-screen.is-planning .district-cuboid {
+    width: 58px;
+    height: 39px;
+    margin-bottom: 8px;
+}
+
+.halo-screen.is-planning .halo-district strong,
+.halo-screen.is-planning .halo-district small {
+    width: auto;
+    max-width: 125px;
+    padding: 1px 7px;
+    overflow: hidden;
+    background: rgba(0, 8, 10, 0.68);
+    border-radius: 999px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+.halo-screen.is-planning .halo-district.target .district-cuboid {
+    animation: mapTargetBeacon 1.35s ease-in-out infinite;
+}
+
+.halo-screen.is-planning .halo-district:not(:disabled):hover,
+.halo-screen.is-planning .halo-district:not(:disabled):focus-visible {
+    transform: translate(-50%, -58%) scale(var(--map-scale));
+}
+
+.halo-screen.is-planning .halo-deploy-panel {
+    left: 50%;
+    right: auto;
+    width: fit-content;
+    padding: 8px;
+    background: rgba(1, 15, 13, 0.82);
+    border-radius: 999px;
+    transform: translateX(-50%);
+    backdrop-filter: blur(8px);
+}
+
+.halo-screen.is-planning .halo-deploy-panel > span {
+    display: none;
+}
+
+.halo-screen.is-planning .halo-deploy-panel .btn-primary {
+    min-width: 390px;
+}
+
+.halo-screen:not(.is-planning) .halo-city-map,
+.halo-screen:not(.is-planning) .halo-deploy-panel {
+    display: none;
+}
+
+.halo-screen:not(.is-planning) .halo-jump-stage {
+    top: 170px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.halo-screen:not(.is-planning) .halo-landing-beacon {
+    right: auto;
+    bottom: auto;
+    left: var(--landing-x, 58%);
+    top: var(--landing-y, 70%);
+    transform: translate(-50%, -50%) scale(var(--landing-scale, 0.8));
+}
+
+#end-screen.mission-summary-mode #show-leaderboard-btn,
+#end-screen.mission-summary-mode #visual-stats {
+    display: none !important;
+}
+
+@keyframes haloRotor {
+    from { transform: scaleX(0.35); opacity: 0.5; }
+    to { transform: scaleX(1.25); opacity: 0.9; }
+}
+
+@keyframes haloFreefall {
+    0% { left: 12%; top: 44%; opacity: 0; transform: translate(-50%, -50%) scale(1.12) rotate(-8deg); }
+    10% { opacity: 1; transform: translate(-50%, -50%) scale(1.02) rotate(-5deg); }
+    45% { opacity: 1; transform: translate(-50%, -50%) scale(0.66) rotate(4deg); }
+    76% { opacity: 1; transform: translate(-50%, -50%) scale(0.38) rotate(-2deg); }
+    100% { left: var(--landing-x, 58%); top: var(--landing-y, 70%); opacity: 1; transform: translate(-50%, -50%) scale(0.18) rotate(0deg); }
+}
+
+@keyframes haloSpeed {
+    from { opacity: 0.05; transform: translateY(-80px); }
+    50% { opacity: 0.8; }
+    to { opacity: 0.05; transform: translateY(100px); }
+}
+
+@keyframes targetDistrictPulse {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes landingBeaconPulse {
+    0%, 100% { opacity: 0.72; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes mapTargetBeacon {
+    0%, 100% { filter: brightness(1); transform: skewY(-8deg) rotate(-2deg) scale(1); }
+    50% { filter: brightness(1.35); transform: skewY(-8deg) rotate(-2deg) scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .halo-helicopter i,
+    .halo-screen.is-jumping .halo-operative,
+    .halo-screen.is-jumping .halo-speed-lines,
+    .halo-landing-beacon i,
+    .halo-district.target,
+    .command-radio-wave i {
+        animation: none;
+    }
+
+    .halo-operative {
+        top: 20px;
+        left: 48%;
+        opacity: 1;
+        transform: translateX(-50%) scale(0.7);
+    }
 }
 
 .course-change-btn {
@@ -1512,35 +2502,6 @@ select {
     color: #84ffc2;
 }
 
-.marked-zombie-badge {
-    position: absolute;
-    top: -28px;
-    left: 50%;
-    z-index: 8;
-    display: flex;
-    gap: 7px;
-    align-items: center;
-    padding: 7px 12px 7px 8px;
-    color: #171001;
-    background: linear-gradient(135deg, #fff09b, #ffc02f);
-    border: 2px solid #fff2ad;
-    border-radius: 999px;
-    box-shadow: 0 0 22px rgba(255, 190, 42, 0.62), 0 7px 16px rgba(0, 0, 0, 0.58);
-    transform: translateX(-50%);
-    animation: markedBadgePulse 1.25s ease-in-out infinite;
-}
-
-.marked-zombie-badge span {
-    font-size: 1.75rem;
-    font-weight: 1000;
-    line-height: 1;
-}
-
-.marked-zombie-badge strong {
-    font-size: 0.8rem;
-    letter-spacing: 1.3px;
-}
-
 #zombie.marked-zombie .sprite-img,
 #zombie.marked-zombie #zombie-sprite-canvas {
     filter: sepia(0.35) saturate(1.5) drop-shadow(0 0 16px rgba(255, 194, 55, 0.92)) drop-shadow(0 0 34px rgba(255, 152, 23, 0.45));
@@ -1578,11 +2539,6 @@ select {
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes markedBadgePulse {
-    0%, 100% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.08); }
-}
-
 @keyframes markedZombieEscape {
     0% { opacity: 1; transform: translateX(0) rotate(0); }
     28% { opacity: 1; transform: translateX(-45px) rotate(-4deg); }
@@ -1592,7 +2548,6 @@ select {
 @media (prefers-reduced-motion: reduce) {
     .correction-panel,
     .marked-retry-banner,
-    .marked-zombie-badge,
     #zombie.marked-fleeing {
         animation: none;
     }
@@ -2101,7 +3056,7 @@ select {
     grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
     gap: 14px 24px;
     align-items: center;
-    max-width: 920px;
+    max-width: 1120px;
     margin: 0 auto 18px;
     padding: 18px 24px;
     text-align: left;
@@ -2221,8 +3176,46 @@ select {
     border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
+.mission-career-strip #mission-career-streak {
+    color: #ffd75f;
+}
+
 .mission-career-strip strong {
     color: #fff;
+}
+
+.mission-district-cleared {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 11px;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    color: #d8ffe9;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.13), transparent);
+    border-top: 1px solid rgba(0, 255, 136, 0.14);
+}
+
+.mission-district-cleared > span {
+    font-size: 1.8rem;
+}
+
+.mission-district-cleared div {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.mission-district-cleared small {
+    color: #80eeb8;
+    font-size: 0.76rem;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+}
+
+.mission-district-cleared strong {
+    color: #fff;
+    font-size: 1.08rem;
 }
 
 .mission-achievement-unlock {

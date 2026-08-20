@@ -63,9 +63,18 @@ test('mission loop is a separate play style with a finite learning objective', (
     const html = read('index.html');
     const app = read('js/app.js');
     const css = read('css/style.css');
+    const vocabUtils = read('js/vocab_utils.js');
     assert.match(html, /id="mission-selection-screen"/);
     assert.match(html, /data-play-style="mission"/);
     assert.match(html, /data-play-style="hunt"/);
+    assert.ok(html.indexOf('data-play-style="hunt"') < html.indexOf('data-play-style="mission"'));
+    assert.match(html, /class="play-style-card active"[^>]*data-play-style="hunt"/);
+    assert.match(html, /id="command-center-screen"/);
+    assert.match(html, /id="command-letter-pool"/);
+    assert.match(html, /id="command-replay-audio-btn"/);
+    assert.match(html, /id="halo-screen"/);
+    assert.match(html, /id="halo-district-grid"/);
+    assert.match(html, /id="halo-deploy-btn"/);
     assert.match(html, /class="mission-route"/);
     assert.match(html, /id="mission-hud"/);
     assert.match(html, /id="mission-encounter-label"/);
@@ -80,7 +89,7 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.doesNotMatch(html, /<option value="mission"/);
     assert.match(app, /missionTargetSize:\s*12/);
     assert.match(app, /missionMaxEncounters:\s*20/);
-    assert.match(app, /missionNewWordLimit:\s*6/);
+    assert.match(app, /missionNewWordLimit:\s*3/);
     assert.match(app, /finishMissionIfNeeded/);
     assert.match(app, /currentDuration \*= 1\.45/);
     assert.match(app, /showMissionPhaseTransition/);
@@ -95,13 +104,60 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.match(app, /einsatzleiter/);
     assert.match(app, /goldkommando/);
     assert.match(app, /wortretter/);
-    assert.match(app, /Empfohlene nächste Mission/);
+    assert.match(app, /Zum nächsten HALO-Sprung/);
+    assert.match(app, /playStyle:\s*'hunt'/);
+    assert.match(app, /beginMissionBriefing/);
+    assert.match(app, /beginHaloSequence/);
+    assert.match(app, /launchGameSession/);
+    assert.match(app, /createVocabularyDistricts/);
+    assert.match(app, /clearedDistricts/);
     assert.match(css, /\.mission-route\s*\{/);
     assert.match(css, /\.mission-hud\s*\{/);
     assert.match(css, /\.mission-phase-overlay\s*\{/);
     assert.match(css, /\.mission-progression\s*\{/);
     assert.match(css, /\.profile-rescue-career\s*\{/);
     assert.match(css, /#profile-rescue-medals\s*\{[^}]*white-space:\s*nowrap;/s);
+    assert.match(css, /\.command-center-screen::before\s*\{[^}]*background-image:\s*url\('\.\.\/assets\/background_helicopter_command\.webp'\)/s);
+    assert.match(css, /\.halo-screen::before\s*\{[^}]*background-image:\s*url\('\.\.\/assets\/background_halo_city\.webp'\)/s);
+    assert.match(css, /\.district-cuboid\s*\{/);
+    assert.ok(fs.existsSync(path.join(root, 'assets/background_helicopter_command.webp')));
+    assert.ok(fs.existsSync(path.join(root, 'assets/background_halo_city.webp')));
+    assert.ok(fs.existsSync(path.join(root, 'assets/halo_hunter_parachute.webp')));
+    for (let variant = 1; variant <= 5; variant++) {
+        assert.ok(fs.existsSync(path.join(root, `assets/audio/ui/mission_radio_password_intro_${variant}.mp3`)));
+    }
+    assert.match(app, /missionNewWordLimit:\s*3/);
+    assert.match(app, /beginMissionDistrictSelection/);
+    assert.match(app, /solution-concealed/);
+    assert.doesNotMatch(html, /id="command-auto-advance"/);
+    assert.doesNotMatch(html, /class="command-mission-file/);
+    assert.doesNotMatch(html, /id="halo-altitude"/);
+    assert.doesNotMatch(html, /class="halo-map-legend"/);
+    assert.doesNotMatch(html, /<span>🪂<\/span>/);
+    assert.match(html, /assets\/halo_hunter_parachute\.webp/);
+    assert.match(html, /id="halo-landing-district"/);
+    assert.match(html, /id="command-radio-message"/);
+    assert.match(app, /Echo One to Rescue Team/);
+    assert.match(app, /getMissionRadioIntro/);
+    assert.match(app, /startMissionRadioStatic/);
+    assert.match(app, /MISSION_RADIO_INTRO_PATHS = Array\.from\(\s*\{ length: 5 \}/);
+    assert.match(app, /pickMissionRadioIntroPath/);
+    assert.match(app, /}, 650\)/);
+    assert.doesNotMatch(app, /SpeechSynthesisUtterance/);
+    assert.doesNotMatch(html, /class="halo-atmosphere"/);
+    assert.match(vocabUtils, /const nextUnclearedDistrict = availableDistricts\.find/);
+    assert.doesNotMatch(app, /getMissionRadioMessage\(vocab\)/);
+    assert.match(app, /stopHaloSequence\(\);\s*launchGameSession\(\);/);
+    assert.match(app, /MISSION_DISTRICT_MAP_POINTS/);
+    assert.match(app, /--landing-x/);
+    assert.match(css, /@keyframes haloFreefall\s*\{[\s\S]*scale\(1\.12\)[\s\S]*scale\(0\.18\)/);
+    assert.match(app, /liberationBonusXp/);
+    assert.match(app, /streakBonusXp/);
+    assert.doesNotMatch(html, /id="command-next-word-btn"/);
+    assert.match(css, /\.halo-screen\.is-planning \.halo-city-map\s*\{/);
+    assert.match(css, /body\.halo-active\s*\{[^}]*background-image:\s*url\('\.\.\/assets\/background_halo_city\.webp'\)/s);
+    assert.match(css, /\.halo-screen:not\(\.is-planning\) \.halo-city-map/);
+    assert.match(css, /#end-screen\.mission-summary-mode #show-leaderboard-btn/);
 });
 
 test('active correction is mission-only and returns as a visibly marked zombie', () => {
@@ -114,7 +170,7 @@ test('active correction is mission-only and returns as a visibly marked zombie',
     assert.match(html, /id="marked-retry-banner"/);
     assert.match(html, /class="marked-retry-kicker"/);
     assert.match(html, /class="marked-retry-title"/);
-    assert.match(html, /id="marked-zombie-badge"/);
+    assert.doesNotMatch(html, /id="marked-zombie-badge"/);
     assert.match(app, /createCorrectionSchedule\(state\.correction\.encounterSerial\)/);
     assert.match(app, /if \(isMissionMode\(\)\) beginCorrectionConfirmation\(appliedSpeedPenalty\)/);
     assert.match(app, /if \(isMissionMode\(\)\) \{\s*beginCorrectionConfirmation\(\);\s*return;/);
@@ -123,7 +179,7 @@ test('active correction is mission-only and returns as a visibly marked zombie',
     assert.doesNotMatch(app, /querySelector\('div > span'\)/);
     assert.match(css, /\.correction-panel\s*\{/);
     assert.match(css, /\.marked-retry-kicker\s*\{/);
-    assert.match(css, /\.marked-zombie-badge\s*\{/);
+    assert.doesNotMatch(css, /\.marked-zombie-badge\s*\{/);
     assert.match(css, /#zombie\.marked-fleeing\s*\{/);
 });
 

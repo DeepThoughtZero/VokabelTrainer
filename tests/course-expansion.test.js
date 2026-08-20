@@ -92,7 +92,7 @@ test('long vocabulary prompts use smaller speech-bubble text', () => {
     assert.equal(density('sich drehen; sich umdrehen; ausschalten ... einschalten; (nach) links/rechts abbiegen; lauter stellen; dunkel werden'), 'very-long');
 });
 
-test('mission planning limits new words and never repeats a target immediately', () => {
+test('mission planning teaches three new words and fills the rest with known words', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
     const utilities = context.window.VocabUtils;
     const vocabulary = Array.from({ length: 18 }, (_, index) => ({
@@ -101,19 +101,53 @@ test('mission planning limits new words and never repeats a target immediately',
     }));
     const targets = Array.from(utilities.createMissionTargetSet(vocabulary, {
         targetSize: 12,
-        newWordLimit: 6,
+        newWordLimit: 3,
         isKnown: vocab => vocab.known,
         random: () => 0.25
     }));
 
-    assert.equal(targets.length, 12);
-    assert.ok(targets.filter(vocab => !vocab.known).length <= 6);
+    assert.equal(targets.length, 11, 'only eight known words are available to fill the mission');
+    assert.equal(targets.filter(vocab => !vocab.known).length, 3);
+    assert.equal(targets.filter(vocab => vocab.known).length, 8);
     assert.equal(new Set(targets.map(vocab => vocab.id)).size, targets.length);
 
     const lastTarget = targets[0];
     const securedIds = targets.slice(1).map(vocab => vocab.id);
     const next = utilities.pickMissionVocabulary(targets, securedIds, lastTarget.id, () => 0);
     assert.notEqual(next.id, lastTarget.id, 'mission word repeated without a spacer');
+});
+
+test('book units and parts become stable mission districts', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+    const vocabulary = [
+        { id: 'a', unit: 'Unit 1: Holiday stories', part: 'Part A' },
+        { id: 'b', unit: 'Unit 1: Holiday stories', part: 'Part A' },
+        { id: 'c', unit: 'Unit 1: Holiday stories', part: 'Part B' },
+        { id: 'd', unit: 'Unit 2: Shopping', part: 'Part A' }
+    ];
+    const districts = Array.from(utilities.createVocabularyDistricts(vocabulary, 'en-6'));
+
+    assert.equal(districts.length, 3);
+    assert.deepEqual(
+        districts.map(district => [district.label, district.subtitle, district.vocabCount]),
+        [['Unit 1', 'Part A', 2], ['Unit 1', 'Part B', 1], ['Unit 2', 'Part A', 1]]
+    );
+    assert.equal(utilities.pickMissionDistrict(vocabulary.slice(0, 3), 'en-6').subtitle, 'Part A');
+
+    const clearedPreferred = districts[0];
+    const nextDistrict = utilities.pickNextMissionDistrict(
+        districts,
+        clearedPreferred,
+        [clearedPreferred.id],
+        () => 0
+    );
+    assert.equal(nextDistrict.id, districts[1].id, 'an uncleared district should become the next target');
+    assert.equal(
+        utilities.pickNextMissionDistrict(districts, districts[2], [clearedPreferred.id], () => 0.99).id,
+        districts[1].id,
+        'the earliest uncleared district wins over a later preferred or random district'
+    );
 });
 
 test('mission corrections return after two to four spacer encounters', () => {
@@ -159,7 +193,7 @@ test('marked mission words stay out of random spacer encounters', () => {
     assert.equal(picked.id, 'spacer-a');
 });
 
-test('mission rewards favor completed objectives and recovered errors without farming medals', () => {
+test('mission rewards make liberation, survival and rescue streaks meaningfully attractive', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
     const utilities = context.window.VocabUtils;
     const perfectReward = { ...utilities.calculateMissionReward({
@@ -169,13 +203,18 @@ test('mission rewards favor completed objectives and recovered errors without fa
         recoveredCorrections: 0,
         hearts: 3,
         totalAttempts: 12,
-        correctAttempts: 12
+        correctAttempts: 12,
+        currentMissionStreak: 2,
+        districtAlreadyCleared: false
     }) };
     assert.deepEqual(perfectReward, {
         answerXp: 120,
-        completionBonusXp: 50,
+        completionBonusXp: 120,
         recoveryBonusXp: 0,
-        totalXp: 170,
+        survivalBonusXp: 75,
+        liberationBonusXp: 100,
+        streakBonusXp: 60,
+        totalXp: 475,
         securedCount: 12,
         recoveredCorrections: 0,
         completed: true,
@@ -190,11 +229,16 @@ test('mission rewards favor completed objectives and recovered errors without fa
         recoveredCorrections: 2,
         hearts: 2,
         totalAttempts: 16,
-        correctAttempts: 14
+        correctAttempts: 14,
+        currentMissionStreak: 0,
+        districtAlreadyCleared: true
     }) };
-    assert.equal(recoveredReward.completionBonusXp, 50);
-    assert.equal(recoveredReward.recoveryBonusXp, 30);
-    assert.equal(recoveredReward.totalXp, 220);
+    assert.equal(recoveredReward.completionBonusXp, 120);
+    assert.equal(recoveredReward.recoveryBonusXp, 50);
+    assert.equal(recoveredReward.survivalBonusXp, 40);
+    assert.equal(recoveredReward.liberationBonusXp, 25);
+    assert.equal(recoveredReward.streakBonusXp, 20);
+    assert.equal(recoveredReward.totalXp, 395);
     assert.equal(recoveredReward.perfect, false);
     assert.equal(recoveredReward.medal, 'silver');
 });
@@ -211,12 +255,16 @@ test('rescue career persists completed missions, medals, rescued words and perfe
         medal: 'gold',
         perfect: true,
         securedCount: 12,
-        recoveredCorrections: 0
+        recoveredCorrections: 0,
+        districtId: 'en-6:Unit%201:Part%20A'
     });
     assert.equal(afterGold.missionsCompleted, 3);
     assert.equal(afterGold.medals.gold, 1);
     assert.equal(afterGold.rescuedWords, 12);
     assert.equal(afterGold.perfectMissions, 1);
+    assert.equal(afterGold.currentStreak, 1);
+    assert.equal(afterGold.bestStreak, 1);
+    assert.deepEqual(Array.from(afterGold.clearedDistricts), ['en-6:Unit%201:Part%20A']);
 
     const afterIncomplete = utilities.addMissionToRescueCareer(afterGold, {
         completed: false,
@@ -229,18 +277,21 @@ test('rescue career persists completed missions, medals, rescued words and perfe
     assert.equal(afterIncomplete.medals.gold, 1);
     assert.equal(afterIncomplete.rescuedWords, 20);
     assert.equal(afterIncomplete.correctionsRecovered, 2);
+    assert.equal(afterIncomplete.clearedDistricts.length, 1);
+    assert.equal(afterIncomplete.currentStreak, 0);
+    assert.equal(afterIncomplete.bestStreak, 1);
 });
 
-test('a first mission contains no more than six entirely new words', () => {
+test('a first mission contains exactly three entirely new words', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
     const vocabulary = Array.from({ length: 20 }, (_, index) => ({ id: `new-${index + 1}` }));
     const targets = Array.from(context.window.VocabUtils.createMissionTargetSet(vocabulary, {
         targetSize: 12,
-        newWordLimit: 6,
+        newWordLimit: 3,
         isKnown: () => false,
         random: () => 0.5
     }));
-    assert.equal(targets.length, 6);
+    assert.equal(targets.length, 3);
 });
 
 test('learning-path filter segments preserve colons in class-6 unit names', () => {
