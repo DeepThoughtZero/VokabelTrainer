@@ -130,12 +130,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUIAudio = null;
     let missionPhaseTransitionTimer = null;
     let missionBriefingAudio = null;
+    const MISSION_RADIO_INTROS = [
+        { text: 'Echo One to Rescue Team. The next password to jam the zombie radar is', audio: 'assets/audio/ui/mission_radio_password_intro_1.mp3' },
+        { text: 'Echo One to Rescue Team. Attention, your next radar jamming code is', audio: 'assets/audio/ui/mission_radio_password_intro_2.mp3' },
+        { text: 'Echo One to Rescue Team. Incoming tactical update: the next password is', audio: 'assets/audio/ui/mission_radio_password_intro_3.mp3' },
+        { text: 'Echo One to Rescue Team. Priority dispatch: the code to jam their radar is', audio: 'assets/audio/ui/mission_radio_password_intro_4.mp3' },
+        { text: 'Echo One to Rescue Team. Transmission incoming: the target password is', audio: 'assets/audio/ui/mission_radio_password_intro_5.mp3' },
+        { text: 'Echo One to Rescue Team. Airborne update: your next radar bypass code is', audio: 'assets/audio/ui/mission_radio_password_intro_6.mp3' },
+        { text: 'Echo One to Rescue Team. Critical frequency locked: the next password is', audio: 'assets/audio/ui/mission_radio_password_intro_7.mp3' },
+        { text: 'Echo One to Rescue Team. Stand by for radar jamming coordinates: the code is', audio: 'assets/audio/ui/mission_radio_password_intro_8.mp3' }
+    ];
     const MISSION_RADIO_INTRO_PATHS = Array.from(
-        { length: 5 },
+        { length: 8 },
         (_, index) => `assets/audio/ui/mission_radio_password_intro_${index + 1}.mp3`
     );
     let missionRadioAudio = null;
     let lastMissionRadioIntroIndex = -1;
+    let currentBriefingRadioIntro = null;
     let missionRadioStatic = null;
     let missionRadioWordTimer = null;
     let missionRadioFallbackTimer = null;
@@ -147,9 +158,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentUIAudio) {
             currentUIAudio.pause();
             currentUIAudio.currentTime = 0;
+            currentUIAudio = null;
         }
         currentUIAudio = new Audio('assets/audio/ui/' + filename);
-        currentUIAudio.play().catch(e => console.log('UI audio playback failed:', e));
+        duckAmbientAudio(true, 150);
+        const restoreAmbient = () => duckAmbientAudio(false, 350);
+        currentUIAudio.onended = restoreAmbient;
+        currentUIAudio.onerror = restoreAmbient;
+        currentUIAudio.play().catch(e => {
+            console.log('UI audio playback failed:', e);
+            restoreAmbient();
+        });
     }
 
     function stopUIAudio() {
@@ -157,7 +176,255 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUIAudio.pause();
             currentUIAudio.currentTime = 0;
             currentUIAudio = null;
+            duckAmbientAudio(false, 250);
         }
+    }
+
+    // ==========================================
+    // Unified Seamless Dual-Channel Ambient Engine
+    // ==========================================
+    const AMBIENT_SCENES = {
+        'command': {
+            src: 'assets/audio/ui/helicopter_cabin_ambient.mp3',
+            targetVol: 0.36,
+            duckVol: 0.14
+        },
+        'halo': {
+            src: 'assets/audio/ui/halo_cargo_plane_ambient.mp3',
+            targetVol: 0.30,
+            duckVol: 0.10
+        },
+        'game': {
+            src: 'assets/audio/ui/apocalypse_street_ambient.mp3',
+            targetVol: 0.22,
+            duckVol: 0.05
+        },
+        'tactical': {
+            src: 'assets/audio/ui/tactical_war_room_ambient.mp3',
+            targetVol: 0.18,
+            duckVol: 0.06
+        },
+        'victory': {
+            src: 'assets/audio/ui/safezone_victory_ambient.mp3',
+            targetVol: 0.24,
+            duckVol: 0.08
+        }
+    };
+
+    const CROSSFADE_WINDOW_SEC = 2.8;
+
+    let ambientPlayerA = null;
+    let ambientPlayerB = null;
+    let activeAmbientChannel = 'A';
+    let currentAmbientSceneKey = null;
+    let ambientCrossfadeTimer = null;
+    let isAmbientPlaying = false;
+    let commandEvasiveTimer = null;
+    let isAmbientDucked = false;
+
+    function fadeAudioVolume(audioElement, targetVol, durationMs, onComplete = null) {
+        if (!audioElement) return;
+        const startVol = Number(audioElement.volume) || 0;
+        const clampedTarget = Math.max(0, Math.min(1, targetVol));
+        const diff = clampedTarget - startVol;
+        if (Math.abs(diff) < 0.01 || durationMs <= 0) {
+            audioElement.volume = clampedTarget;
+            if (onComplete) onComplete();
+            return;
+        }
+        const steps = 16;
+        const stepTime = durationMs / steps;
+        let currentStep = 0;
+        const timer = setInterval(() => {
+            currentStep++;
+            const progress = currentStep / steps;
+            const vol = startVol + (diff * progress);
+            audioElement.volume = Math.max(0, Math.min(1, vol));
+            if (currentStep >= steps) {
+                clearInterval(timer);
+                audioElement.volume = clampedTarget;
+                if (onComplete) onComplete();
+            }
+        }, stepTime);
+        return timer;
+    }
+
+    function scheduleAmbientCrossfade(currentChannel, duration) {
+        clearTimeout(ambientCrossfadeTimer);
+        if (!isAmbientPlaying || !currentAmbientSceneKey) return;
+        const scene = AMBIENT_SCENES[currentAmbientSceneKey];
+        if (!scene) return;
+
+        const dur = Number(duration) > CROSSFADE_WINDOW_SEC ? Number(duration) : 26;
+        const delayMs = Math.max(500, (dur - CROSSFADE_WINDOW_SEC) * 1000);
+
+        ambientCrossfadeTimer = setTimeout(() => {
+            if (!isAmbientPlaying || !currentAmbientSceneKey) return;
+            const nextChannel = currentChannel === 'A' ? 'B' : 'A';
+            const outgoingPlayer = currentChannel === 'A' ? ambientPlayerA : ambientPlayerB;
+            const incomingPlayer = nextChannel === 'A' ? ambientPlayerA : ambientPlayerB;
+
+            if (incomingPlayer && outgoingPlayer) {
+                const targetVolume = isAmbientDucked ? scene.duckVol : scene.targetVol;
+                incomingPlayer.currentTime = 0;
+                incomingPlayer.volume = 0;
+                incomingPlayer.play().then(() => {
+                    activeAmbientChannel = nextChannel;
+                    fadeAudioVolume(incomingPlayer, targetVolume, CROSSFADE_WINDOW_SEC * 1000);
+                    fadeAudioVolume(outgoingPlayer, 0, CROSSFADE_WINDOW_SEC * 1000, () => {
+                        outgoingPlayer.pause();
+                        outgoingPlayer.currentTime = 0;
+                    });
+                    const nextDur = incomingPlayer.duration || dur;
+                    scheduleAmbientCrossfade(nextChannel, nextDur);
+                }).catch(() => {});
+            }
+        }, delayMs);
+    }
+
+    function startSceneAmbient(sceneKey, fadeInMs = 900) {
+        const scene = AMBIENT_SCENES[sceneKey];
+        if (!scene) {
+            stopSceneAmbient();
+            return;
+        }
+
+        // If already playing the requested scene, preserve uninterrupted loop
+        if (isAmbientPlaying && currentAmbientSceneKey === sceneKey) {
+            return;
+        }
+
+        // Stop any previous scene immediately without delay
+        stopSceneAmbient(0);
+
+        isAmbientPlaying = true;
+        isAmbientDucked = false;
+        currentAmbientSceneKey = sceneKey;
+        activeAmbientChannel = 'A';
+
+        try {
+            if (!ambientPlayerA) ambientPlayerA = new Audio();
+            if (!ambientPlayerB) ambientPlayerB = new Audio();
+
+            ambientPlayerA.src = scene.src;
+            ambientPlayerB.src = scene.src;
+
+            ambientPlayerA.currentTime = 0;
+            ambientPlayerA.volume = 0;
+            ambientPlayerA.play().then(() => {
+                fadeAudioVolume(ambientPlayerA, scene.targetVol, fadeInMs);
+                const dur = ambientPlayerA.duration || 26;
+                scheduleAmbientCrossfade('A', dur);
+            }).catch(error => {
+                console.log(`Ambient audio playback (${sceneKey}) failed:`, error);
+            });
+        } catch (e) {
+            console.warn('Could not start ambient audio:', e);
+        }
+
+        if (sceneKey === 'command') {
+            clearTimeout(commandEvasiveTimer);
+            commandEvasiveTimer = setTimeout(triggerEvasiveManeuver, 8000 + Math.random() * 5000);
+        }
+    }
+
+    function stopSceneAmbient(fadeDurationMs = 500) {
+        isAmbientPlaying = false;
+        currentAmbientSceneKey = null;
+        isAmbientDucked = false;
+        clearTimeout(ambientCrossfadeTimer);
+        ambientCrossfadeTimer = null;
+        clearTimeout(commandEvasiveTimer);
+        commandEvasiveTimer = null;
+        clearEvasiveManeuver();
+
+        const pA = ambientPlayerA;
+        const pB = ambientPlayerB;
+
+        if (fadeDurationMs > 0) {
+            if (pA && !pA.paused) {
+                fadeAudioVolume(pA, 0, fadeDurationMs, () => {
+                    pA.pause();
+                    pA.currentTime = 0;
+                });
+            }
+            if (pB && !pB.paused) {
+                fadeAudioVolume(pB, 0, fadeDurationMs, () => {
+                    pB.pause();
+                    pB.currentTime = 0;
+                });
+            }
+        } else {
+            if (pA) {
+                pA.pause();
+                pA.currentTime = 0;
+            }
+            if (pB) {
+                pB.pause();
+                pB.currentTime = 0;
+            }
+        }
+    }
+
+    function duckAmbientAudio(ducked, durationMs = 180) {
+        if (!isAmbientPlaying || !currentAmbientSceneKey) return;
+        const scene = AMBIENT_SCENES[currentAmbientSceneKey];
+        if (!scene) return;
+
+        isAmbientDucked = Boolean(ducked);
+        const activePlayer = activeAmbientChannel === 'A' ? ambientPlayerA : ambientPlayerB;
+        if (!activePlayer || activePlayer.paused) return;
+
+        const targetVol = isAmbientDucked ? scene.duckVol : scene.targetVol;
+        fadeAudioVolume(activePlayer, targetVol, durationMs);
+    }
+
+    function startCommandAmbientAudio() {
+        startSceneAmbient('command');
+    }
+
+    function stopCommandAmbientAudio(fadeDurationMs = 500) {
+        if (currentAmbientSceneKey === 'command') {
+            stopSceneAmbient(fadeDurationMs);
+        }
+    }
+
+    function clearEvasiveManeuver() {
+        const card = document.getElementById('command-vocab-card');
+        screens.command?.classList.remove('turbulence-active');
+        card?.classList.remove('turbulence-active', 'evasive-left', 'evasive-right', 'evasive-dive');
+
+        if (isAmbientPlaying && currentAmbientSceneKey === 'command' && screens.command?.classList.contains('active')) {
+            clearTimeout(commandEvasiveTimer);
+            commandEvasiveTimer = setTimeout(triggerEvasiveManeuver, 7700 + Math.random() * 4900);
+        }
+    }
+
+    function triggerEvasiveManeuver() {
+        if (!screens.command?.classList.contains('active') || currentAmbientSceneKey !== 'command') return;
+        const card = document.getElementById('command-vocab-card');
+        if (!screens.command) return;
+
+        screens.command.classList.remove('turbulence-active');
+        card?.classList.remove('turbulence-active', 'evasive-left', 'evasive-right', 'evasive-dive');
+        void screens.command.offsetWidth;
+        screens.command.classList.add('turbulence-active');
+
+        // Duck ambient slightly during turbulence, then restore smoothly
+        duckAmbientAudio(true, 250);
+        setTimeout(() => {
+            if (isAmbientPlaying && currentAmbientSceneKey === 'command') {
+                duckAmbientAudio(false, 600);
+            }
+        }, 1600);
+
+        try {
+            const windAudio = new Audio('assets/audio/ui/helicopter_evasion_wind.mp3');
+            windAudio.volume = 0.55;
+            windAudio.play().catch(() => {});
+        } catch (e) {}
+
+        setTimeout(clearEvasiveManeuver, 1600);
     }
 
     // Audio Context for retro sound effects
@@ -535,6 +802,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function finalizeMissionReward() {
         const previousCareer = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
         const districtAlreadyCleared = previousCareer.clearedDistricts.includes(state.mission.activeDistrictId);
+        const activeDistrict = getActiveMissionDistrict();
+        const mastery = activeDistrict
+            ? window.VocabUtils.getDistrictMastery(activeDistrict, activeVocabulary, srsData, state.courseId)
+            : { isFullyMastered: false, masteredWords: 0, totalWords: 0 };
+        const threat = activeDistrict
+            ? window.VocabUtils.evaluateDistrictThreat(activeDistrict, activeVocabulary, srsData, previousCareer, state.courseId)
+            : null;
+        const isEvent = Boolean(threat && (threat.status === 'emergency' || threat.status === 'reinfested'));
+
         const reward = window.VocabUtils.calculateMissionReward({
             answerXp: state.mission.answerXp,
             securedCount: state.mission.securedIds.size,
@@ -544,13 +820,17 @@ document.addEventListener('DOMContentLoaded', () => {
             totalAttempts: state.totalAttempts,
             correctAttempts: state.correctAttempts,
             currentMissionStreak: previousCareer.currentStreak,
-            districtAlreadyCleared
+            districtAlreadyCleared,
+            isFullyLiberated: mastery.isFullyMastered,
+            isEvent,
+            failed: state.mission.failed
         });
         const bonusXp = reward.completionBonusXp
             + reward.recoveryBonusXp
             + reward.survivalBonusXp
             + reward.liberationBonusXp
-            + reward.streakBonusXp;
+            + reward.streakBonusXp
+            + (reward.eventBonusXp || 0);
         if (bonusXp > 0) addXP(bonusXp);
         const careerReward = {
             ...reward,
@@ -599,6 +879,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mission-survival-xp').textContent = `+${reward.survivalBonusXp}`;
         document.getElementById('mission-streak-xp').textContent = `+${reward.streakBonusXp}`;
         document.getElementById('mission-recovery-xp').textContent = `+${reward.recoveryBonusXp}`;
+        const eventXpEl = document.getElementById('mission-event-xp');
+        if (eventXpEl) eventXpEl.textContent = `+${reward.eventBonusXp || 0}`;
         document.getElementById('mission-career-count').textContent = reward.career.missionsCompleted;
         document.getElementById('mission-career-streak').textContent = reward.career.currentStreak;
         document.getElementById('mission-career-words').textContent = reward.career.rescuedWords;
@@ -1030,28 +1312,114 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const CITIES = [
-        { id: 'london', name: 'London', img: 'assets/background_london.png' },
-        { id: 'brighton', name: 'Brighton', img: 'assets/background_brighton.png' },
-        { id: 'buehl', name: 'Bühl', img: 'assets/background_buehl.png' },
-        { id: 'capetown', name: 'Cape Town', img: 'assets/background_capetown.png' },
-        { id: 'istanbul', name: 'Istanbul', img: 'assets/background_istanbul.png' },
-        { id: 'rio', name: 'Rio', img: 'assets/background_rio.png' },
-        { id: 'sf', name: 'San Francisco', img: 'assets/background_sf.png' }
+        { id: 'london', name: 'London', img: 'assets/background_london.png', mapImg: 'assets/map_london.webp' },
+        { id: 'brighton', name: 'Brighton', img: 'assets/background_brighton.png', mapImg: 'assets/map_brighton.webp' },
+        { id: 'buehl', name: 'Bühl', img: 'assets/background_buehl.png', mapImg: 'assets/map_buehl.webp' },
+        { id: 'capetown', name: 'Cape Town', img: 'assets/background_capetown.png', mapImg: 'assets/map_capetown.webp' },
+        { id: 'istanbul', name: 'Istanbul', img: 'assets/background_istanbul.png', mapImg: 'assets/map_istanbul.webp' },
+        { id: 'rio', name: 'Rio', img: 'assets/background_rio.png', mapImg: 'assets/map_rio.webp' },
+        { id: 'sf', name: 'San Francisco', img: 'assets/background_sf.png', mapImg: 'assets/map_sf.webp' }
     ];
 
-    const MISSION_DISTRICT_MAP_POINTS = [
-        { x: 22, y: 22, scale: 0.64 }, { x: 31, y: 17, scale: 0.58 },
-        { x: 41, y: 24, scale: 0.68 }, { x: 51, y: 16, scale: 0.58 },
-        { x: 62, y: 23, scale: 0.66 }, { x: 72, y: 18, scale: 0.60 },
-        { x: 81, y: 27, scale: 0.70 }, { x: 12, y: 51, scale: 0.84 },
-        { x: 26, y: 43, scale: 0.78 }, { x: 38, y: 55, scale: 0.92 },
-        { x: 51, y: 45, scale: 0.84 }, { x: 63, y: 56, scale: 0.94 },
-        { x: 76, y: 44, scale: 0.82 }, { x: 89, y: 52, scale: 0.88 },
-        { x: 8, y: 83, scale: 1.06 }, { x: 23, y: 72, scale: 0.98 },
-        { x: 37, y: 88, scale: 1.16 }, { x: 51, y: 76, scale: 1.04 },
-        { x: 65, y: 89, scale: 1.17 }, { x: 80, y: 73, scale: 1.00 },
-        { x: 93, y: 85, scale: 1.12 }
-    ];
+    const CITY_DISTRICT_MAP_POINTS = {
+        sf: [
+            { x: 26, y: 22, scale: 1.05 }, { x: 42, y: 23, scale: 1.02 },
+            { x: 58, y: 22, scale: 1.05 }, { x: 72, y: 24, scale: 1.08 },
+            { x: 22, y: 35, scale: 1.10 }, { x: 36, y: 36, scale: 1.12 },
+            { x: 50, y: 35, scale: 1.14 }, { x: 64, y: 36, scale: 1.15 },
+            { x: 76, y: 38, scale: 1.12 }, { x: 20, y: 50, scale: 1.15 },
+            { x: 34, y: 52, scale: 1.18 }, { x: 48, y: 50, scale: 1.20 },
+            { x: 62, y: 53, scale: 1.22 }, { x: 74, y: 54, scale: 1.18 },
+            { x: 24, y: 66, scale: 1.22 }, { x: 38, y: 68, scale: 1.24 },
+            { x: 52, y: 67, scale: 1.25 }, { x: 66, y: 69, scale: 1.24 },
+            { x: 78, y: 70, scale: 1.20 }, { x: 36, y: 80, scale: 1.24 },
+            { x: 52, y: 82, scale: 1.25 }, { x: 68, y: 81, scale: 1.22 }
+        ],
+        london: [
+            { x: 14, y: 18, scale: 1.05 }, { x: 34, y: 20, scale: 1.02 },
+            { x: 52, y: 19, scale: 1.00 }, { x: 70, y: 22, scale: 1.02 },
+            { x: 86, y: 20, scale: 1.05 }, { x: 10, y: 34, scale: 1.08 },
+            { x: 26, y: 35, scale: 1.10 }, { x: 44, y: 36, scale: 1.12 },
+            { x: 62, y: 36, scale: 1.12 }, { x: 78, y: 38, scale: 1.10 },
+            { x: 90, y: 36, scale: 1.08 }, { x: 12, y: 52, scale: 1.12 },
+            { x: 28, y: 54, scale: 1.15 }, { x: 44, y: 52, scale: 1.18 },
+            { x: 60, y: 55, scale: 1.18 }, { x: 76, y: 54, scale: 1.15 },
+            { x: 90, y: 55, scale: 1.12 }, { x: 18, y: 72, scale: 1.20 },
+            { x: 36, y: 74, scale: 1.22 }, { x: 54, y: 75, scale: 1.24 },
+            { x: 72, y: 73, scale: 1.22 }, { x: 86, y: 72, scale: 1.20 }
+        ],
+        brighton: [
+            { x: 12, y: 20, scale: 1.00 }, { x: 28, y: 19, scale: 1.02 },
+            { x: 44, y: 21, scale: 1.00 }, { x: 60, y: 20, scale: 1.02 },
+            { x: 76, y: 19, scale: 1.00 }, { x: 88, y: 22, scale: 1.02 },
+            { x: 10, y: 30, scale: 1.08 }, { x: 24, y: 29, scale: 1.10 },
+            { x: 38, y: 31, scale: 1.12 }, { x: 52, y: 30, scale: 1.12 },
+            { x: 66, y: 32, scale: 1.10 }, { x: 80, y: 30, scale: 1.08 },
+            { x: 92, y: 32, scale: 1.08 }, { x: 8, y: 44, scale: 1.18 },
+            { x: 20, y: 45, scale: 1.20 }, { x: 32, y: 46, scale: 1.22 },
+            { x: 44, y: 47, scale: 1.25 }, { x: 56, y: 47, scale: 1.25 },
+            { x: 68, y: 46, scale: 1.22 }, { x: 80, y: 45, scale: 1.20 },
+            { x: 92, y: 44, scale: 1.18 }, { x: 50, y: 38, scale: 1.15 }
+        ],
+        buehl: [
+            { x: 14, y: 20, scale: 1.05 }, { x: 32, y: 22, scale: 1.02 },
+            { x: 50, y: 20, scale: 1.00 }, { x: 68, y: 22, scale: 1.02 },
+            { x: 86, y: 20, scale: 1.05 }, { x: 10, y: 36, scale: 1.10 },
+            { x: 28, y: 38, scale: 1.12 }, { x: 46, y: 36, scale: 1.14 },
+            { x: 64, y: 38, scale: 1.12 }, { x: 82, y: 36, scale: 1.10 },
+            { x: 92, y: 38, scale: 1.08 }, { x: 12, y: 54, scale: 1.15 },
+            { x: 30, y: 56, scale: 1.18 }, { x: 48, y: 55, scale: 1.20 },
+            { x: 66, y: 56, scale: 1.18 }, { x: 84, y: 54, scale: 1.15 },
+            { x: 16, y: 72, scale: 1.20 }, { x: 34, y: 74, scale: 1.22 },
+            { x: 52, y: 76, scale: 1.25 }, { x: 70, y: 75, scale: 1.22 },
+            { x: 86, y: 73, scale: 1.20 }, { x: 50, y: 46, scale: 1.16 }
+        ],
+        capetown: [
+            { x: 22, y: 36, scale: 1.05 }, { x: 38, y: 35, scale: 1.02 },
+            { x: 52, y: 36, scale: 1.05 }, { x: 68, y: 34, scale: 1.02 },
+            { x: 82, y: 36, scale: 1.05 }, { x: 18, y: 48, scale: 1.10 },
+            { x: 32, y: 47, scale: 1.12 }, { x: 46, y: 48, scale: 1.15 },
+            { x: 60, y: 49, scale: 1.15 }, { x: 74, y: 48, scale: 1.12 },
+            { x: 86, y: 47, scale: 1.10 }, { x: 22, y: 62, scale: 1.18 },
+            { x: 36, y: 63, scale: 1.20 }, { x: 50, y: 64, scale: 1.22 },
+            { x: 64, y: 63, scale: 1.22 }, { x: 78, y: 62, scale: 1.20 },
+            { x: 28, y: 76, scale: 1.24 }, { x: 44, y: 77, scale: 1.25 },
+            { x: 58, y: 78, scale: 1.25 }, { x: 72, y: 76, scale: 1.22 },
+            { x: 84, y: 75, scale: 1.20 }, { x: 54, y: 56, scale: 1.18 }
+        ],
+        istanbul: [
+            { x: 16, y: 22, scale: 1.05 }, { x: 32, y: 24, scale: 1.02 },
+            { x: 68, y: 24, scale: 1.02 }, { x: 84, y: 22, scale: 1.05 },
+            { x: 12, y: 38, scale: 1.10 }, { x: 26, y: 39, scale: 1.12 },
+            { x: 40, y: 37, scale: 1.14 }, { x: 62, y: 38, scale: 1.14 },
+            { x: 76, y: 40, scale: 1.12 }, { x: 90, y: 38, scale: 1.10 },
+            { x: 14, y: 54, scale: 1.15 }, { x: 28, y: 56, scale: 1.18 },
+            { x: 42, y: 55, scale: 1.20 }, { x: 60, y: 55, scale: 1.20 },
+            { x: 74, y: 57, scale: 1.18 }, { x: 88, y: 55, scale: 1.15 },
+            { x: 18, y: 72, scale: 1.20 }, { x: 32, y: 74, scale: 1.22 },
+            { x: 44, y: 76, scale: 1.25 }, { x: 64, y: 75, scale: 1.25 },
+            { x: 78, y: 74, scale: 1.22 }, { x: 88, y: 72, scale: 1.20 }
+        ],
+        rio: [
+            { x: 20, y: 22, scale: 1.05 }, { x: 38, y: 24, scale: 1.02 },
+            { x: 56, y: 22, scale: 1.00 }, { x: 74, y: 24, scale: 1.02 },
+            { x: 86, y: 22, scale: 1.05 }, { x: 14, y: 38, scale: 1.10 },
+            { x: 30, y: 40, scale: 1.12 }, { x: 48, y: 38, scale: 1.15 },
+            { x: 66, y: 40, scale: 1.12 }, { x: 82, y: 38, scale: 1.10 },
+            { x: 16, y: 56, scale: 1.15 }, { x: 32, y: 58, scale: 1.18 },
+            { x: 50, y: 57, scale: 1.20 }, { x: 68, y: 58, scale: 1.18 },
+            { x: 84, y: 56, scale: 1.15 }, { x: 22, y: 74, scale: 1.22 },
+            { x: 40, y: 76, scale: 1.25 }, { x: 58, y: 77, scale: 1.25 },
+            { x: 74, y: 75, scale: 1.22 }, { x: 86, y: 73, scale: 1.20 },
+            { x: 50, y: 48, scale: 1.16 }
+        ]
+    };
+
+    const MISSION_DISTRICT_MAP_POINTS = CITY_DISTRICT_MAP_POINTS.sf;
+
+    function getCityDistrictMapPoints(cityId) {
+        return CITY_DISTRICT_MAP_POINTS[cityId] || MISSION_DISTRICT_MAP_POINTS;
+    }
 
     let currentHunterIndex = 0;
     let currentCityIndex = 0;
@@ -1088,13 +1456,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('back-to-hunter-from-city-btn').addEventListener('click', showHunterScreen);
     document.getElementById('confirm-hunter-btn').addEventListener('click', () => {
-        const isFemale = state.hunterType === 'fuchsia' || state.hunterType === 'pink';
-        const phraseIndex = Math.floor(Math.random() * 5);
-        if (isFemale) {
-            playUIAudio(`hunter_female_${phraseIndex}.mp3`);
-        } else {
-            playUIAudio(`hunter_male_${phraseIndex}.mp3`);
-        }
+        const hunterId = state.hunterType || 'laser';
+        playUIAudio(`hunter_${hunterId}_intro.mp3`);
         showCityScreen();
     });
     document.getElementById('back-to-city-from-mission-btn').addEventListener('click', showCityScreen);
@@ -1102,8 +1465,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('change-play-style-btn').addEventListener('click', showMissionSelectionScreen);
     document.getElementById('change-mission-settings-btn').addEventListener('click', showStartScreen);
     document.getElementById('confirm-city-btn').addEventListener('click', () => {
-        const phraseIndex = Math.floor(Math.random() * 5);
-        playUIAudio(`city_select_${phraseIndex}.mp3`);
+        const hunterId = state.hunterType || 'laser';
+        const cityId = state.city || 'london';
+        playUIAudio(`hunter_${hunterId}_city_${cityId}.mp3`);
         showMissionSelectionScreen();
     });
 
@@ -1135,6 +1499,22 @@ document.addEventListener('DOMContentLoaded', () => {
         stopHaloSequence();
         launchGameSession();
     });
+    const skipHaloVideoBtn = document.getElementById('skip-halo-video-btn');
+    if (skipHaloVideoBtn) {
+        skipHaloVideoBtn.addEventListener('click', () => {
+            stopHaloSequence();
+            launchGameSession();
+        });
+    }
+    const haloJumpVideoEl = document.getElementById('halo-jump-video');
+    if (haloJumpVideoEl) {
+        haloJumpVideoEl.addEventListener('click', () => {
+            if (screens.halo?.classList.contains('is-jumping')) {
+                stopHaloSequence();
+                launchGameSession();
+            }
+        });
+    }
 
     settingsBtn.addEventListener('click', () => {
         state.settingsPending = true;
@@ -1779,6 +2159,29 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('game-active', screenName === 'game');
         document.body.classList.toggle('halo-active', screenName === 'halo');
         document.body.classList.toggle('command-active', screenName === 'command');
+
+        switch (screenName) {
+            case 'command':
+                startSceneAmbient('command');
+                break;
+            case 'halo':
+                startSceneAmbient('halo');
+                break;
+            case 'game':
+                startSceneAmbient('game');
+                break;
+            case 'city':
+            case 'mission':
+                startSceneAmbient('tactical');
+                break;
+            case 'end':
+                startSceneAmbient('victory');
+                break;
+            default:
+                stopSceneAmbient(500);
+                break;
+        }
+
         if (screenName !== 'game') {
             document.body.classList.remove('orientation-notice-dismissed');
         }
@@ -2072,8 +2475,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function selectMissionTargets(vocabulary) {
         return window.VocabUtils.createMissionTargetSet(vocabulary, {
-            targetSize: CONFIG.missionTargetSize,
+            targetSize: Math.max(vocabulary.length, CONFIG.missionTargetSize),
             newWordLimit: CONFIG.missionNewWordLimit,
+            includeAll: true,
             isKnown(vocab) {
                 const record = srsData.entries[getSrsKey(vocab)];
                 return Boolean(record && record.timesCorrect > 0);
@@ -2116,7 +2520,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getMissionRadioMessage() {
-        return `${getMissionRadioIntro()} …`;
+        return currentBriefingRadioIntro
+            ? `${currentBriefingRadioIntro.text} …`
+            : `${getMissionRadioIntro()} …`;
     }
 
     function getMissionRadioIntro() {
@@ -2180,24 +2586,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 650);
     }
 
-    function pickMissionRadioIntroPath() {
-        if (MISSION_RADIO_INTRO_PATHS.length === 1) return MISSION_RADIO_INTRO_PATHS[0];
+    function pickMissionRadioIntro() {
+        if (MISSION_RADIO_INTROS.length === 1) return MISSION_RADIO_INTROS[0];
         const index = lastMissionRadioIntroIndex < 0
-            ? Math.floor(Math.random() * MISSION_RADIO_INTRO_PATHS.length)
+            ? Math.floor(Math.random() * MISSION_RADIO_INTROS.length)
             : (() => {
-                const candidate = Math.floor(Math.random() * (MISSION_RADIO_INTRO_PATHS.length - 1));
+                const candidate = Math.floor(Math.random() * (MISSION_RADIO_INTROS.length - 1));
                 return candidate >= lastMissionRadioIntroIndex ? candidate + 1 : candidate;
             })();
         lastMissionRadioIntroIndex = index;
-        return MISSION_RADIO_INTRO_PATHS[index];
+        return MISSION_RADIO_INTROS[index];
+    }
+
+    function pickMissionRadioIntroPath() {
+        return pickMissionRadioIntro().audio;
     }
 
     function playMissionWordAudio(vocab) {
         const audioPath = getVocabularyAudioPath(vocab);
         if (!audioPath || !screens.command?.classList.contains('active')) return;
+        duckAmbientAudio(true, 150);
         missionBriefingAudio = new Audio(audioPath);
+        const restoreAmbient = () => duckAmbientAudio(false, 350);
+        missionBriefingAudio.onended = restoreAmbient;
+        missionBriefingAudio.onerror = restoreAmbient;
         missionBriefingAudio.play().catch(error => {
             console.log('Mission briefing audio playback failed:', error);
+            restoreAmbient();
         });
     }
 
@@ -2206,13 +2621,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const vocab = state.mission.briefingWords[state.mission.briefingIndex];
         if (!vocab) return;
         stopMissionBriefingAudio();
-        const message = getMissionRadioMessage();
+        if (!currentBriefingRadioIntro) {
+            currentBriefingRadioIntro = pickMissionRadioIntro();
+        }
+        const intro = currentBriefingRadioIntro;
         const messageElement = document.getElementById('command-radio-message');
-        if (messageElement) messageElement.textContent = message;
+        if (messageElement) messageElement.textContent = `${intro.text} …`;
         playMissionRadioChirp();
-        const radioAudio = new Audio(pickMissionRadioIntroPath());
+        duckAmbientAudio(true, 150);
+        const radioAudio = new Audio(intro.audio);
         missionRadioAudio = radioAudio;
-        const finishRadioIntro = () => finishMissionRadioIntro(vocab, radioAudio);
+        const finishRadioIntro = () => {
+            duckAmbientAudio(false, 350);
+            finishMissionRadioIntro(vocab, radioAudio);
+        };
         radioAudio.onended = finishRadioIntro;
         radioAudio.onerror = finishRadioIntro;
         startMissionRadioStatic();
@@ -2237,6 +2659,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         state.mission.briefingIndex = index;
+        currentBriefingRadioIntro = pickMissionRadioIntro();
         const district = getActiveMissionDistrict();
         const card = document.getElementById('command-vocab-card');
         const newTargetCount = state.mission.targetWords.filter(target => !isKnownMissionWord(target)).length;
@@ -2288,7 +2711,11 @@ document.addEventListener('DOMContentLoaded', () => {
         stopHaloSequence();
         clearTimeout(missionBriefingAdvanceTimer);
         state.mission.briefingIndex = 0;
+        currentBriefingRadioIntro = null;
         showScreen('command');
+        startCommandAmbientAudio();
+        clearTimeout(commandEvasiveTimer);
+        commandEvasiveTimer = setTimeout(triggerEvasiveManeuver, 3200 + Math.random() * 1700);
         renderMissionBriefingWord();
     }
 
@@ -2298,11 +2725,46 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(missionBriefingAdvanceTimer);
         stopMissionBriefingAudio();
         if (state.mission.briefingIndex >= state.mission.briefingWords.length - 1) {
+            stopCommandAmbientAudio();
             beginHaloSequence();
             return;
         }
         state.mission.briefingIndex++;
+        if (Math.random() < 0.35 && !screens.command?.classList.contains('turbulence-active')) {
+            clearTimeout(commandEvasiveTimer);
+            commandEvasiveTimer = setTimeout(triggerEvasiveManeuver, 1800 + Math.random() * 700);
+        }
         renderMissionBriefingWord();
+    }
+
+    function createTacticalOutpostElement(threat, isTarget, isCleared) {
+        const outpost = document.createElement('div');
+        outpost.className = 'tactical-outpost-icon'
+            + (isTarget ? ' target' : '')
+            + (isCleared ? ' cleared' : '')
+            + (threat.status === 'emergency' ? ' emergency' : '')
+            + (threat.status === 'reinfested' ? ' reinfested' : '');
+        outpost.setAttribute('aria-hidden', 'true');
+
+        outpost.innerHTML = `
+            <div class="outpost-holo-ring"></div>
+            <svg class="outpost-svg" viewBox="0 0 64 50" width="64" height="50" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="32" cy="42" rx="26" ry="7" class="outpost-shadow" />
+                <polygon points="10,29 32,40 32,47 10,36" class="outpost-wall-left" />
+                <polygon points="32,40 54,29 54,36 32,47" class="outpost-wall-right" />
+                <polygon points="32,18 54,29 32,40 10,29" class="outpost-roof" />
+                <polygon points="24,15 40,15 45,21 32,27 19,21" class="outpost-cupola" />
+                <ellipse cx="32" cy="18" rx="10" ry="4.5" class="outpost-dome" />
+                <line x1="15" y1="31" x2="28" y2="38" class="outpost-seam" />
+                <line x1="36" y1="38" x2="49" y2="31" class="outpost-seam" />
+                <polygon points="30,39 34,41 34,46 30,44" class="outpost-portal" />
+                <line x1="32" y1="15" x2="32" y2="5" class="outpost-antenna" />
+                <circle cx="32" cy="4.5" r="3.2" class="outpost-beacon-orb" />
+                <circle cx="32" cy="4.5" r="6.5" class="outpost-beacon-wave" />
+            </svg>
+            <span class="district-cuboid" style="display:none"><i></i></span>
+        `;
+        return outpost;
     }
 
     function renderHaloDistricts() {
@@ -2312,33 +2774,71 @@ document.addEventListener('DOMContentLoaded', () => {
         const career = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
         const cleared = new Set(career.clearedDistricts);
         const activeDistrict = getActiveMissionDistrict();
+        let activeDistrictThreat = null;
+
+        const nextCurriculumDistrict = window.VocabUtils.findNextCurriculumDistrict(
+            state.mission.districts,
+            activeVocabulary,
+            srsData,
+            career.clearedDistricts,
+            state.courseId
+        );
+        const emergencyDistrictId = nextCurriculumDistrict?.id || null;
+        const cityPoints = getCityDistrictMapPoints(state.city);
 
         state.mission.districts.forEach((district, index) => {
             const isCleared = cleared.has(district.id);
             const isTarget = district.id === state.mission.activeDistrictId;
+            const threat = window.VocabUtils.evaluateDistrictThreat(
+                district,
+                activeVocabulary,
+                srsData,
+                career,
+                state.courseId,
+                emergencyDistrictId
+            );
+            if (isTarget) activeDistrictThreat = threat;
+
             const tile = document.createElement('button');
             tile.type = 'button';
-            tile.className = 'halo-district' + (isCleared ? ' cleared' : '') + (isTarget ? ' target' : '');
+            tile.className = 'halo-district'
+                + (isCleared ? ' cleared' : '')
+                + (threat.status === 'emergency' ? ' emergency' : '')
+                + (threat.status === 'reinfested' ? ' reinfested' : '')
+                + (isTarget ? ' target' : '');
             tile.disabled = haloMode !== 'planning';
             tile.setAttribute('aria-pressed', isTarget ? 'true' : 'false');
-            tile.setAttribute('aria-label', `${district.label}, ${district.subtitle}: ${isCleared ? 'befreit' : isTarget ? 'ausgewähltes Ziel' : 'umkämpft'}`);
-            const mapPoint = MISSION_DISTRICT_MAP_POINTS[index % MISSION_DISTRICT_MAP_POINTS.length];
+            tile.setAttribute('aria-label', `${district.label}, ${district.subtitle}: ${threat.description}`);
+            const mapPoint = cityPoints[index % cityPoints.length];
             tile.style.setProperty('--map-x', `${mapPoint.x}%`);
             tile.style.setProperty('--map-y', `${mapPoint.y}%`);
             tile.style.setProperty('--map-scale', mapPoint.scale);
 
-            const cuboid = document.createElement('span');
-            cuboid.className = 'district-cuboid';
-            cuboid.setAttribute('aria-hidden', 'true');
-            cuboid.appendChild(document.createElement('i'));
+            const outpost = createTacticalOutpostElement(threat, isTarget, isCleared);
             const label = document.createElement('strong');
             label.textContent = district.label;
             const subtitle = document.createElement('small');
             subtitle.textContent = district.subtitle;
-            tile.append(cuboid, label, subtitle);
+
+            const chip = document.createElement('span');
+            chip.className = 'district-badge-chip';
+            chip.textContent = threat.badge;
+
+            tile.append(outpost, label, subtitle, chip);
             tile.addEventListener('click', () => selectMissionDistrict(district.id));
             container.appendChild(tile);
         });
+
+        const eventBanner = document.getElementById('halo-event-banner');
+        if (eventBanner) {
+            if (activeDistrictThreat && (activeDistrictThreat.status === 'emergency' || activeDistrictThreat.status === 'reinfested')) {
+                eventBanner.classList.remove('hidden');
+                document.getElementById('halo-event-title').textContent = activeDistrictThreat.title;
+                document.getElementById('halo-event-desc').textContent = `${activeDistrictThreat.description} · +50% Bonus-XP`;
+            } else {
+                eventBanner.classList.add('hidden');
+            }
+        }
 
         document.getElementById('halo-active-district').textContent = activeDistrict
             ? `${activeDistrict.label} · ${activeDistrict.subtitle}`
@@ -2360,6 +2860,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function beginMissionDistrictSelection(preferredDistrictId = '') {
+        stopCommandAmbientAudio();
         stopMissionBriefingAudio();
         clearTimeout(missionBriefingAdvanceTimer);
         stopHaloSequence();
@@ -2369,12 +2870,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const districts = window.VocabUtils.createVocabularyDistricts(validVocabs, state.courseId);
         const career = window.VocabUtils.normalizeRescueCareer(playerProfile.stats.rescue);
         const preferred = districts.find(district => district.id === preferredDistrictId) || null;
-        const suggested = window.VocabUtils.pickNextMissionDistrict(districts, preferred, career.clearedDistricts);
+        const nextCurriculumDistrict = window.VocabUtils.findNextCurriculumDistrict(
+            districts,
+            validVocabs,
+            srsData,
+            career.clearedDistricts,
+            state.courseId
+        );
+        const suggested = preferred || nextCurriculumDistrict || window.VocabUtils.pickNextMissionDistrict(districts, preferred, career.clearedDistricts);
         state.mission.districts = districts;
         state.mission.activeDistrictId = suggested?.id || '';
         state.mission.activeDistrictLabel = suggested ? `${suggested.label} · ${suggested.subtitle}` : '';
 
-        const selectedCity = CITIES.find(city => city.id === state.city);
+        const selectedCity = CITIES.find(city => city.id === state.city) || CITIES[0];
+        document.body.style.backgroundImage = `url('${selectedCity.mapImg || selectedCity.img}')`;
+
         document.getElementById('halo-city-name').textContent = selectedCity?.name || 'der Stadt';
         document.getElementById('halo-phase-badge').textContent = 'Phase 1 · Zielgebiet wählen';
         document.getElementById('halo-title').firstChild.textContent = 'Einsatzkarte ';
@@ -2397,33 +2907,41 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(haloDeploymentTimer);
         haloDeploymentTimer = null;
         screens.halo?.classList.remove('is-jumping');
+        const haloVideo = document.getElementById('halo-jump-video');
+        if (haloVideo) {
+            haloVideo.pause();
+            haloVideo.onended = null;
+            haloVideo.onerror = null;
+            haloVideo.currentTime = 0;
+        }
     }
 
     function beginHaloSequence() {
+        stopCommandAmbientAudio();
         stopMissionBriefingAudio();
         stopHaloSequence();
         haloMode = 'deployment';
-        const selectedCity = CITIES.find(city => city.id === state.city);
+        const selectedCity = CITIES.find(city => city.id === state.city) || CITIES[0];
+        document.body.style.backgroundImage = `url('${selectedCity.mapImg || selectedCity.img}')`;
+
         const activeDistrict = getActiveMissionDistrict();
-        const activeDistrictIndex = Math.max(0, state.mission.districts.findIndex(district => district.id === state.mission.activeDistrictId));
-        const mapPoint = MISSION_DISTRICT_MAP_POINTS[activeDistrictIndex % MISSION_DISTRICT_MAP_POINTS.length];
-        const haloLandingX = 3 + (mapPoint.x * 0.94);
-        const haloLandingY = 7 + (mapPoint.y * 0.83);
-        screens.halo.style.setProperty('--landing-x', `${haloLandingX}%`);
-        screens.halo.style.setProperty('--landing-y', `${haloLandingY}%`);
-        screens.halo.style.setProperty('--landing-scale', Math.max(0.58, Math.min(1, mapPoint.scale * 0.86)));
         const deployButton = document.getElementById('halo-deploy-btn');
         const deployStatus = document.getElementById('halo-deploy-status');
 
         document.getElementById('halo-city-name').textContent = selectedCity?.name || 'der Stadt';
         document.getElementById('halo-phase-badge').textContent = 'Phase 3 · HALO-Absprung';
         document.getElementById('halo-title').firstChild.textContent = 'HALO über ';
-        document.getElementById('halo-subtitle').textContent = '';
+        document.getElementById('halo-subtitle').textContent = activeDistrict
+            ? `${activeDistrict.label} · ${activeDistrict.subtitle}`
+            : '';
         document.getElementById('halo-map-eyebrow').textContent = 'Markierte Landezone';
         document.getElementById('back-from-halo-btn').textContent = '⬅ Stadtkarte';
-        document.getElementById('halo-landing-district').textContent = activeDistrict
-            ? `${activeDistrict.label} · ${activeDistrict.subtitle}`
-            : 'markierte Landezone';
+        const landingDistrictEl = document.getElementById('halo-landing-district');
+        if (landingDistrictEl) {
+            landingDistrictEl.textContent = activeDistrict
+                ? `${activeDistrict.label} · ${activeDistrict.subtitle}`
+                : 'markierte Landezone';
+        }
         deployButton.disabled = true;
         deployStatus.textContent = 'Absprung läuft · Kurs auf das Zielviertel';
         showScreen('halo');
@@ -2431,10 +2949,40 @@ document.addEventListener('DOMContentLoaded', () => {
         void screens.halo.offsetWidth;
         screens.halo.classList.add('is-jumping');
 
+        try {
+            const freefallAudio = new Audio('assets/audio/ui/halo_freefall_wind.mp3');
+            freefallAudio.volume = 0.65;
+            duckAmbientAudio(true, 250);
+            freefallAudio.onended = () => duckAmbientAudio(false, 500);
+            freefallAudio.onerror = () => duckAmbientAudio(false, 400);
+            freefallAudio.play().catch(() => {});
+        } catch (e) {}
+
+        const haloVideo = document.getElementById('halo-jump-video');
+        if (haloVideo) {
+            try {
+                haloVideo.currentTime = 0;
+                haloVideo.onended = () => {
+                    if (haloVideo.currentTime > 2) {
+                        stopHaloSequence();
+                        launchGameSession();
+                    }
+                };
+                haloVideo.onerror = (err) => {
+                    console.log('HALO jump video playback note:', err);
+                };
+                haloVideo.play().catch(error => {
+                    console.log('HALO jump video autoplay note:', error);
+                });
+            } catch (e) {
+                console.log('HALO video start note:', e);
+            }
+        }
+
         haloDeploymentTimer = setTimeout(() => {
             stopHaloSequence();
             launchGameSession();
-        }, 4800);
+        }, 10200);
     }
 
     function launchGameSession() {
@@ -2752,6 +3300,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.correction.audio.pause();
         state.correction.audio.currentTime = 0;
         state.correction.audio = null;
+        duckAmbientAudio(false, 250);
     }
 
     function playCorrectionAudio(vocab) {
@@ -2759,9 +3308,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const legacyFilename = getForeign(vocab).replace(/\//g, '_') + '.mp3';
         const audioPath = vocab.audio || (state.courseId === 'en-5' ? `assets/audio/${legacyFilename}` : '');
         if (!audioPath) return;
+        duckAmbientAudio(true, 150);
         state.correction.audio = new Audio(audioPath);
+        const restoreAmbient = () => duckAmbientAudio(false, 350);
+        state.correction.audio.onended = restoreAmbient;
+        state.correction.audio.onerror = restoreAmbient;
         state.correction.audio.play().catch(error => {
             console.log('Correction audio playback failed:', error);
+            restoreAmbient();
         });
     }
 
@@ -3631,13 +4185,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         if (audio) {
-            audio.onended = safeClose;
-            audio.onerror = safeClose;
+            duckAmbientAudio(true, 150);
+            const wrappedSafeClose = () => {
+                duckAmbientAudio(false, 350);
+                safeClose();
+            };
+            audio.onended = wrappedSafeClose;
+            audio.onerror = wrappedSafeClose;
             audio.play().catch(err => {
                 console.log("Audio playback failed or file not found:", err);
-                setTimeout(safeClose, 900);
+                setTimeout(wrappedSafeClose, 900);
             });
-            fallbackTimer = setTimeout(safeClose, 20000);
+            fallbackTimer = setTimeout(wrappedSafeClose, 20000);
         } else {
             setTimeout(safeClose, 900);
         }
@@ -3664,6 +4223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBoostUI();
         state.level = Math.max(1, state.level - 1);
         
+        const previousHearts = state.hearts;
         state.hearts = Math.max(0, state.hearts - 1);
         updateHeartsUI();
         
@@ -3672,6 +4232,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         hunterContainer.classList.add('wrong');
         setTimeout(() => hunterContainer.classList.remove('wrong'), 400);
+
+        if (isMissionMode() && previousHearts === 0) {
+            state.mission.failed = true;
+            state.mission.completed = false;
+            state.mission.endReason = 'defeated';
+            state.gameRunning = false;
+            cancelAnimationFrame(animationId);
+            playUIAudio('mission_fail_retreat.mp3');
+            setTimeout(endGame, 900);
+            return;
+        }
 
         if (isMissionMode()) {
             beginCorrectionConfirmation();
@@ -3810,24 +4381,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const securedCount = state.mission.securedIds.size;
             const targetCount = state.mission.targetWords.length;
             const missionPercentage = targetCount > 0 ? Math.min(100, (securedCount / targetCount) * 100) : 0;
-            const medal = { gold: '🥇', silver: '🥈', bronze: '🥉' }[missionReward.medal];
-            if (endScreenTitle) endScreenTitle.textContent = state.mission.completed ? 'Mission erfüllt!' : 'Extraktion erreicht!';
+            const medal = state.mission.failed ? '❌' : ({ gold: '🥇', silver: '🥈', bronze: '🥉' }[missionReward.medal] || '🥉');
+            if (endScreenTitle) endScreenTitle.textContent = state.mission.failed
+                ? 'Mission Gescheitert!'
+                : (state.mission.completed ? 'Mission erfüllt!' : 'Extraktion erreicht!');
             missionResult?.classList.remove('hidden');
-            missionResult?.classList.toggle('incomplete', !state.mission.completed);
+            missionResult?.classList.toggle('failed', state.mission.failed);
+            missionResult?.classList.toggle('incomplete', !state.mission.completed && !state.mission.failed);
             document.getElementById('mission-medal').textContent = medal;
-            document.getElementById('mission-result-title').textContent = state.mission.completed
-                ? 'Operation Morgenrot abgeschlossen'
-                : 'Ziel fast erreicht – Wörter vorgemerkt';
-            document.getElementById('mission-result-summary').textContent = state.mission.completed
-                ? `${securedCount} von ${targetCount} Zielwörtern gesichert · ${state.mission.encounters} Begegnungen`
-                : `${securedCount} von ${targetCount} Zielwörtern gesichert · Extraktion nach ${state.mission.encounters} Begegnungen`;
+            document.getElementById('mission-result-title').textContent = state.mission.failed
+                ? 'Rettungsteam evakuiert'
+                : (state.mission.completed ? 'Operation Morgenrot abgeschlossen' : 'Ziel fast erreicht – Wörter vorgemerkt');
+            document.getElementById('mission-result-summary').textContent = state.mission.failed
+                ? `${securedCount} von ${targetCount} Zielwörtern gesichert · Alle Herzen verloren`
+                : (state.mission.completed
+                    ? `${securedCount} von ${targetCount} Zielwörtern gesichert · ${state.mission.encounters} Begegnungen`
+                    : `${securedCount} von ${targetCount} Zielwörtern gesichert · Extraktion nach ${state.mission.encounters} Begegnungen`);
             document.getElementById('mission-result-progress').style.width = `${missionPercentage}%`;
-            restartBtn.textContent = 'Zum nächsten HALO-Sprung';
+            restartBtn.textContent = state.mission.failed ? 'Erneut versuchen' : 'Zum nächsten HALO-Sprung';
             changeMissionSettingsBtn?.classList.add('hidden');
         } else {
             if (endScreenTitle) endScreenTitle.textContent = 'Jagd beendet!';
             missionResult?.classList.add('hidden');
-            missionResult?.classList.remove('incomplete');
+            missionResult?.classList.remove('incomplete', 'failed');
             missionProgression?.classList.add('hidden');
             restartBtn.textContent = 'Neue Jagd';
             changeMissionSettingsBtn?.classList.add('hidden');
@@ -3841,7 +4417,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (missionReward) prepareMissionProgression(missionReward, newlyUnlocked);
         saveProfile(playerProfile);
 
-        const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
         if (showLeaderboardBtn) {
             showLeaderboardBtn.style.display = isMissionMode() ? 'none' : 'inline-block';
         }

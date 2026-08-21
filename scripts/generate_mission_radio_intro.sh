@@ -5,7 +5,16 @@ API_URL="${API_URL:-http://127.0.0.1:8880/v1/audio/speech}"
 MODEL="${MODEL:-qwen3-tts}"
 VOICE="${VOICE:-ryan}"
 OUTPUT_DIR="assets/audio/ui"
-TEXT="Echo One to Rescue Team. The next password to jam the zombie radar is"
+TEXTS=(
+  "Echo One to Rescue Team. The next password to jam the zombie radar is"
+  "Echo One to Rescue Team. Attention, your next radar jamming code is"
+  "Echo One to Rescue Team. Incoming tactical update: the next password is"
+  "Echo One to Rescue Team. Priority dispatch: the code to jam their radar is"
+  "Echo One to Rescue Team. Transmission incoming: the target password is"
+  "Echo One to Rescue Team. Airborne update: your next radar bypass code is"
+  "Echo One to Rescue Team. Critical frequency locked: the next password is"
+  "Echo One to Rescue Team. Stand by for radar jamming coordinates: the code is"
+)
 
 INSTRUCTIONS=(
   "Speak exactly this sentence once as an excited, urgent tactical radio operator during a dangerous helicopter mission. Use clear standard British English, energetic pacing, and strong command presence. Do not add, omit, repeat, or spell any words."
@@ -13,8 +22,11 @@ INSTRUCTIONS=(
   "Speak exactly this sentence once as an alert command officer warning a rescue team during an active zombie attack. Use clear standard British English, tense controlled excitement, and emphatic stress on next password and zombie radar. Add, omit, and repeat nothing."
   "Speak exactly this sentence once as a courageous airborne radio operator guiding a dangerous night mission. Use clear standard British English, fast confident delivery, restrained urgency, and exactly the supplied words only."
   "Speak exactly this sentence once as an intense mission controller whose radar-jamming window is closing. Use clear standard British English, dramatic command presence, urgent but intelligible pacing, and no extra, missing, repeated, or spelled words."
+  "Speak exactly this sentence once as a tactical flight commander broadcasting over an encrypted emergency channel. Use clear standard British English, sharp authoritative cadence, high stakes intensity, and speak only the supplied words."
+  "Speak exactly this sentence once as a reconnaissance officer confirming coordinates amidst heavy hostile activity. Use clear standard British English, precise military diction, rapid focused delivery, and no extraneous sounds."
+  "Speak exactly this sentence once as an airborne squad leader guiding the final approach into the contaminated sector. Use clear standard British English, calm professional urgency under combat pressure, and no extra or omitted words."
 )
-SPEEDS=(1.04 1.08 1.02 1.10 1.06)
+SPEEDS=(1.04 1.08 1.02 1.10 1.06 1.07 1.05 1.09)
 TMP_FILES=()
 
 cleanup() {
@@ -33,15 +45,17 @@ done
 
 mkdir -p "$OUTPUT_DIR"
 
-for index in "${!INSTRUCTIONS[@]}"; do
+total=${#TEXTS[@]}
+for index in "${!TEXTS[@]}"; do
   variant=$((index + 1))
   output_file="$OUTPUT_DIR/mission_radio_password_intro_${variant}.mp3"
   tmp_file="${output_file}.tmp.mp3"
   TMP_FILES+=("$tmp_file")
+  text="${TEXTS[$index]}"
 
   payload=$(jq -n \
     --arg model "$MODEL" \
-    --arg input "$TEXT" \
+    --arg input "$text" \
     --arg voice "$VOICE" \
     --arg language "english" \
     --arg instruct "${INSTRUCTIONS[$index]}" \
@@ -61,5 +75,5 @@ for index in "${!INSTRUCTIONS[@]}"; do
     "$output_file"
 
   duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$output_file")
-  echo "✅ Qwen-Funkdurchsage ${variant}/5 erzeugt: $output_file (${duration}s)"
+  echo "✅ Qwen-Funkdurchsage ${variant}/${total} erzeugt: $output_file (${duration}s)"
 done

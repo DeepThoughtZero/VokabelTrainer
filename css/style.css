@@ -31,7 +31,7 @@ body {
 }
 
 body.halo-active {
-    background-image: url('../assets/background_halo_city.webp') !important;
+    background-image: url('../assets/background_halo_city.webp');
     background-position: center;
     background-size: cover;
 }
@@ -698,18 +698,18 @@ body.command-active {
 .halo-screen::before {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -32px;
     z-index: -3;
     background-position: center;
     background-size: cover;
-    transform: scale(1.02);
+    transform: scale(1.03);
+    will-change: transform;
 }
 
 .command-center-screen::before {
     background-image: url('../assets/background_helicopter_command.webp');
 }
 
-body.command-active .command-center-screen::before,
 body.halo-active .halo-screen::before {
     background-image: none;
 }
@@ -827,6 +827,39 @@ body.halo-active .halo-screen::before {
     flex-direction: column;
     justify-content: space-between;
     padding: 28px 36px 24px;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.4s ease;
+}
+
+.command-center-screen.turbulence-active::before {
+    animation: helicopterBgShake 1.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.command-center-screen.turbulence-active .command-vocab-card {
+    animation: cockpitCardShake 1.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes helicopterBgShake {
+    0% { transform: scale(1.03) translate(0, 0) rotate(0deg); }
+    10% { transform: scale(1.03) translate(-6px, -7px) rotate(-0.5deg); }
+    22% { transform: scale(1.03) translate(7px, 5px) rotate(0.4deg); }
+    36% { transform: scale(1.03) translate(-5px, 3px) rotate(-0.3deg); }
+    50% { transform: scale(1.03) translate(3px, -2px) rotate(0.2deg); }
+    65% { transform: scale(1.03) translate(-2px, 1.5px) rotate(-0.1deg); }
+    80% { transform: scale(1.03) translate(1px, -1px) rotate(0.05deg); }
+    92% { transform: scale(1.03) translate(-0.4px, 0.4px) rotate(-0.02deg); }
+    100% { transform: scale(1.03) translate(0, 0) rotate(0deg); }
+}
+
+@keyframes cockpitCardShake {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    6% { transform: translate(0, 0) rotate(0deg); }
+    16% { transform: translate(3.5px, 4px) rotate(0.35deg); }
+    28% { transform: translate(-4px, -3.5px) rotate(-0.3deg); }
+    42% { transform: translate(2.5px, 2.5px) rotate(0.2deg); }
+    56% { transform: translate(-2px, -1.5px) rotate(-0.14deg); }
+    72% { transform: translate(1.2px, 1px) rotate(0.08deg); }
+    86% { transform: translate(-0.6px, -0.4px) rotate(-0.03deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
 }
 
 .command-briefing-meta {
@@ -908,7 +941,7 @@ body.halo-active .halo-screen::before {
 
 .command-radio-transmission {
     display: grid;
-    grid-template-columns: 52px minmax(0, 1fr) auto;
+    grid-template-columns: 52px minmax(0, 1fr) auto auto;
     gap: 14px;
     align-items: center;
     margin: 18px 0 12px;
@@ -973,7 +1006,7 @@ body.halo-active .halo-screen::before {
 
 .command-language-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr);
     gap: 18px;
     align-items: center;
     margin-top: 0;
@@ -1012,16 +1045,28 @@ body.halo-active .halo-screen::before {
 }
 
 .command-audio-btn {
-    min-width: 150px;
-    padding: 12px 15px;
+    min-width: 0;
+    padding: 10px 16px;
     color: #07150d;
     background: #7dffbc;
     border: 0;
     border-radius: 10px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 900;
     cursor: pointer;
+    white-space: nowrap;
     box-shadow: 0 0 20px rgba(0, 255, 136, 0.24);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.command-audio-btn:hover {
+    background: #9effce;
+    box-shadow: 0 0 26px rgba(0, 255, 136, 0.45);
+    transform: translateY(-1px);
+}
+
+.command-audio-btn:active {
+    transform: translateY(1px);
 }
 
 .command-builder {
@@ -1037,15 +1082,15 @@ body.halo-active .halo-screen::before {
 
 .command-builder .letter-target,
 .command-builder .letter-pool {
-    min-height: 88px;
-    gap: 10px;
-    padding: 10px;
+    min-height: 96px;
+    gap: 14px;
+    padding: 14px 18px;
     border-width: 1px;
     background: rgba(0, 0, 0, 0.66);
 }
 
 .command-builder .letter-target {
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     background: rgba(5, 42, 25, 0.72);
 }
 
@@ -1053,24 +1098,43 @@ body.halo-active .halo-screen::before {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 7px !important;
+    gap: 8px !important;
 }
 
 .command-builder .letter-slot {
-    width: 40px;
-    height: 47px;
-    border-bottom-width: 3px;
+    width: 52px;
+    height: 62px;
+    border-bottom-width: 3.5px;
+}
+
+.command-builder .letter-slot .letter-btn {
+    width: 100%;
+    height: 100%;
+    font-size: 2.5rem;
+    padding: 0;
+}
+
+.command-builder .letter-pool .letter-btn {
+    min-width: 68px;
+    min-height: 74px;
+    padding: 8px 18px;
+    font-size: 3.2rem;
+    border-width: 2px;
+    border-radius: 14px;
+    box-shadow: 0 0 16px rgba(0, 255, 136, 0.35);
+    touch-action: manipulation;
 }
 
 .command-builder .letter-btn {
-    min-width: 40px;
-    min-height: 47px;
-    padding: 6px 10px;
-    font-size: 1.7rem;
+    min-width: 52px;
+    min-height: 62px;
+    padding: 6px 14px;
+    font-size: 2.5rem;
+    touch-action: manipulation;
 }
 
 .command-builder .fixed-token {
-    font-size: 1.45rem;
+    font-size: 2rem;
 }
 
 .visually-hidden {
@@ -1103,106 +1167,67 @@ body.halo-active .halo-screen::before {
 
 .halo-jump-stage {
     position: absolute;
-    top: 205px;
-    left: 62px;
-    bottom: 115px;
-    width: 49%;
+    inset: 0;
+    z-index: 1;
     overflow: hidden;
-    border: 1px solid rgba(125, 220, 255, 0.2);
-    border-radius: 24px;
-    background: radial-gradient(circle at 50% 36%, rgba(93, 179, 255, 0.13), transparent 42%);
-    box-shadow: inset 0 0 60px rgba(2, 8, 17, 0.72), 0 20px 60px rgba(0, 0, 0, 0.35);
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.halo-helicopter {
+.halo-jump-stage::after {
+    content: '';
     position: absolute;
-    top: 28px;
-    left: 44px;
-    z-index: 3;
-    color: #b7c6cb;
-    filter: grayscale(1) brightness(0.54) drop-shadow(0 10px 14px #000);
-    transform: rotate(-8deg);
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.78) 0%,
+        rgba(0, 0, 0, 0.2) 20%,
+        rgba(0, 0, 0, 0.1) 60%,
+        rgba(0, 0, 0, 0.8) 100%
+    );
+    z-index: 2;
 }
 
-.halo-helicopter span {
-    font-size: 7rem;
-}
-
-.halo-helicopter i {
-    position: absolute;
-    top: 20px;
-    left: -24px;
-    width: 160px;
-    height: 5px;
-    background: rgba(196, 221, 229, 0.52);
-    border-radius: 50%;
-    animation: haloRotor 0.11s linear infinite;
-}
-
-.halo-speed-lines {
-    position: absolute;
-    inset: -20% 0;
-    opacity: 0;
-    background: repeating-linear-gradient(102deg, transparent 0 55px, rgba(184, 225, 255, 0.18) 57px 60px, transparent 63px 108px);
-}
-
-.halo-operative {
-    position: absolute;
-    top: 44%;
-    left: 12%;
-    z-index: 5;
-    width: clamp(260px, 30vw, 460px);
-    aspect-ratio: 2 / 3;
-    transform: translate(-50%, -50%) scale(1.12) rotate(-8deg);
-    opacity: 0;
-    filter: drop-shadow(0 22px 22px rgba(0, 0, 0, 0.92));
-}
-
-.halo-operative img {
+.halo-jump-video {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
 }
 
-.halo-screen.is-jumping .halo-operative {
-    animation: haloFreefall 4.8s cubic-bezier(0.12, 0.52, 0.3, 1) both;
-}
-
-.halo-screen.is-jumping .halo-speed-lines {
-    animation: haloSpeed 0.5s linear 0.8s 6 both;
-}
-
-.halo-landing-beacon {
+.halo-skip-btn {
     position: absolute;
-    right: 34px;
-    bottom: 28px;
-    display: grid;
-    z-index: 4;
-    min-width: 178px;
-    justify-items: center;
-    color: #ffe08a;
-    text-shadow: 0 2px 8px #000;
+    top: 20px;
+    right: 20px;
+    z-index: 20;
+    padding: 8px 18px;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 136, 0.5);
+    border-radius: 999px;
+    color: var(--accent-color, #00ff88);
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 255, 136, 0.2);
+    transition: all 0.2s ease;
 }
 
-.halo-landing-beacon i {
-    width: 120px;
-    height: 42px;
-    margin-bottom: 7px;
-    border: 3px solid #ffbd31;
-    border-radius: 50%;
-    box-shadow: 0 0 0 8px rgba(255, 183, 42, 0.15), 0 0 30px rgba(255, 183, 42, 0.72), inset 0 0 24px rgba(255, 183, 42, 0.35);
-    animation: landingBeaconPulse 1.1s ease-in-out infinite;
+.halo-skip-btn:hover {
+    background: rgba(0, 255, 136, 0.2);
+    border-color: #00ff88;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 255, 136, 0.4);
 }
 
-.halo-landing-beacon span {
-    font-size: 0.76rem;
-    letter-spacing: 2px;
-}
-
-.halo-landing-beacon strong {
-    margin-top: 3px;
-    color: #fff;
-    font-size: 1rem;
+.halo-skip-btn:active {
+    transform: translateY(1px);
 }
 
 .halo-city-map {
@@ -1387,16 +1412,330 @@ body.halo-active .halo-screen::before {
 
 .halo-district.cleared .district-cuboid {
     background: linear-gradient(145deg, #087343, #022c19);
-    border-color: #65ffb1;
-    box-shadow: 12px 10px 0 #00160c, 0 0 24px rgba(0, 255, 136, 0.38);
 }
 
-.halo-district.cleared .district-cuboid::after { background: #12a660; border-color: #8affc5; }
-.halo-district.cleared .district-cuboid::before { background: #003c21; border-color: #087b45; }
+/* Tactical Outpost Base and Ambient Pulse */
+.tactical-outpost-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 56px;
+    margin-bottom: 5px;
+    transition: transform 0.25s ease, filter 0.25s ease;
+    animation: outpostAmbientPulse 2.8s ease-in-out infinite alternate;
+}
 
-.halo-district.target.cleared {
-    border-color: #d8ff82;
-    box-shadow: 0 0 22px rgba(130, 255, 117, 0.4);
+@keyframes outpostAmbientPulse {
+    0% {
+        transform: translateY(0);
+        filter: drop-shadow(0 4px 10px rgba(0, 229, 255, 0.2)) brightness(0.95);
+    }
+    50% {
+        transform: translateY(-2px);
+        filter: drop-shadow(0 6px 16px rgba(0, 229, 255, 0.5)) brightness(1.1);
+    }
+    100% {
+        transform: translateY(0);
+        filter: drop-shadow(0 4px 10px rgba(0, 229, 255, 0.2)) brightness(0.95);
+    }
+}
+
+.tactical-outpost-icon .outpost-holo-ring {
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    width: 58px;
+    height: 18px;
+    transform: translateX(-50%);
+    border: 1.5px dashed rgba(0, 229, 255, 0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: outpostHoloSpin 10s linear infinite;
+}
+
+@keyframes outpostHoloSpin {
+    from { transform: translateX(-50%) rotate(0deg); }
+    to { transform: translateX(-50%) rotate(360deg); }
+}
+
+.tactical-outpost-icon .outpost-svg {
+    position: relative;
+    z-index: 2;
+    overflow: visible;
+    width: 76px;
+    height: 56px;
+}
+
+/* Default / Contested Outpost Theme */
+.tactical-outpost-icon .outpost-shadow { fill: rgba(0, 0, 0, 0.55); }
+.tactical-outpost-icon .outpost-wall-left { fill: #1a2f38; stroke: #2d5564; stroke-width: 1; }
+.tactical-outpost-icon .outpost-wall-right { fill: #112027; stroke: #234653; stroke-width: 1; }
+.tactical-outpost-icon .outpost-roof { fill: #24414e; stroke: #00d2e8; stroke-width: 1.2; }
+.tactical-outpost-icon .outpost-cupola { fill: #162c36; stroke: #00e5ff; stroke-width: 1; }
+.tactical-outpost-icon .outpost-dome { fill: #00e5ff; fill-opacity: 0.35; stroke: #00e5ff; stroke-width: 1; }
+.tactical-outpost-icon .outpost-seam { stroke: #00e5ff; stroke-width: 1.2; stroke-linecap: round; opacity: 0.85; }
+.tactical-outpost-icon .outpost-portal { fill: #00e5ff; filter: drop-shadow(0 0 4px #00e5ff); }
+.tactical-outpost-icon .outpost-antenna { stroke: #00e5ff; stroke-width: 1.5; stroke-linecap: round; }
+.tactical-outpost-icon .outpost-beacon-orb { fill: #00e5ff; filter: drop-shadow(0 0 6px #00e5ff); animation: beaconPulse 1.8s ease-in-out infinite alternate; }
+.tactical-outpost-icon .outpost-beacon-wave { fill: none; stroke: #00e5ff; stroke-width: 1; opacity: 0; animation: beaconSignalWave 2.4s ease-out infinite; }
+
+/* Target Outpost (Active Selected) */
+.halo-district.target .tactical-outpost-icon,
+.tactical-outpost-icon.target {
+    animation: outpostTargetPulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes outpostTargetPulse {
+    0% {
+        transform: translateY(-2px);
+        filter: drop-shadow(0 6px 18px rgba(255, 184, 46, 0.45)) brightness(1.0);
+    }
+    100% {
+        transform: translateY(-5px);
+        filter: drop-shadow(0 10px 26px rgba(255, 184, 46, 0.85)) brightness(1.25);
+    }
+}
+
+.halo-district.target .outpost-holo-ring,
+.tactical-outpost-icon.target .outpost-holo-ring {
+    border-color: rgba(255, 184, 46, 0.8);
+    box-shadow: 0 0 12px rgba(255, 184, 46, 0.5);
+}
+.halo-district.target .outpost-roof,
+.tactical-outpost-icon.target .outpost-roof { fill: #4a3410; stroke: #ffb82e; stroke-width: 1.6; }
+.halo-district.target .outpost-wall-left,
+.tactical-outpost-icon.target .outpost-wall-left { fill: #382408; stroke: #ffb82e; }
+.halo-district.target .outpost-wall-right,
+.tactical-outpost-icon.target .outpost-wall-right { fill: #241603; stroke: #d49017; }
+.halo-district.target .outpost-dome,
+.tactical-outpost-icon.target .outpost-dome { fill: #ffb82e; fill-opacity: 0.55; stroke: #ffe285; }
+.halo-district.target .outpost-seam,
+.tactical-outpost-icon.target .outpost-seam { stroke: #ffe285; }
+.halo-district.target .outpost-portal,
+.tactical-outpost-icon.target .outpost-portal { fill: #ffe285; filter: drop-shadow(0 0 6px #ffb82e); }
+.halo-district.target .outpost-antenna,
+.tactical-outpost-icon.target .outpost-antenna { stroke: #ffe285; }
+.halo-district.target .outpost-beacon-orb,
+.tactical-outpost-icon.target .outpost-beacon-orb { fill: #ffe285; filter: drop-shadow(0 0 10px #ffb82e); }
+.halo-district.target .outpost-beacon-wave,
+.tactical-outpost-icon.target .outpost-beacon-wave { stroke: #ffb82e; stroke-width: 1.5; }
+
+/* Emergency Outpost (⚡ Notruf) */
+.halo-district.emergency .tactical-outpost-icon,
+.tactical-outpost-icon.emergency {
+    animation: outpostEmergencyPulse 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes outpostEmergencyPulse {
+    0% {
+        transform: translateY(0);
+        filter: drop-shadow(0 4px 14px rgba(255, 50, 50, 0.4)) brightness(1.0);
+    }
+    100% {
+        transform: translateY(-4px);
+        filter: drop-shadow(0 8px 26px rgba(255, 50, 50, 0.9)) brightness(1.3);
+    }
+}
+
+.halo-district.emergency .outpost-holo-ring,
+.tactical-outpost-icon.emergency .outpost-holo-ring {
+    border-color: rgba(255, 50, 50, 0.85);
+    box-shadow: 0 0 14px rgba(255, 50, 50, 0.6);
+}
+.halo-district.emergency .outpost-roof,
+.tactical-outpost-icon.emergency .outpost-roof { fill: #4d0d0d; stroke: #ff4d4d; stroke-width: 1.6; }
+.halo-district.emergency .outpost-wall-left,
+.tactical-outpost-icon.emergency .outpost-wall-left { fill: #360707; stroke: #ff4d4d; }
+.halo-district.emergency .outpost-wall-right,
+.tactical-outpost-icon.emergency .outpost-wall-right { fill: #220202; stroke: #cc2929; }
+.halo-district.emergency .outpost-dome,
+.tactical-outpost-icon.emergency .outpost-dome { fill: #ff4444; fill-opacity: 0.6; stroke: #ff9999; }
+.halo-district.emergency .outpost-seam,
+.tactical-outpost-icon.emergency .outpost-seam { stroke: #ff9999; }
+.halo-district.emergency .outpost-portal,
+.tactical-outpost-icon.emergency .outpost-portal { fill: #ff4444; filter: drop-shadow(0 0 8px #ff4444); }
+.halo-district.emergency .outpost-antenna,
+.tactical-outpost-icon.emergency .outpost-antenna { stroke: #ff9999; }
+.halo-district.emergency .outpost-beacon-orb,
+.tactical-outpost-icon.emergency .outpost-beacon-orb { fill: #ff3333; filter: drop-shadow(0 0 12px #ff2222); animation: emergencyBeaconFlash 0.75s ease-in-out infinite alternate; }
+.halo-district.emergency .outpost-beacon-wave,
+.tactical-outpost-icon.emergency .outpost-beacon-wave { stroke: #ff3333; stroke-width: 2; animation: beaconSignalWave 1.4s ease-out infinite; }
+
+@keyframes emergencyBeaconFlash {
+    0% { transform: scale(0.9); filter: drop-shadow(0 0 6px #ff2222) brightness(0.9); }
+    100% { transform: scale(1.3); filter: drop-shadow(0 0 16px #ff0000) brightness(1.4); }
+}
+
+/* Reinfested Outpost (⚠️ Nachschub) */
+.halo-district.reinfested .tactical-outpost-icon,
+.tactical-outpost-icon.reinfested {
+    animation: outpostReinfestedPulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes outpostReinfestedPulse {
+    0% {
+        transform: translateY(0);
+        filter: drop-shadow(0 4px 12px rgba(255, 140, 0, 0.4)) brightness(1.0);
+    }
+    100% {
+        transform: translateY(-3px);
+        filter: drop-shadow(0 6px 20px rgba(255, 140, 0, 0.8)) brightness(1.2);
+    }
+}
+
+.tactical-outpost-icon.reinfested .outpost-holo-ring {
+    border-color: rgba(255, 140, 0, 0.75);
+}
+.halo-district.reinfested .outpost-roof,
+.tactical-outpost-icon.reinfested .outpost-roof { fill: #482604; stroke: #ff941a; stroke-width: 1.5; }
+.halo-district.reinfested .outpost-wall-left,
+.tactical-outpost-icon.reinfested .outpost-wall-left { fill: #331902; stroke: #ff941a; }
+.halo-district.reinfested .outpost-wall-right,
+.tactical-outpost-icon.reinfested .outpost-wall-right { fill: #200f01; stroke: #cc7009; }
+.halo-district.reinfested .outpost-dome,
+.tactical-outpost-icon.reinfested .outpost-dome { fill: #ff941a; fill-opacity: 0.5; stroke: #ffc27d; }
+.halo-district.reinfested .outpost-seam,
+.tactical-outpost-icon.reinfested .outpost-seam { stroke: #ffb86c; }
+.halo-district.reinfested .outpost-portal,
+.tactical-outpost-icon.reinfested .outpost-portal { fill: #ff941a; filter: drop-shadow(0 0 6px #ff941a); }
+.halo-district.reinfested .outpost-antenna,
+.tactical-outpost-icon.reinfested .outpost-antenna { stroke: #ffc27d; }
+.halo-district.reinfested .outpost-beacon-orb,
+.tactical-outpost-icon.reinfested .outpost-beacon-orb { fill: #ff941a; filter: drop-shadow(0 0 8px #ff941a); }
+.halo-district.reinfested .outpost-beacon-wave,
+.tactical-outpost-icon.reinfested .outpost-beacon-wave { stroke: #ff941a; }
+
+/* Cleared / Fortified Outpost (⭐ Befestigt) */
+.halo-district.cleared .tactical-outpost-icon,
+.tactical-outpost-icon.cleared {
+    animation: outpostClearedPulse 3s ease-in-out infinite alternate;
+}
+
+@keyframes outpostClearedPulse {
+    0% {
+        transform: translateY(0);
+        filter: drop-shadow(0 4px 12px rgba(0, 255, 136, 0.3)) brightness(0.95);
+    }
+    100% {
+        transform: translateY(-2px);
+        filter: drop-shadow(0 6px 18px rgba(0, 255, 136, 0.65)) brightness(1.15);
+    }
+}
+
+.halo-district.cleared .outpost-holo-ring,
+.tactical-outpost-icon.cleared .outpost-holo-ring {
+    border-color: rgba(0, 255, 136, 0.8);
+    box-shadow: 0 0 14px rgba(0, 255, 136, 0.45);
+}
+.halo-district.cleared .outpost-roof,
+.tactical-outpost-icon.cleared .outpost-roof { fill: #043d22; stroke: #00ff88; stroke-width: 1.5; }
+.halo-district.cleared .outpost-wall-left,
+.tactical-outpost-icon.cleared .outpost-wall-left { fill: #032b18; stroke: #00ff88; }
+.halo-district.cleared .outpost-wall-right,
+.tactical-outpost-icon.cleared .outpost-wall-right { fill: #021a0f; stroke: #00b35f; }
+.halo-district.cleared .outpost-dome,
+.tactical-outpost-icon.cleared .outpost-dome { fill: #00ff88; fill-opacity: 0.55; stroke: #a3ffcc; }
+.halo-district.cleared .outpost-seam,
+.tactical-outpost-icon.cleared .outpost-seam { stroke: #a3ffcc; }
+.halo-district.cleared .outpost-portal,
+.tactical-outpost-icon.cleared .outpost-portal { fill: #00ff88; filter: drop-shadow(0 0 8px #00ff88); }
+.halo-district.cleared .outpost-antenna,
+.tactical-outpost-icon.cleared .outpost-antenna { stroke: #a3ffcc; }
+.halo-district.cleared .outpost-beacon-orb,
+.tactical-outpost-icon.cleared .outpost-beacon-orb { fill: #00ff88; filter: drop-shadow(0 0 10px #00ff88); }
+.halo-district.cleared .outpost-beacon-wave,
+.tactical-outpost-icon.cleared .outpost-beacon-wave { stroke: #00ff88; }
+
+/* Beacon animations */
+@keyframes beaconPulse {
+    0% { transform: scale(0.9); opacity: 0.85; }
+    100% { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes emergencyBeaconFlash {
+    0%, 100% { opacity: 1; filter: drop-shadow(0 0 14px #ff2222); }
+    50% { opacity: 0.3; filter: drop-shadow(0 0 2px #ff2222); }
+}
+
+@keyframes beaconSignalWave {
+    0% { r: 6.5px; opacity: 0.9; }
+    50% { r: 14px; opacity: 0.5; }
+    100% { r: 22px; opacity: 0; }
+}
+
+@keyframes emergencyBeaconSignalWave {
+    0% { r: 4px; opacity: 1; }
+    50% { r: 12px; opacity: 0.6; }
+    100% { r: 18px; opacity: 0; }
+}
+
+.district-badge-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-top: 4px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+.halo-district.emergency .district-badge-chip {
+    color: #ff7777;
+    border-color: rgba(255, 80, 80, 0.6);
+    box-shadow: 0 0 8px rgba(255, 50, 50, 0.4);
+}
+
+.halo-district.reinfested .district-badge-chip {
+    color: #ffbb44;
+    border-color: rgba(255, 170, 50, 0.6);
+}
+
+.halo-district.cleared .district-badge-chip {
+    color: #7dffbc;
+    border-color: rgba(0, 255, 136, 0.4);
+}
+
+.halo-event-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 8px 22px;
+    background: rgba(255, 153, 0, 0.22);
+    border: 1px solid rgba(255, 170, 0, 0.75);
+    border-radius: 999px;
+    box-shadow: 0 0 24px rgba(255, 153, 0, 0.4);
+    animation: eventBannerGlow 1.8s ease-in-out infinite alternate;
+}
+
+.halo-event-icon {
+    font-size: 1.5rem;
+}
+
+.halo-event-banner strong {
+    display: block;
+    color: #ffcc00;
+    font-size: 1.15rem;
+}
+
+.halo-event-banner small {
+    color: #e6e6e6;
+    font-size: 0.9rem;
+}
+
+@keyframes emergencyDistrictPulse {
+    0%, 100% { transform: translateY(0); box-shadow: 0 0 16px rgba(255, 50, 50, 0.3); }
+    50% { transform: translateY(-5px); box-shadow: 0 0 26px rgba(255, 50, 50, 0.7); }
+}
+
+@keyframes eventBannerGlow {
+    0% { transform: scale(0.99); box-shadow: 0 0 16px rgba(255, 153, 0, 0.3); }
+    100% { transform: scale(1.01); box-shadow: 0 0 28px rgba(255, 153, 0, 0.6); }
 }
 
 .halo-map-legend {
@@ -1423,6 +1762,7 @@ body.halo-active .halo-screen::before {
 
 .district-legend.target { background: #ffb82e; box-shadow: 0 0 8px #ffb82e; }
 .district-legend.cleared { background: #00e880; box-shadow: 0 0 8px #00e880; }
+.district-legend.emergency { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
 
 .halo-deploy-panel {
     position: absolute;
@@ -1466,10 +1806,10 @@ body.halo-active .halo-screen::before {
 }
 
 .halo-screen.is-planning .halo-city-map {
-    top: 188px;
-    left: 54px;
-    right: 54px;
-    bottom: 112px;
+    top: 142px;
+    left: 18px;
+    right: 18px;
+    bottom: 84px;
     width: auto;
     padding: 0;
     overflow: visible;
@@ -1479,19 +1819,67 @@ body.halo-active .halo-screen::before {
     backdrop-filter: none;
 }
 
-.halo-screen.is-planning .halo-map-heading {
+.halo-map-top-bar {
     position: absolute;
     top: 0;
     left: 50%;
-    z-index: 5;
-    width: min(620px, 66%);
-    padding: 7px 16px;
-    border: 1px solid rgba(0, 255, 136, 0.28);
-    border-radius: 999px;
-    background: rgba(0, 12, 13, 0.7);
-    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
     transform: translateX(-50%);
-    backdrop-filter: blur(7px);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: min(640px, 92%);
+    pointer-events: none;
+}
+
+.halo-screen.is-planning .halo-map-heading {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    z-index: 5;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 18px;
+    border: 1px solid rgba(0, 255, 136, 0.35);
+    border-radius: 999px;
+    background: rgba(2, 14, 12, 0.88);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+}
+
+.halo-screen.is-planning .halo-event-banner {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 auto;
+    padding: 5px 16px;
+    background: rgba(45, 18, 0, 0.92);
+    border: 1px solid rgba(255, 170, 0, 0.85);
+    border-radius: 999px;
+    box-shadow: 0 4px 18px rgba(255, 153, 0, 0.45);
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+    animation: eventBannerGlow 1.8s ease-in-out infinite alternate;
+}
+
+.halo-screen.is-planning .halo-event-icon {
+    font-size: 1.15rem;
+}
+
+.halo-screen.is-planning .halo-event-banner strong {
+    font-size: 0.92rem;
+    color: #ffcc00;
+}
+
+.halo-screen.is-planning .halo-event-banner small {
+    font-size: 0.8rem;
+    color: #ffe0a3;
 }
 
 .halo-screen.is-planning .halo-map-heading h2 {
@@ -1515,14 +1903,14 @@ body.halo-active .halo-screen::before {
     position: absolute;
     left: var(--map-x);
     top: var(--map-y);
-    width: 138px;
-    min-height: 94px;
-    padding: 6px 2px 8px;
+    width: 160px;
+    min-height: 110px;
+    padding: 6px 4px 8px;
     overflow: visible;
     background: transparent;
     border-color: transparent;
     border-radius: 50%;
-    text-shadow: 0 2px 8px #000, 0 0 4px #000;
+    text-shadow: 0 2px 8px #000, 0 0 5px #000;
     box-shadow: none;
     transform: translate(-50%, -50%) scale(var(--map-scale));
     transform-origin: 50% 85%;
@@ -1541,12 +1929,31 @@ body.halo-active .halo-screen::before {
     margin-bottom: 8px;
 }
 
-.halo-screen.is-planning .halo-district strong,
+.halo-screen.is-planning .halo-district strong {
+    width: auto;
+    max-width: 155px;
+    padding: 2px 10px;
+    overflow: hidden;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: rgba(0, 8, 10, 0.78);
+    border: 1px solid rgba(0, 229, 255, 0.28);
+    border-radius: 999px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
 .halo-screen.is-planning .halo-district small {
     width: auto;
-    max-width: 125px;
-    padding: 1px 7px;
+    max-width: 150px;
+    margin-top: 2px;
+    padding: 2px 9px;
     overflow: hidden;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #d2e4de;
     background: rgba(0, 8, 10, 0.68);
     border-radius: 999px;
     text-overflow: ellipsis;
@@ -1582,29 +1989,29 @@ body.halo-active .halo-screen::before {
     min-width: 390px;
 }
 
+.halo-screen.is-planning .halo-skip-btn {
+    display: none !important;
+}
+
 .halo-screen:not(.is-planning) .halo-city-map,
 .halo-screen:not(.is-planning) .halo-deploy-panel {
     display: none;
 }
 
 .halo-screen:not(.is-planning) .halo-jump-stage {
-    top: 170px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
+    display: flex;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     border: 0;
     border-radius: 0;
-    background: none;
+    background: #000;
     box-shadow: none;
 }
 
-.halo-screen:not(.is-planning) .halo-landing-beacon {
-    right: auto;
-    bottom: auto;
-    left: var(--landing-x, 58%);
-    top: var(--landing-y, 70%);
-    transform: translate(-50%, -50%) scale(var(--landing-scale, 0.8));
+.halo-screen:not(.is-planning) .halo-skip-btn {
+    display: inline-flex;
 }
 
 #end-screen.mission-summary-mode #show-leaderboard-btn,
@@ -1612,33 +2019,9 @@ body.halo-active .halo-screen::before {
     display: none !important;
 }
 
-@keyframes haloRotor {
-    from { transform: scaleX(0.35); opacity: 0.5; }
-    to { transform: scaleX(1.25); opacity: 0.9; }
-}
-
-@keyframes haloFreefall {
-    0% { left: 12%; top: 44%; opacity: 0; transform: translate(-50%, -50%) scale(1.12) rotate(-8deg); }
-    10% { opacity: 1; transform: translate(-50%, -50%) scale(1.02) rotate(-5deg); }
-    45% { opacity: 1; transform: translate(-50%, -50%) scale(0.66) rotate(4deg); }
-    76% { opacity: 1; transform: translate(-50%, -50%) scale(0.38) rotate(-2deg); }
-    100% { left: var(--landing-x, 58%); top: var(--landing-y, 70%); opacity: 1; transform: translate(-50%, -50%) scale(0.18) rotate(0deg); }
-}
-
-@keyframes haloSpeed {
-    from { opacity: 0.05; transform: translateY(-80px); }
-    50% { opacity: 0.8; }
-    to { opacity: 0.05; transform: translateY(100px); }
-}
-
 @keyframes targetDistrictPulse {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-5px); }
-}
-
-@keyframes landingBeaconPulse {
-    0%, 100% { opacity: 0.72; transform: scale(0.9); }
-    50% { opacity: 1; transform: scale(1.06); }
 }
 
 @keyframes mapTargetBeacon {
@@ -1647,20 +2030,9 @@ body.halo-active .halo-screen::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .halo-helicopter i,
-    .halo-screen.is-jumping .halo-operative,
-    .halo-screen.is-jumping .halo-speed-lines,
-    .halo-landing-beacon i,
     .halo-district.target,
     .command-radio-wave i {
         animation: none;
-    }
-
-    .halo-operative {
-        top: 20px;
-        left: 48%;
-        opacity: 1;
-        transform: translateX(-50%) scale(0.7);
     }
 }
 
@@ -2365,12 +2737,13 @@ select {
 }
 
 .correction-panel .letter-btn {
-    min-width: 46px;
-    min-height: 52px;
-    padding: 6px 11px;
-    font-size: 2rem;
+    min-width: 50px;
+    min-height: 54px;
+    padding: 6px 12px;
+    font-size: 2.1rem;
     border-color: #ffc44d;
     box-shadow: 0 0 9px rgba(255, 190, 42, 0.16);
+    touch-action: manipulation;
 }
 
 .correction-panel .letter-btn:hover {
@@ -3024,6 +3397,26 @@ select {
 .mission-result.incomplete {
     background: linear-gradient(105deg, rgba(255, 179, 0, 0.13), rgba(0, 0, 0, 0.52));
     border-color: rgba(255, 179, 0, 0.4);
+}
+
+.mission-result.failed {
+    background: linear-gradient(105deg, rgba(255, 30, 30, 0.22), rgba(20, 0, 0, 0.75));
+    border-color: rgba(255, 60, 60, 0.75);
+    box-shadow: 0 0 35px rgba(255, 0, 0, 0.35), inset 0 0 25px rgba(255, 50, 50, 0.15);
+}
+
+.mission-result.failed .mission-medal {
+    filter: drop-shadow(0 0 16px rgba(255, 60, 60, 0.7));
+}
+
+.mission-result.failed #mission-result-title {
+    color: #ff5555;
+    text-shadow: 0 0 18px rgba(255, 60, 60, 0.7);
+}
+
+.mission-result.failed .mission-result-track > span {
+    background: linear-gradient(90deg, #ff3333, #ff7777);
+    box-shadow: 0 0 14px rgba(255, 60, 60, 0.8);
 }
 
 .mission-medal {
@@ -3817,6 +4210,97 @@ select {
     background: #101416;
 }
 
+@media (max-width: 768px) {
+    .command-center-screen {
+        padding: 24px 16px 36px;
+        overflow-y: auto;
+    }
+
+    .command-center-header {
+        margin: 0 auto 16px;
+    }
+
+    .command-center-header h1 {
+        font-size: clamp(2.4rem, 8vw, 3.4rem);
+    }
+
+    .command-center-header p {
+        font-size: 1.05rem;
+    }
+
+    .command-center-layout {
+        width: 100%;
+    }
+
+    .command-vocab-card {
+        min-height: auto;
+        padding: 18px 14px 20px;
+    }
+
+    .command-radio-transmission {
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .command-radio-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 1.8rem;
+    }
+
+    .command-radio-wave {
+        display: none;
+    }
+
+    .command-language-row {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .command-language-row strong {
+        font-size: clamp(1.3rem, 5vw, 1.8rem);
+    }
+
+    .command-builder .letter-pool .letter-btn {
+        min-width: 58px;
+        min-height: 66px;
+        padding: 6px 14px;
+        font-size: 2.8rem;
+    }
+
+    .command-builder .letter-slot {
+        width: 46px;
+        height: 54px;
+    }
+
+    .command-builder .letter-slot .letter-btn {
+        font-size: 2.2rem;
+    }
+
+    .command-builder .fixed-token {
+        font-size: 1.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .command-builder .letter-pool .letter-btn {
+        min-width: 52px;
+        min-height: 58px;
+        padding: 4px 10px;
+        font-size: 2.4rem;
+    }
+
+    .command-builder .letter-slot {
+        width: 40px;
+        height: 48px;
+    }
+
+    .command-builder .letter-slot .letter-btn {
+        font-size: 1.9rem;
+    }
+}
+
 @media (max-width: 640px) {
     .leaderboard-dialog {
         width: 96%;
@@ -4077,13 +4561,20 @@ select {
     text-transform: uppercase;
     transition: all 0.2s ease;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
 }
 
 .letter-btn:hover {
-    transform: scale(1.1);
+    transform: scale(1.08);
     background: rgba(0, 255, 136, 0.2);
     box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+}
+
+.letter-btn:active {
+    transform: scale(0.96);
+    background: rgba(0, 255, 136, 0.35);
 }
 
 .letter-btn.wrong-anim {

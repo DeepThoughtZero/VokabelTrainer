@@ -27,6 +27,8 @@ const MIME_TYPES = new Map([
     ['.js', 'text/javascript; charset=utf-8'],
     ['.json', 'application/json; charset=utf-8'],
     ['.mp3', 'audio/mpeg'],
+    ['.mp4', 'video/mp4'],
+    ['.webp', 'image/webp'],
     ['.png', 'image/png'],
     ['.jpg', 'image/jpeg'],
     ['.jpeg', 'image/jpeg'],
@@ -85,10 +87,30 @@ function startStaticServer() {
             }
             const fileStats = await stat(requestedPath);
             if (!fileStats.isFile()) throw new Error('not a file');
+            const contentType = MIME_TYPES.get(extname(requestedPath).toLowerCase()) || 'application/octet-stream';
+            const range = request.headers.range;
+            if (range) {
+                const parts = range.replace(/bytes=/, '').split('-');
+                const start = parseInt(parts[0], 10);
+                const end = parts[1] ? parseInt(parts[1], 10) : fileStats.size - 1;
+                const chunksize = (end - start) + 1;
+                const file = await readFile(requestedPath);
+                const chunk = file.subarray(start, end + 1);
+                response.writeHead(206, {
+                    'Content-Range': `bytes ${start}-${end}/${fileStats.size}`,
+                    'Accept-Ranges': 'bytes',
+                    'Content-Length': chunksize,
+                    'Content-Type': contentType,
+                });
+                response.end(chunk);
+                return;
+            }
             const body = await readFile(requestedPath);
             response.writeHead(200, {
                 'Cache-Control': 'no-store',
-                'Content-Type': MIME_TYPES.get(extname(requestedPath).toLowerCase()) || 'application/octet-stream',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': fileStats.size,
+                'Content-Type': contentType,
             });
             response.end(body);
         } catch {
@@ -392,7 +414,7 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     assert.equal(directMapState.mapBackground, 'none', 'Stadtwahl liegt noch auf einem Dialoghintergrund');
     assert.equal(directMapState.mapBorder, '0px', 'Stadtwahl besitzt noch einen Dialograhmen');
     assert.match(directMapState.targetBackground, /radial-gradient/, 'Zielgebiet ist auf der Stadt nicht hervorgehoben');
-    assert.match(directMapState.bodyBackground, /background_halo_city\.webp/, 'Stadtbild füllt den äußeren Hintergrund nicht');
+    assert.match(directMapState.bodyBackground, /(map_[a-z0-9_-]+\.webp|background_halo_city\.webp)/, 'Stadtbild füllt den äußeren Hintergrund nicht');
     assert.ok(new Set(directMapState.markerScales).size >= 6, 'Stadtviertel besitzen keine perspektivische Tiefenstaffelung');
 
     const selectedDistrictChanged = await evaluate(client, `(() => {
@@ -416,7 +438,10 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     assert.ok(commandCenterState.letters > 0, 'Kommandozentrale enthält keine Buchstabenaufgabe');
     assert.match(commandCenterState.audioLabel, /Funk wiederholen/);
     assert.match(commandCenterState.radioMessage, /^Echo One to Rescue Team\./);
-    assert.match(commandCenterState.radioMessage, /zombie radar/i);
+    const radioBeforeReplay = commandCenterState.radioMessage;
+    await click(client, '#command-replay-audio-btn');
+    const radioAfterReplay = await evaluate(client, `document.querySelector('#command-radio-message').textContent.trim()`);
+    assert.equal(radioAfterReplay, radioBeforeReplay, 'Funkspruch-Text hat sich bei Funk-Wiederholung geändert');
     await assertInsideViewport(client, '.command-center-layout');
 
     for (let briefingStep = 0; briefingStep < 3; briefingStep++) {
@@ -451,9 +476,10 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
         activeDistrict: document.querySelector('#halo-active-district').textContent.trim(),
         jumping: document.querySelector('#halo-screen').classList.contains('is-jumping'),
         planning: document.querySelector('#halo-screen').classList.contains('is-planning'),
-        operativeImages: document.querySelectorAll('.halo-operative img').length,
-        operativeExtras: document.querySelectorAll('.halo-operative span').length,
-        landingDistrict: document.querySelector('#halo-landing-district').textContent.trim(),
+        hasVideo: Boolean(document.querySelector('#halo-jump-video')),
+        videoSrc: document.querySelector('#halo-jump-video')?.getAttribute('src') || '',
+        videoVisible: getComputedStyle(document.querySelector('#halo-jump-stage')).display !== 'none',
+        hasSkipBtn: Boolean(document.querySelector('#skip-halo-video-btn')),
         altitudeRemoved: !document.querySelector('#halo-altitude'),
         mapHidden: getComputedStyle(document.querySelector('.halo-city-map')).display === 'none',
         deployHidden: getComputedStyle(document.querySelector('.halo-deploy-panel')).display === 'none',
@@ -463,37 +489,14 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     assert.ok(haloState.activeDistrict);
     assert.equal(haloState.jumping, true);
     assert.equal(haloState.planning, false);
-    assert.equal(haloState.operativeImages, 1);
-    assert.equal(haloState.operativeExtras, 0, 'HALO zeigt noch eine zweite Fallschirmfigur');
+    assert.equal(haloState.hasVideo, true, 'HALO-Jump-Video fehlt im DOM');
+    assert.match(haloState.videoSrc, /assets\/video\/HaloJump\.mp4/, 'Video-Pfad stimmt nicht');
+    assert.equal(haloState.videoVisible, true, 'Video-Stage ist nicht sichtbar');
+    assert.equal(haloState.hasSkipBtn, true, 'Skip-Button fehlt im HALO-Screen');
     assert.equal(haloState.altitudeRemoved, true);
     assert.equal(haloState.mapHidden, true, 'Gebäudekarte wird beim Absprung erneut gezeigt');
     assert.equal(haloState.deployHidden, true, 'HALO verlangt noch eine zusätzliche Landebestätigung');
-    assert.ok(haloState.landingDistrict);
-    const jumpStart = await evaluate(client, `(() => {
-        const operative = document.querySelector('.halo-operative').getBoundingClientRect();
-        const beacon = document.querySelector('.halo-landing-beacon').getBoundingClientRect();
-        return {
-            width: operative.width,
-            distance: Math.hypot(
-                operative.left + operative.width / 2 - (beacon.left + beacon.width / 2),
-                operative.top + operative.height / 2 - (beacon.top + beacon.height / 2)
-            ),
-        };
-    })()`);
-    await sleep(1_800);
-    const jumpApproach = await evaluate(client, `(() => {
-        const operative = document.querySelector('.halo-operative').getBoundingClientRect();
-        const beacon = document.querySelector('.halo-landing-beacon').getBoundingClientRect();
-        return {
-            width: operative.width,
-            distance: Math.hypot(
-                operative.left + operative.width / 2 - (beacon.left + beacon.width / 2),
-                operative.top + operative.height / 2 - (beacon.top + beacon.height / 2)
-            ),
-        };
-    })()`);
-    assert.ok(jumpApproach.width < jumpStart.width, 'Fallschirmspringer wird beim Zielanflug nicht kleiner');
-    assert.ok(jumpApproach.distance < jumpStart.distance, 'Fallschirmspringer fliegt nicht zum gewählten Stadtviertel');
+    await click(client, '#skip-halo-video-btn');
     await waitForCondition(client, `document.querySelector('#game-screen.active')`, 'automatische Landung im Zielviertel', 6_000);
     await waitForCondition(client, `!document.querySelector('#mission-hud').classList.contains('hidden')`, 'Missionsfortschritt sichtbar');
     await waitForCondition(client, `document.querySelectorAll('#options-container .option-btn').length >= 4`, 'Antwortmöglichkeiten sichtbar');

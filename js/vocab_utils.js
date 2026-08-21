@@ -84,14 +84,6 @@ window.VocabUtils = Object.freeze({
     },
 
     createMissionTargetSet(vocabulary, options = {}) {
-        const requestedTargetSize = Number(options.targetSize);
-        const requestedNewWordLimit = Number(options.newWordLimit);
-        const targetSize = Number.isFinite(requestedTargetSize) && requestedTargetSize > 0
-            ? Math.floor(requestedTargetSize)
-            : 12;
-        const newWordLimit = Number.isFinite(requestedNewWordLimit) && requestedNewWordLimit >= 0
-            ? Math.floor(requestedNewWordLimit)
-            : 3;
         const isKnown = typeof options.isKnown === 'function' ? options.isKnown : () => false;
         const random = typeof options.random === 'function' ? options.random : Math.random;
         const uniqueVocabulary = [];
@@ -113,12 +105,183 @@ window.VocabUtils = Object.freeze({
             return result;
         }
 
+        if (options.includeAll) {
+            return shuffled(uniqueVocabulary);
+        }
+
+        const requestedTargetSize = Number(options.targetSize);
+        const requestedNewWordLimit = Number(options.newWordLimit);
+        const targetSize = Number.isFinite(requestedTargetSize) && requestedTargetSize > 0
+            ? Math.floor(requestedTargetSize)
+            : 12;
+        const newWordLimit = Number.isFinite(requestedNewWordLimit) && requestedNewWordLimit >= 0
+            ? Math.floor(requestedNewWordLimit)
+            : 3;
+
         const knownWords = shuffled(uniqueVocabulary.filter(isKnown));
         const newWords = shuffled(uniqueVocabulary.filter(vocab => !isKnown(vocab)));
         const selectedNewWords = newWords.slice(0, Math.min(newWordLimit, newWords.length));
         const selectedKnownWords = knownWords.slice(0, Math.max(0, targetSize - selectedNewWords.length));
 
-        return shuffled([...selectedKnownWords, ...selectedNewWords]).slice(0, targetSize);
+        return shuffled([...selectedKnownWords, ...selectedNewWords]);
+    },
+
+    getDistrictMastery(district, vocabulary, srsData, courseId = '') {
+        if (!district) return { totalWords: 0, masteredWords: 0, percent: 0, isFullyMastered: false };
+        const scope = String(courseId || (district.id ? decodeURIComponent(district.id.split(':')[0]) : 'en-5'));
+        const districtVocabs = Array.from(vocabulary || []).filter(vocab => {
+            if (district.unit && district.part && vocab.unit === district.unit && vocab.part === district.part) return true;
+            const vocabDistrict = this.getVocabularyDistrict(vocab, scope);
+            return vocabDistrict.id === district.id;
+        });
+        const totalWords = districtVocabs.length || Number(district.vocabCount) || 0;
+        if (totalWords === 0) return { totalWords: 0, masteredWords: 0, percent: 100, isFullyMastered: true };
+
+        const entries = srsData?.entries || {};
+        let masteredWords = 0;
+        districtVocabs.forEach(vocab => {
+            const srsKey = `${scope}:${vocab.id}`;
+            const record = entries[srsKey];
+            if (record && Number(record.timesCorrect) > 0) {
+                masteredWords++;
+            }
+        });
+
+        const percent = Math.min(100, Math.round((masteredWords / totalWords) * 100));
+        return {
+            totalWords,
+            masteredWords,
+            percent,
+            isFullyMastered: masteredWords >= totalWords
+        };
+    },
+
+    findNextCurriculumDistrict(districts, vocabulary, srsData, clearedDistrictIds = [], courseId = '') {
+        const available = Array.from(districts || []);
+        if (available.length === 0) return null;
+        const clearedSet = new Set(Array.from(clearedDistrictIds || [], String));
+
+        // Priorität 1: Bereits angefangenes, unfertiges Viertel abschließen ("etwas abschließen")
+        for (const district of available) {
+            const mastery = this.getDistrictMastery(district, vocabulary, srsData, courseId);
+            if (mastery.masteredWords > 0 && !mastery.isFullyMastered) {
+                return district;
+            }
+        }
+
+        // Priorität 2: Nächstes sequenzielles unbefreites Viertel ("nächster Part")
+        for (const district of available) {
+            const mastery = this.getDistrictMastery(district, vocabulary, srsData, courseId);
+            if (!clearedSet.has(district.id) || !mastery.isFullyMastered) {
+                return district;
+            }
+        }
+
+        // Priorität 3: Erstes Viertel als Standard
+        return available[0] || null;
+    },
+
+    evaluateDistrictThreat(district, vocabulary, srsData, career = {}, courseId = '', emergencyDistrictId = null) {
+        if (!district) return { status: 'contested', badge: '', tag: 'contested', title: '', description: '', bonusXpPercent: 0, mastery: { totalWords: 0, masteredWords: 0, percent: 0, isFullyMastered: false } };
+        const mastery = this.getDistrictMastery(district, vocabulary, srsData, courseId);
+        const clearedSet = new Set(Array.isArray(career?.clearedDistricts) ? career.clearedDistricts : []);
+        const wasCleared = clearedSet.has(district.id);
+        const scope = String(courseId || (district.id ? decodeURIComponent(district.id.split(':')[0]) : 'en-5'));
+        const districtVocabs = Array.from(vocabulary || []).filter(vocab => {
+            if (district.unit && district.part && vocab.unit === district.unit && vocab.part === district.part) return true;
+            const vocabDistrict = this.getVocabularyDistrict(vocab, scope);
+            return vocabDistrict.id === district.id;
+        });
+
+        const entries = srsData?.entries || {};
+        let highFailCount = 0;
+        let staleCount = 0;
+        const now = Date.now();
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+
+        districtVocabs.forEach(vocab => {
+            const key = `${scope}:${vocab.id}`;
+            const rec = entries[key];
+            if (rec) {
+                if (rec.timesFailed > rec.timesCorrect) highFailCount++;
+                if (rec.lastSeen && (now - rec.lastSeen) > threeDaysMs) staleCount++;
+            }
+        });
+
+        const isEmergency = emergencyDistrictId !== null
+            ? district.id === emergencyDistrictId
+            : (!wasCleared || !mastery.isFullyMastered) && (highFailCount >= 2 || (mastery.masteredWords > 0 && !mastery.isFullyMastered));
+
+        if (isEmergency && (!wasCleared || !mastery.isFullyMastered)) {
+            return {
+                status: 'emergency',
+                badge: '⚡ Notruf',
+                tag: 'emergency',
+                title: mastery.masteredWords > 0 ? 'Notruf: Viertel abschließen!' : 'Notruf: Nächstes Zielgebiet!',
+                description: mastery.masteredWords > 0
+                    ? `Noch ${mastery.totalWords - mastery.masteredWords} Wörter zur vollständigen Befreiung!`
+                    : `Nächster Einsatz im Lernplan · ${mastery.totalWords} Wörter`,
+                bonusXpPercent: 50,
+                mastery
+            };
+        }
+
+        if (wasCleared && mastery.isFullyMastered) {
+            if (highFailCount > 0 || staleCount >= 3) {
+                return {
+                    status: 'reinfested',
+                    badge: '⚠️ Nachschub',
+                    tag: 'reinfested',
+                    title: 'Zombie-Nachschub',
+                    description: 'Untote infiltrieren das befreite Viertel!',
+                    bonusXpPercent: 50,
+                    mastery
+                };
+            }
+            return {
+                status: 'cleared',
+                badge: '⭐ Befestigt',
+                tag: 'cleared',
+                title: 'Vollständig befreit',
+                description: 'Alle Wörter gemeistert & gesichert',
+                bonusXpPercent: 0,
+                mastery
+            };
+        }
+
+        return {
+            status: 'contested',
+            badge: `${mastery.masteredWords}/${mastery.totalWords}`,
+            tag: 'contested',
+            title: 'Umkämpftes Viertel',
+            description: `${mastery.totalWords - mastery.masteredWords} Wörter noch unbefreit`,
+            bonusXpPercent: 0,
+            mastery
+        };
+    },
+
+    calculateDistrictEvents(districts, vocabulary, srsData, career = {}, courseId = '') {
+        const events = [];
+        const nextCurriculumDistrict = this.findNextCurriculumDistrict(
+            districts,
+            vocabulary,
+            srsData,
+            career?.clearedDistricts,
+            courseId
+        );
+        const emergencyId = nextCurriculumDistrict?.id || null;
+
+        for (const district of Array.from(districts || [])) {
+            const threat = this.evaluateDistrictThreat(district, vocabulary, srsData, career, courseId, emergencyId);
+            if (threat.status === 'emergency' || threat.status === 'reinfested') {
+                events.push({
+                    districtId: district.id,
+                    district,
+                    threat
+                });
+            }
+        }
+        return events;
     },
 
     pickMissionVocabulary(targetWords, securedIds, lastVocabId, random = Math.random, excludedIds = []) {
@@ -174,12 +337,17 @@ window.VocabUtils = Object.freeze({
         const correctAttempts = Math.max(0, Math.floor(Number(result.correctAttempts) || 0));
         const currentMissionStreak = Math.max(0, Math.floor(Number(result.currentMissionStreak) || 0));
         const districtAlreadyCleared = Boolean(result.districtAlreadyCleared);
-        const completed = targetCount > 0 && securedCount >= targetCount;
+        const isEvent = Boolean(result.isEvent || result.threatStatus === 'emergency' || result.threatStatus === 'reinfested');
+        const isFullyLiberated = result.isFullyLiberated !== undefined ? Boolean(result.isFullyLiberated) : !districtAlreadyCleared;
+        const failed = Boolean(result.failed);
+
+        const completed = !failed && targetCount > 0 && securedCount >= targetCount;
         const completionBonusXp = completed ? 120 : 0;
         const recoveryBonusXp = recoveredCorrections * 25;
         const survivalBonusXp = completed ? (hearts >= 3 ? 75 : hearts === 2 ? 40 : 20) : 0;
-        const liberationBonusXp = completed ? (districtAlreadyCleared ? 25 : 100) : 0;
+        const liberationBonusXp = completed ? (isFullyLiberated && !districtAlreadyCleared ? 100 : (districtAlreadyCleared ? 25 : 50)) : 0;
         const streakBonusXp = completed ? Math.min(100, (currentMissionStreak + 1) * 20) : 0;
+        const eventBonusXp = completed && isEvent ? Math.max(50, Math.round(answerXp * 0.5)) : 0;
         const perfect = completed
             && hearts >= 3
             && totalAttempts === correctAttempts
@@ -192,12 +360,16 @@ window.VocabUtils = Object.freeze({
             survivalBonusXp,
             liberationBonusXp,
             streakBonusXp,
-            totalXp: answerXp + completionBonusXp + recoveryBonusXp + survivalBonusXp + liberationBonusXp + streakBonusXp,
+            eventBonusXp,
+            totalXp: answerXp + completionBonusXp + recoveryBonusXp + survivalBonusXp + liberationBonusXp + streakBonusXp + eventBonusXp,
             securedCount,
             recoveredCorrections,
             completed,
+            failed,
             perfect,
-            medal: hearts >= 3 ? 'gold' : hearts === 2 ? 'silver' : 'bronze'
+            isFullyLiberated,
+            isEvent,
+            medal: failed ? 'none' : (hearts >= 3 ? 'gold' : hearts === 2 ? 'silver' : 'bronze')
         };
     },
 
@@ -227,7 +399,7 @@ window.VocabUtils = Object.freeze({
         career.rescuedWords += Math.max(0, Math.floor(Number(reward.securedCount) || 0));
         career.correctionsRecovered += Math.max(0, Math.floor(Number(reward.recoveredCorrections) || 0));
 
-        if (reward.completed) {
+        if (reward.completed && !reward.failed) {
             career.missionsCompleted++;
             career.currentStreak++;
             career.bestStreak = Math.max(career.bestStreak, career.currentStreak);
@@ -235,7 +407,7 @@ window.VocabUtils = Object.freeze({
             career.medals[medal]++;
             if (reward.perfect) career.perfectMissions++;
             const districtId = String(reward.districtId || '');
-            if (districtId && !career.clearedDistricts.includes(districtId)) {
+            if (districtId && (reward.isFullyLiberated !== false) && !career.clearedDistricts.includes(districtId)) {
                 career.clearedDistricts.push(districtId);
             }
         } else {

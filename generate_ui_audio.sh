@@ -64,28 +64,24 @@ story_intro=$(jq -r '.story_intro' js/ui_texts.json)
 echo "Generiere Story Intro..."
 synthesize_json "$story_intro" "$OUTPUT_DIR/story_intro.mp3" "$DEFAULT_VOICE"
 
-# Hunter Male (Default Stimme)
-echo "Generiere Hunter Male Phrasen..."
-count=0
-jq -r '.hunter_male[]' js/ui_texts.json | while read -r phrase; do
-  synthesize_json "$phrase" "$OUTPUT_DIR/hunter_male_${count}.mp3" "$DEFAULT_VOICE"
-  count=$((count + 1))
+# Hunter Intros (Charakter-spezifische Stimmen)
+echo "Generiere Charakter-Intros..."
+for hunter_id in $(jq -r '.hunter_intros | keys[]' js/ui_texts.json); do
+  voice=$(jq -r --arg h "$hunter_id" '.hunter_voices[$h]' js/ui_texts.json)
+  intro_text=$(jq -r --arg h "$hunter_id" '.hunter_intros[$h]' js/ui_texts.json)
+  echo "  -> Held '$hunter_id' (Stimme: $voice)..."
+  synthesize_json "$intro_text" "$OUTPUT_DIR/hunter_${hunter_id}_intro.mp3" "$voice"
 done
 
-# Hunter Female (Weibliche Stimme)
-echo "Generiere Hunter Female Phrasen..."
-count=0
-jq -r '.hunter_female[]' js/ui_texts.json | while read -r phrase; do
-  synthesize_json "$phrase" "$OUTPUT_DIR/hunter_female_${count}.mp3" "$FEMALE_VOICE"
-  count=$((count + 1))
+# Hunter Cities (Orts- und heldenspezifische Sprüche mit gleicher Heldenstimme)
+echo "Generiere Helden-Orts-Kombinationen..."
+for hunter_id in $(jq -r '.hunter_cities | keys[]' js/ui_texts.json); do
+  voice=$(jq -r --arg h "$hunter_id" '.hunter_voices[$h]' js/ui_texts.json)
+  for city_id in $(jq -r --arg h "$hunter_id" '.hunter_cities[$h] | keys[]' js/ui_texts.json); do
+    city_text=$(jq -r --arg h "$hunter_id" --arg c "$city_id" '.hunter_cities[$h][$c]' js/ui_texts.json)
+    echo "  -> Held '$hunter_id' in Stadt '$city_id' (Stimme: $voice)..."
+    synthesize_json "$city_text" "$OUTPUT_DIR/hunter_${hunter_id}_city_${city_id}.mp3" "$voice"
+  done
 done
 
-# City Select (Default Stimme)
-echo "Generiere City Select Phrasen..."
-count=0
-jq -r '.city_select[]' js/ui_texts.json | while read -r phrase; do
-  synthesize_json "$phrase" "$OUTPUT_DIR/city_select_${count}.mp3" "$DEFAULT_VOICE"
-  count=$((count + 1))
-done
-
-echo "Fertig! Dateien liegen in $OUTPUT_DIR"
+echo "Fertig! Alle Charakter- und Ortsaudiodateien liegen in $OUTPUT_DIR"

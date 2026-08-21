@@ -122,26 +122,45 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.match(css, /\.district-cuboid\s*\{/);
     assert.ok(fs.existsSync(path.join(root, 'assets/background_helicopter_command.webp')));
     assert.ok(fs.existsSync(path.join(root, 'assets/background_halo_city.webp')));
-    assert.ok(fs.existsSync(path.join(root, 'assets/halo_hunter_parachute.webp')));
-    for (let variant = 1; variant <= 5; variant++) {
+    assert.ok(fs.existsSync(path.join(root, 'assets/video/HaloJump.mp4')));
+    for (let variant = 1; variant <= 8; variant++) {
         assert.ok(fs.existsSync(path.join(root, `assets/audio/ui/mission_radio_password_intro_${variant}.mp3`)));
     }
+    const ambientAudioAssets = [
+        'helicopter_cabin_ambient.mp3',
+        'helicopter_evasion_wind.mp3',
+        'mission_fail_retreat.mp3',
+        'halo_cargo_plane_ambient.mp3',
+        'halo_freefall_wind.mp3',
+        'apocalypse_street_ambient.mp3',
+        'tactical_war_room_ambient.mp3',
+        'safezone_victory_ambient.mp3'
+    ];
+    for (const audioAsset of ambientAudioAssets) {
+        assert.ok(fs.existsSync(path.join(root, 'assets/audio/ui', audioAsset)), `Missing UI audio asset: ${audioAsset}`);
+    }
+    assert.match(app, /AMBIENT_SCENES/);
+    assert.match(app, /startSceneAmbient/);
+    assert.match(app, /duckAmbientAudio/);
     assert.match(app, /missionNewWordLimit:\s*3/);
     assert.match(app, /beginMissionDistrictSelection/);
     assert.match(app, /solution-concealed/);
+    assert.doesNotMatch(html, /id="command-pilot-alert"/);
     assert.doesNotMatch(html, /id="command-auto-advance"/);
     assert.doesNotMatch(html, /class="command-mission-file/);
     assert.doesNotMatch(html, /id="halo-altitude"/);
     assert.doesNotMatch(html, /class="halo-map-legend"/);
     assert.doesNotMatch(html, /<span>🪂<\/span>/);
-    assert.match(html, /assets\/halo_hunter_parachute\.webp/);
-    assert.match(html, /id="halo-landing-district"/);
+    assert.match(html, /id="halo-jump-video"/);
+    assert.match(html, /assets\/video\/HaloJump\.mp4/);
+    assert.match(html, /id="skip-halo-video-btn"/);
     assert.match(html, /id="command-radio-message"/);
     assert.match(app, /Echo One to Rescue Team/);
     assert.match(app, /getMissionRadioIntro/);
     assert.match(app, /startMissionRadioStatic/);
-    assert.match(app, /MISSION_RADIO_INTRO_PATHS = Array\.from\(\s*\{ length: 5 \}/);
+    assert.match(app, /MISSION_RADIO_INTRO_PATHS = Array\.from\(\s*\{ length: 8 \}/);
     assert.match(app, /pickMissionRadioIntroPath/);
+    assert.match(app, /currentBriefingRadioIntro/);
     assert.match(app, /}, 650\)/);
     assert.doesNotMatch(app, /SpeechSynthesisUtterance/);
     assert.doesNotMatch(html, /class="halo-atmosphere"/);
@@ -149,8 +168,7 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.doesNotMatch(app, /getMissionRadioMessage\(vocab\)/);
     assert.match(app, /stopHaloSequence\(\);\s*launchGameSession\(\);/);
     assert.match(app, /MISSION_DISTRICT_MAP_POINTS/);
-    assert.match(app, /--landing-x/);
-    assert.match(css, /@keyframes haloFreefall\s*\{[\s\S]*scale\(1\.12\)[\s\S]*scale\(0\.18\)/);
+    assert.match(css, /\.halo-jump-video\s*\{/);
     assert.match(app, /liberationBonusXp/);
     assert.match(app, /streakBonusXp/);
     assert.doesNotMatch(html, /id="command-next-word-btn"/);
@@ -271,4 +289,34 @@ test('audio evidence freshness is content-addressed instead of timestamp-based',
     assert.match(checker, /content_hashes/);
     assert.match(verifier, /contentHashSchema/);
     assert.doesNotMatch(checker, /st_mtime/);
+});
+
+test('hunter intros and hero-city specific audio assets exist and remain wired', () => {
+    const uiTexts = JSON.parse(read('js/ui_texts.json'));
+    const app = read('js/app.js');
+    const hunters = ['laser', 'water', 'fire', 'lightning', 'fuchsia', 'pink'];
+    const cities = ['london', 'brighton', 'buehl', 'capetown', 'istanbul', 'rio', 'sf'];
+
+    assert.deepEqual(Object.keys(uiTexts.hunter_voices).sort(), [...hunters].sort());
+    assert.deepEqual(Object.keys(uiTexts.hunter_intros).sort(), [...hunters].sort());
+    assert.deepEqual(Object.keys(uiTexts.hunter_cities).sort(), [...hunters].sort());
+
+    for (const hunter of hunters) {
+        assert.ok(uiTexts.hunter_voices[hunter]);
+        assert.ok(uiTexts.hunter_intros[hunter]?.trim());
+        const introFile = path.join(root, `assets/audio/ui/hunter_${hunter}_intro.mp3`);
+        assert.ok(fs.existsSync(introFile), `missing hunter intro audio: ${introFile}`);
+        assert.ok(fs.statSync(introFile).size > 1000, `empty hunter intro audio: ${introFile}`);
+
+        assert.deepEqual(Object.keys(uiTexts.hunter_cities[hunter]).sort(), [...cities].sort());
+        for (const city of cities) {
+            assert.ok(uiTexts.hunter_cities[hunter][city]?.trim());
+            const cityFile = path.join(root, `assets/audio/ui/hunter_${hunter}_city_${city}.mp3`);
+            assert.ok(fs.existsSync(cityFile), `missing hero-city audio: ${cityFile}`);
+            assert.ok(fs.statSync(cityFile).size > 1000, `empty hero-city audio: ${cityFile}`);
+        }
+    }
+
+    assert.match(app, /playUIAudio\(`hunter_\$\{hunterId\}_intro\.mp3`\)/);
+    assert.match(app, /playUIAudio\(`hunter_\$\{hunterId\}_city_\$\{cityId\}\.mp3`\)/);
 });

@@ -1,24 +1,75 @@
 {
   "story_intro": "Ein mysteriöser Nebel hat die Welt in einen Ort der Untoten verwandelt! Nur ihr, die tapfersten Schüler der Akademie, könnt die Zombie-Invasion stoppen. Mit jedem richtig übersetzten Wort feuert ihr eure Elementarwaffen ab und drängt die Horde zurück. Kämpft gemeinsam und rettet eure Stadt!",
-  "hunter_male": [
-    "Ich bin bereit.",
-    "Ready for action.",
-    "Lass uns losziehen.",
-    "Die Zombies haben keine Chance.",
-    "Zeit für ein bisschen Magie."
-  ],
-  "hunter_female": [
-    "Ich bin bereit.",
-    "Ready for action.",
-    "Lass uns losziehen.",
-    "Die Zombies haben keine Chance.",
-    "Zeit für ein bisschen Magie."
-  ],
-  "city_select": [
-    "Diese Stadt wird nicht fallen!",
-    "Wir retten die Stadt!",
-    "Auf in den Kampf!",
-    "Los geht's, keine Zeit zu verlieren!",
-    "Die Rettung naht!"
-  ]
+  "hunter_voices": {
+    "laser": "ryan",
+    "water": "aiden",
+    "fire": "eric",
+    "lightning": "dylan",
+    "fuchsia": "serena",
+    "pink": "vivian"
+  },
+  "hunter_intros": {
+    "laser": "Commander Neon meldet sich zum Dienst! Mit meinen leuchtenden Laser-Strahlen stoppen wir die Zombie-Bande und retten den Tag!",
+    "water": "Hydro Striker am Start! Mit meinen mega Wasserwerfern spüle ich den Weg für uns frei!",
+    "fire": "Pyro Blaze ist dabei! Mit warmem Feuerzauber bringen wir Licht in den Nebel und vertreiben die Zombies!",
+    "lightning": "Volt Master aufgeladen! Mit cleverer Blitz-Energie bringen wir die Stadt wieder zum Strahlen!",
+    "fuchsia": "Ich bin Fuchsia. Mit geheimnisvoller Sternen-Magie werde ich den Nebel lüften und alle beschützen.",
+    "pink": "Pinky Pump ist startklar! Mit meiner bunten Konfetti-Pumpgun haben die Zombies keine Chance – auf geht's!"
+  },
+  "hunter_cities": {
+    "laser": {
+      "london": "Einsatz in London! Wir aktivieren die Laser-Scheinwerfer am Big Ben und erhellen die Themse!",
+      "brighton": "Auf nach Brighton! Wir sichern den Pier und bringen die Strandpromenade wieder zum Leuchten!",
+      "buehl": "Zielgebiet Bühl! Wir beschützen die schöne Zwetschgenstadt und die alte Burg Windeck!",
+      "capetown": "Kurs auf Kapstadt! Vom Tafelberg aus haben wir den perfekten Überblick über die Stadt!",
+      "istanbul": "Verstärkung für Istanbul! Wir beleuchten die Brücken über den Bosporus und stoppen die Zombies!",
+      "rio": "Einsatz in Rio! Vom Zuckerhut bis zum Strand machen wir die Stadt wieder sicher!",
+      "sf": "San Francisco ruft! Wir bringen die Golden Gate Bridge zum Strahlen und befreien die Bucht!"
+    },
+    "water": {
+      "london": "London im Regen? Perfekt für mich! Mit einer riesigen Wasserfontäne an der Themse geht's den Zombies an den Kragen!",
+      "brighton": "Ab nach Brighton ans Meer! Eine frische Meereswelle und der Pier ist wieder frei!",
+      "buehl": "Auf geht's nach Bühl! Mit frischem Schwarzwald-Wasser spülen wir die Straßen sauber!",
+      "capetown": "Kapstadt, wo zwei Meere sich treffen! Zeit für einen riesigen Wasserspaß gegen die Zombies!",
+      "istanbul": "Wasser marsch am Bosporus! Wir bringen frischen Wind und jede Menge Schwung nach Istanbul!",
+      "rio": "Wellenreiten an der Copacabana! Mit einer coolen Wasserwelle retten wir Rio!",
+      "sf": "San Francisco an der Bucht! Bei dem Seewind machen meine Wasserkanonen doppelt so viel Spaß!"
+    },
+    "fire": {
+      "london": "London im kühlen Nebel? Ich zünde ein warmes Freudenfeuer an der Themse an!",
+      "brighton": "Sonnenschein für Brighton! Wir bringen warme Sommerlaune an den Pier und vertreiben die Monster!",
+      "buehl": "Hallo Bühl! Wir entfachen ein buntes Leuchtfeuer über dem Schwarzwald und retten die Stadt!",
+      "capetown": "Guten Tag Kapstadt! Wir bringen die Sonne über den Tafelberg und helfen den Menschen!",
+      "istanbul": "Großer Einsatz in Istanbul! Mit warmem Feuerschein leuchten wir den Basar und den Bosporus aus!",
+      "rio": "Feuriger Rhythmus für Rio! Wir bringen Freude und Licht an den Zuckerhut zurück!",
+      "sf": "San Francisco, wir kommen! Mit warmen Flammenfunken vertreiben wir den Nebel von den Hügeln!"
+    },
+    "lightning": {
+      "london": "London braucht Energie! Wir bringen die Lichter am Big Ben wieder zum Blitzen!",
+      "brighton": "Volle Ladung für Brighton! Wir bringen die bunten Fahrgeschäfte am Pier wieder zum Laufen!",
+      "buehl": "Hallo Bühl! Mit blitzschneller Energie beschützen wir das Tal und die Burg Windeck!",
+      "capetown": "Spannung über Kapstadt! Ein sanfter Energieblitz auf dem Tafelberg und die Stadt ist sicher!",
+      "istanbul": "Energie für Istanbul! Wir bringen die Lichter an den Brücken des Bosporus zum Leuchten!",
+      "rio": "Rhythmus und Energie für Rio! Wir lassen die ganze Stadt wieder hell erstrahlen!",
+      "sf": "Volle Power für San Francisco! Wir bringen die berühmten Cable Cars wieder in Schwung!"
+    },
+    "fuchsia": {
+      "london": "Ein schützender Sternen-Zauber über London. Die Themse und der Big Ben werden bald wieder glänzen.",
+      "brighton": "Die Meeresbrise in Brighton trägt Magie. Mit meinem Zauberstab befreie ich den Pier.",
+      "buehl": "Zauberhafter Schwarzwald! Ich lege einen Schutzbann um Bühl und Burg Windeck.",
+      "capetown": "Friedliche Magie für den Tafelberg. Wir bringen das Sternenlicht zurück nach Kapstadt.",
+      "istanbul": "Geheimnisvolles Istanbul. Mein Zauber wird die schönen Straßen am Bosporus behüten.",
+      "rio": "Ein leuchtender Zauberspruch für Rio. Der Zauber am Zuckerhut bringt allen wieder Freude.",
+      "sf": "San Francisco im Nebel. Mein Zauber lüftet die Schleier über der Bucht und der großen Brücke."
+    },
+    "pink": {
+      "london": "London, wir kommen! Mit einer Riesenladung buntem Konfetti machen wir die Themse frei!",
+      "brighton": "Strandtag in Brighton! Wir verteilen Konfetti am Pier und verjagen die Gruselmonster!",
+      "buehl": "Super Einsatz in Bühl! Wir sausen durch den Schwarzwald und beschützen die Stadt!",
+      "capetown": "Hallo Kapstadt! Mit Schwung und guter Laune erobern wir den Tafelberg zurück!",
+      "istanbul": "Aufregung in Istanbul! Wir sausen über die Brücken und retten die Stadt mit viel Spaß!",
+      "rio": "Karneval in Rio! Bunte Konfetti-Party gegen die Zombies – das wird ein Riesenspaß!",
+      "sf": "Hui, die steilen Straßen von San Francisco! Mit voller Fahrt befreien wir die Stadt!"
+    }
+  }
 }

@@ -214,11 +214,15 @@ test('mission rewards make liberation, survival and rescue streaks meaningfully 
         survivalBonusXp: 75,
         liberationBonusXp: 100,
         streakBonusXp: 60,
+        eventBonusXp: 0,
         totalXp: 475,
         securedCount: 12,
         recoveredCorrections: 0,
         completed: true,
+        failed: false,
         perfect: true,
+        isFullyLiberated: true,
+        isEvent: false,
         medal: 'gold'
     });
 
@@ -238,6 +242,42 @@ test('mission rewards make liberation, survival and rescue streaks meaningfully 
     assert.equal(recoveredReward.survivalBonusXp, 40);
     assert.equal(recoveredReward.liberationBonusXp, 25);
     assert.equal(recoveredReward.streakBonusXp, 20);
+    assert.equal(recoveredReward.eventBonusXp, 0);
+
+    const eventReward = { ...utilities.calculateMissionReward({
+        answerXp: 200,
+        securedCount: 12,
+        targetCount: 12,
+        recoveredCorrections: 0,
+        hearts: 3,
+        totalAttempts: 12,
+        correctAttempts: 12,
+        currentMissionStreak: 1,
+        districtAlreadyCleared: true,
+        isEvent: true
+    }) };
+    assert.equal(eventReward.eventBonusXp, 100, '+50% Event-Bonus auf 200 Antwort-XP');
+    assert.equal(eventReward.totalXp, 200 + 120 + 0 + 75 + 25 + 40 + 100);
+
+    const failedReward = { ...utilities.calculateMissionReward({
+        answerXp: 80,
+        securedCount: 5,
+        targetCount: 12,
+        recoveredCorrections: 1,
+        hearts: 0,
+        totalAttempts: 10,
+        correctAttempts: 6,
+        currentMissionStreak: 3,
+        districtAlreadyCleared: false,
+        failed: true
+    }) };
+    assert.equal(failedReward.completed, false);
+    assert.equal(failedReward.failed, true);
+    assert.equal(failedReward.medal, 'none');
+    assert.equal(failedReward.completionBonusXp, 0);
+    assert.equal(failedReward.liberationBonusXp, 0);
+    assert.equal(failedReward.survivalBonusXp, 0);
+    assert.equal(failedReward.totalXp, 80 + 25); // answerXp + recoveryBonusXp
     assert.equal(recoveredReward.totalXp, 395);
     assert.equal(recoveredReward.perfect, false);
     assert.equal(recoveredReward.medal, 'silver');
@@ -343,4 +383,111 @@ test('photo manifest maps exactly 39 photos to pages 285 through 318', () => {
     assert.deepEqual(manifest.pages.map(item => item.page), Array.from({ length: 34 }, (_, i) => 285 + i));
     const photoCount = manifest.pages.reduce((count, item) => count + 1 + (item.alternatives || []).length, 0);
     assert.equal(photoCount, 39);
+});
+
+test('district mastery and threat evaluation distinguish emergency, contested, reinfested and cleared states', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+
+    const vocabs = [
+        { id: 'v1', foreign: 'cat', german: 'Katze', unit: 'Unit 1: Pets', part: 'Part A' },
+        { id: 'v2', foreign: 'dog', german: 'Hund', unit: 'Unit 1: Pets', part: 'Part A' },
+        { id: 'v3', foreign: 'bird', german: 'Vogel', unit: 'Unit 1: Pets', part: 'Part A' }
+    ];
+    const district = utilities.createVocabularyDistricts(vocabs)[0];
+
+    // Unmastered
+    const srsEmpty = { entries: {} };
+    const careerEmpty = { clearedDistricts: [] };
+    const threatContested = utilities.evaluateDistrictThreat(district, vocabs, srsEmpty, careerEmpty);
+    assert.equal(threatContested.status, 'contested');
+    assert.equal(threatContested.mastery.masteredWords, 0);
+    assert.equal(threatContested.mastery.totalWords, 3);
+    assert.equal(threatContested.mastery.isFullyMastered, false);
+
+    // Emergency: 2 failures
+    const srsEmergency = {
+        entries: {
+            'en-5:v1': { timesCorrect: 0, timesFailed: 3, lastSeen: Date.now() },
+            'en-5:v2': { timesCorrect: 0, timesFailed: 2, lastSeen: Date.now() }
+        }
+    };
+    const threatEmergency = utilities.evaluateDistrictThreat(district, vocabs, srsEmergency, careerEmpty, 'en-5');
+    assert.equal(threatEmergency.status, 'emergency');
+    assert.equal(threatEmergency.bonusXpPercent, 50);
+
+    // Cleared and fortified: all 3 words mastered once
+    const srsMastered = {
+        entries: {
+            'en-5:v1': { timesCorrect: 2, timesFailed: 0, lastSeen: Date.now() },
+            'en-5:v2': { timesCorrect: 1, timesFailed: 0, lastSeen: Date.now() },
+            'en-5:v3': { timesCorrect: 3, timesFailed: 0, lastSeen: Date.now() }
+        }
+    };
+    const careerCleared = { clearedDistricts: [district.id] };
+    const threatCleared = utilities.evaluateDistrictThreat(district, vocabs, srsMastered, careerCleared, 'en-5');
+    assert.equal(threatCleared.status, 'cleared');
+    assert.equal(threatCleared.mastery.isFullyMastered, true);
+
+    // Reinfested: previously cleared but stale (> 14 days) or failed
+    const srsReinfested = {
+        entries: {
+            'en-5:v1': { timesCorrect: 2, timesFailed: 0, lastSeen: Date.now() - (20 * 86400000) },
+            'en-5:v2': { timesCorrect: 1, timesFailed: 0, lastSeen: Date.now() - (20 * 86400000) },
+            'en-5:v3': { timesCorrect: 3, timesFailed: 0, lastSeen: Date.now() - (20 * 86400000) }
+        }
+    };
+    const threatReinfested = utilities.evaluateDistrictThreat(district, vocabs, srsReinfested, careerCleared, 'en-5');
+    assert.equal(threatReinfested.status, 'reinfested');
+    assert.equal(threatReinfested.bonusXpPercent, 50);
+
+    // calculateDistrictEvents returns emergency and reinfested districts
+    const events = utilities.calculateDistrictEvents([district], vocabs, srsReinfested, careerCleared, 'en-5');
+    assert.equal(events.length, 1);
+    assert.equal(events[0].threat.status, 'reinfested');
+});
+
+test('curriculum frontier guides emergency Notruf to finish started district or advance to next part', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+
+    const vocabs = [
+        { id: 'u1a_1', foreign: 'cat', german: 'Katze', unit: 'Unit 1: Pets', part: 'Part A' },
+        { id: 'u1a_2', foreign: 'dog', german: 'Hund', unit: 'Unit 1: Pets', part: 'Part A' },
+        { id: 'u1b_1', foreign: 'mouse', german: 'Maus', unit: 'Unit 1: Pets', part: 'Part B' },
+        { id: 'u2a_1', foreign: 'car', german: 'Auto', unit: 'Unit 2: City', part: 'Part A' }
+    ];
+    const districts = utilities.createVocabularyDistricts(vocabs, 'en-5');
+    const districtU1A = districts[0];
+    const districtU1B = districts[1];
+    const districtU2A = districts[2];
+
+    // Case 1: Fresh start -> Points to Unit 1 Part A (next uncleared part)
+    const nextFresh = utilities.findNextCurriculumDistrict(districts, vocabs, { entries: {} }, [], 'en-5');
+    assert.equal(nextFresh.id, districtU1A.id);
+
+    // Case 2: Unit 1 Part A started (1/2 mastered) -> Priority 1: Finish Unit 1 Part A!
+    const srsPartiallyStarted = {
+        entries: {
+            'en-5:u1a_1': { timesCorrect: 1, timesFailed: 0, lastSeen: Date.now() }
+        }
+    };
+    const nextStarted = utilities.findNextCurriculumDistrict(districts, vocabs, srsPartiallyStarted, [], 'en-5');
+    assert.equal(nextStarted.id, districtU1A.id, 'Prioritizes finishing partially mastered district');
+
+    // Case 3: Unit 1 Part A fully cleared -> Advances to Unit 1 Part B
+    const srsU1ACleared = {
+        entries: {
+            'en-5:u1a_1': { timesCorrect: 1, timesFailed: 0, lastSeen: Date.now() },
+            'en-5:u1a_2': { timesCorrect: 2, timesFailed: 0, lastSeen: Date.now() }
+        }
+    };
+    const nextAdvance = utilities.findNextCurriculumDistrict(districts, vocabs, srsU1ACleared, [districtU1A.id], 'en-5');
+    assert.equal(nextAdvance.id, districtU1B.id, 'Advances to next uncleared part');
+
+    // Case 4: calculateDistrictEvents marks only the active curriculum frontier as emergency
+    const events = utilities.calculateDistrictEvents(districts, vocabs, srsPartiallyStarted, [], 'en-5');
+    const emergencyEvents = events.filter(e => e.threat.status === 'emergency');
+    assert.equal(emergencyEvents.length, 1, 'Only one primary emergency alert at the curriculum frontier');
+    assert.equal(emergencyEvents[0].districtId, districtU1A.id);
 });

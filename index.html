@@ -301,6 +301,7 @@
                             <small>LIVE · ECHO ONE</small>
                             <p id="command-radio-message">Echo One to Rescue Team. The next password to jam the zombie radar is …</p>
                         </div>
+                        <button id="command-replay-audio-btn" class="command-audio-btn" type="button" title="Funkspruch erneut abspielen">📻 Funk wiederholen</button>
                         <span class="command-radio-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
                     </div>
                     <div class="command-language-row">
@@ -313,7 +314,6 @@
                             <small id="command-foreign-label">Englisch</small>
                             <strong id="command-foreign-word">word</strong>
                         </div>
-                        <button id="command-replay-audio-btn" class="command-audio-btn" type="button" title="Funkspruch erneut abspielen">📻 Funk wiederholen</button>
                     </div>
 
                     <div class="command-builder">
@@ -330,6 +330,7 @@
         <!-- HALO insertion and persistent book-district map -->
         <section id="halo-screen" class="screen halo-screen notranslate" translate="no">
             <button id="back-from-halo-btn" class="btn-secondary screen-back-btn" type="button">⬅ Einsatzwahl</button>
+            <button id="skip-halo-video-btn" class="btn-secondary halo-skip-btn" type="button" title="Absprung überspringen">Überspringen ⏩</button>
 
             <header class="halo-header">
                 <span id="halo-phase-badge" class="command-phase-badge">Phase 1 · Zielgebiet wählen</span>
@@ -338,25 +339,25 @@
             </header>
 
             <div id="halo-jump-stage" class="halo-jump-stage">
-                <div class="halo-helicopter" aria-hidden="true"><span>🚁</span><i></i></div>
-                <div class="halo-speed-lines" aria-hidden="true"></div>
-                <div class="halo-operative" aria-hidden="true">
-                    <img id="halo-hunter-img" src="assets/halo_hunter_parachute.webp" alt="">
-                </div>
-                <div class="halo-landing-beacon" aria-hidden="true">
-                    <i></i>
-                    <span>ZIELGEBIET</span>
-                    <strong id="halo-landing-district">Unit · Part</strong>
-                </div>
+                <video id="halo-jump-video" class="halo-jump-video" src="assets/video/HaloJump.mp4" playsinline preload="auto"></video>
             </div>
 
             <aside class="halo-city-map">
-                <div class="halo-map-heading">
-                    <div>
-                        <span id="halo-map-eyebrow" class="mission-eyebrow">Zielgebiet direkt markieren</span>
-                        <h2 id="halo-active-district">Stadtviertel auswählen</h2>
+                <div class="halo-map-top-bar">
+                    <div class="halo-map-heading">
+                        <div>
+                            <span id="halo-map-eyebrow" class="mission-eyebrow">Zielgebiet direkt markieren</span>
+                            <h2 id="halo-active-district">Stadtviertel auswählen</h2>
+                        </div>
+                        <span id="halo-district-counter">0 / 0 befreit</span>
                     </div>
-                    <span id="halo-district-counter">0 / 0 befreit</span>
+                    <div id="halo-event-banner" class="halo-event-banner hidden" role="status" aria-live="polite">
+                        <span class="halo-event-icon" aria-hidden="true">⚡</span>
+                        <div>
+                            <strong id="halo-event-title">Notruf im Zielgebiet!</strong>
+                            <small id="halo-event-desc">+50% Bonus-XP für die Verteidigung dieses Viertels</small>
+                        </div>
+                    </div>
                 </div>
                 <div id="halo-district-grid" class="halo-district-grid" aria-label="Stadtviertel nach Units und Parts"></div>
             </aside>
@@ -508,6 +509,7 @@
                         <span><strong id="mission-survival-xp">+0</strong> Team intakt</span>
                         <span><strong id="mission-streak-xp">+0</strong> Einsatzserie</span>
                         <span><strong id="mission-recovery-xp">+0</strong> zurückgeholt</span>
+                        <span><strong id="mission-event-xp">+0</strong> Notruf-Bonus</span>
                     </div>
                     <div class="mission-level-progress">
                         <div class="mission-level-labels">

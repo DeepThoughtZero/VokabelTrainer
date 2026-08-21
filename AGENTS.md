@@ -128,6 +128,27 @@ Für im Bericht verbleibende `fail`-/`review`-Kurzclips steht dafür der reprodu
 python3 scripts/regenerate_audio_in_context.py
 ```
 
+### Soundeffekt-Generierung mit AudioGen API
+
+Für Soundeffekte (Hubschrauber-Ambient, Ausweich-Windböen, Notfall-Alarm) steht der lokale Container `audiogen-api` (`facebook/audiogen-medium`) auf `http://127.0.0.1:8011` bereit.
+
+Soundeffekte werden mit folgendem Skript reproduzierbar generiert und normalisiert:
+
+```bash
+./scripts/generate_command_ambient_audio.sh
+```
+
+Erzeugte MP3-Dateien liegen in `assets/audio/ui/`:
+- `helicopter_cabin_ambient.mp3`: Kontinuierliches Cockpit- und Wind-Ambient für die Mobile Kommandozentrale
+- `helicopter_evasion_wind.mp3`: Turbulente Windböe und Triebwerksbeschleunigung bei Ausweichmanövern
+- `mission_fail_retreat.mp3`: Notfall-Alarmsirene bei gescheiterten Rettungsmissionen
+- `halo_cargo_plane_ambient.mp3`: Druckkabine & Triebwerksdröhnen des Transportflugzeugs bei der HALO-Einsatzplanung
+- `halo_freefall_wind.mp3`: Sturzflug- und Freifall-Windstoß beim HALO-Absprung ins Zielgebiet
+- `apocalypse_street_ambient.mp3`: Postapokalyptisches Stadt-Ambient mit heulendem Wind und fernen Sirenen für die Zombie-Straßenschlacht
+- `tactical_war_room_ambient.mp3`: Taktisches Lagezentrum, Serverbrummen und Radarabtastung bei Stadt- und Einsatzwahl
+- `safezone_victory_ambient.mp3`: Ruhiges Evakuierungs- und Stützpunkt-Ambient nach erfolgreicher Rettungsmission
+
+
 ## Arbeitsweise für Änderungen
 
 - Bestehende Nutzeränderungen und nicht zugehörige Dateien nicht überschreiben.
