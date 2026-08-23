@@ -427,6 +427,50 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(clearEvasiveManeuver, 1600);
     }
 
+    // ==========================================
+    // Critical Health Audio (1 Heart: Heartbeat & Heavy Breathing)
+    // ==========================================
+    let criticalHealthAudio = null;
+    let isCriticalHealthAudioPlaying = false;
+
+    function startCriticalHealthAudio(fadeInMs = 400) {
+        if (isCriticalHealthAudioPlaying) return;
+        if (!screens.game?.classList.contains('active') || !state.gameRunning || state.hearts !== 1) return;
+
+        isCriticalHealthAudioPlaying = true;
+        try {
+            if (!criticalHealthAudio) {
+                criticalHealthAudio = new Audio('assets/audio/ui/critical_health_heartbeat.mp3');
+                criticalHealthAudio.loop = true;
+            }
+            criticalHealthAudio.volume = 0;
+            criticalHealthAudio.play().then(() => {
+                fadeAudioVolume(criticalHealthAudio, 0.45, fadeInMs);
+            }).catch(error => {
+                console.log('Critical health audio playback failed:', error);
+            });
+        } catch (e) {
+            console.warn('Could not start critical health audio:', e);
+        }
+    }
+
+    function stopCriticalHealthAudio(fadeDurationMs = 400) {
+        if (!isCriticalHealthAudioPlaying && (!criticalHealthAudio || criticalHealthAudio.paused)) return;
+        isCriticalHealthAudioPlaying = false;
+        const player = criticalHealthAudio;
+        if (!player) return;
+
+        if (fadeDurationMs > 0 && !player.paused) {
+            fadeAudioVolume(player, 0, fadeDurationMs, () => {
+                player.pause();
+                player.currentTime = 0;
+            });
+        } else {
+            player.pause();
+            player.currentTime = 0;
+        }
+    }
+
     // Audio Context for retro sound effects
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -2203,6 +2247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'hunter':
             case 'city':
             case 'mission':
+            case 'start':
                 startSceneAmbient('tactical');
                 break;
             case 'end':
@@ -2211,6 +2256,14 @@ document.addEventListener('DOMContentLoaded', () => {
             default:
                 stopSceneAmbient(500);
                 break;
+        }
+
+        if (screenName === 'game') {
+            if (state.hearts === 1 && state.gameRunning) {
+                startCriticalHealthAudio();
+            }
+        } else {
+            stopCriticalHealthAudio(300);
         }
 
         if (!requiresLandscape) {
@@ -2355,7 +2408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Short first missions still get a real attack wave before the boss.
         return Math.min(
             CONFIG.missionBossWordCount,
-            Math.max(1, state.mission.targetWords.length - 4)
+            Math.max(1, state.mission.targetWords.length - 2)
         );
     }
 
@@ -2493,18 +2546,19 @@ document.addEventListener('DOMContentLoaded', () => {
         state.mission.endReason = objectiveReached ? 'objective' : 'encounter-limit';
         state.mission.finishing = true;
         updateMissionHUD();
-        showMissionPhaseTransition('extract');
+        if (objectiveReached) {
+            showMissionPhaseTransition('extract');
+        }
         state.gameRunning = false;
         cancelAnimationFrame(animationId);
-        setTimeout(endGame, CONFIG.missionExtractionTransitionDurationMs);
+        setTimeout(endGame, objectiveReached ? CONFIG.missionExtractionTransitionDurationMs : 1000);
         return true;
     }
 
     function selectMissionTargets(vocabulary) {
         return window.VocabUtils.createMissionTargetSet(vocabulary, {
-            targetSize: Math.max(vocabulary.length, CONFIG.missionTargetSize),
+            targetSize: CONFIG.missionTargetSize,
             newWordLimit: CONFIG.missionNewWordLimit,
-            includeAll: true,
             isKnown(vocab) {
                 const record = srsData.entries[getSrsKey(vocab)];
                 return Boolean(record && record.timesCorrect > 0);
@@ -3256,6 +3310,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.correction.audio.pause();
             state.correction.audio.currentTime = 0;
         }
+        stopCriticalHealthAudio(0);
         state.correction = {
             queue: [],
             activeEntry: null,
@@ -3572,8 +3627,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isBoss) {
             state.bossActive = true;
             state.bossHealth = isMissionMode()
-                ? getMissionRemainingCount()
-                : Math.floor(Math.random() * 2) + 2;
+                ? Math.max(3, CONFIG.missionBossWordCount)
+                : Math.floor(Math.random() * 2) + 3;
             state.bossMaxHealth = state.bossHealth;
             zombieEl.classList.add('boss');
             
@@ -3693,7 +3748,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateNewWordForBoss() {
-        if (finishMissionIfNeeded()) return false;
         const nextEncounter = selectNextEncounter();
         const vocab = nextEncounter.vocab;
         if (!vocab) return false;
@@ -4096,16 +4150,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 projectile.style.width = shootDistance + 'px';
                 setTimeout(() => {
                     projectile.className = 'hidden';
-                    const bossNeedsAnotherHit = state.bossActive && (
-                        state.bossHealth > 1 || (isMissionMode() && !newlySecuredMissionTarget)
-                    );
+                    const bossNeedsAnotherHit = state.bossActive && state.bossHealth > 1;
                     if (bossNeedsAnotherHit) {
-                        if (!isMissionMode() || newlySecuredMissionTarget) state.bossHealth--;
+                        state.bossHealth--;
                         zombieEl.classList.add('boss-hit');
                         setTimeout(() => zombieEl.classList.remove('boss-hit'), 100);
                         
                         const hps = document.querySelectorAll('.boss-hp');
-                        if ((!isMissionMode() || newlySecuredMissionTarget) && hps[state.bossHealth]) {
+                        if (hps[state.bossHealth]) {
                             hps[state.bossHealth].classList.add('lost');
                         }
                         
@@ -4308,6 +4360,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         updateVignetteUI();
+        if (state.hearts === 1 && state.gameRunning && screens.game?.classList.contains('active')) {
+            startCriticalHealthAudio();
+        } else {
+            stopCriticalHealthAudio(400);
+        }
     }
 
     // Boss Sprite Sheet: Einzelnen Frame auf Canvas zeichnen
@@ -4382,6 +4439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelAnimationFrame(animationId);
         clearTimeout(state.correction.confirmationTimer);
         stopCorrectionAudio();
+        stopCriticalHealthAudio(250);
         state.correction.activeEntry = null;
         correctionPanel?.classList.add('hidden');
         markedRetryBanner?.classList.add('hidden');

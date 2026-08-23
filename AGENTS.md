@@ -147,6 +147,8 @@ Erzeugte MP3-Dateien liegen in `assets/audio/ui/`:
 - `apocalypse_street_ambient.mp3`: Postapokalyptisches Stadt-Ambient mit heulendem Wind und fernen Sirenen für die Zombie-Straßenschlacht
 - `tactical_war_room_ambient.mp3`: Taktisches Lagezentrum, Serverbrummen und Radarabtastung bei Stadt- und Einsatzwahl
 - `safezone_victory_ambient.mp3`: Ruhiges Evakuierungs- und Stützpunkt-Ambient nach erfolgreicher Rettungsmission
+- `critical_health_heartbeat.mp3`: Dramatischer, schneller Herzschlag und angestrengte Atmung bei kritischer Gesundheit (1 Herz)
+
 
 
 ## Arbeitsweise für Änderungen

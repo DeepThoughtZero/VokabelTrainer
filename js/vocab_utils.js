@@ -213,37 +213,39 @@ window.VocabUtils = Object.freeze({
             : (!wasCleared || !mastery.isFullyMastered) && (highFailCount >= 2 || (mastery.masteredWords > 0 && !mastery.isFullyMastered));
 
         if (isEmergency && (!wasCleared || !mastery.isFullyMastered)) {
+            const countText = `${mastery.masteredWords}/${mastery.totalWords}`;
             return {
                 status: 'emergency',
-                badge: '⚡ Notruf',
+                badge: `⚡ Notruf · ${countText}`,
                 tag: 'emergency',
-                title: mastery.masteredWords > 0 ? 'Notruf: Viertel abschließen!' : 'Notruf: Nächstes Zielgebiet!',
+                title: mastery.masteredWords > 0 ? `Notruf: Viertel abschließen! (${countText})` : `Notruf: Nächstes Zielgebiet! (${countText})`,
                 description: mastery.masteredWords > 0
-                    ? `Noch ${mastery.totalWords - mastery.masteredWords} Wörter zur vollständigen Befreiung!`
-                    : `Nächster Einsatz im Lernplan · ${mastery.totalWords} Wörter`,
+                    ? `${mastery.masteredWords}/${mastery.totalWords} Wörter gemeistert · Noch ${mastery.totalWords - mastery.masteredWords} zur Befreiung!`
+                    : `0/${mastery.totalWords} Wörter gemeistert · Nächster Einsatz im Lernplan`,
                 bonusXpPercent: 50,
                 mastery
             };
         }
 
         if (wasCleared && mastery.isFullyMastered) {
+            const countText = `${mastery.masteredWords}/${mastery.totalWords}`;
             if (highFailCount > 0 || staleCount >= 3) {
                 return {
                     status: 'reinfested',
-                    badge: '⚠️ Nachschub',
+                    badge: `⚠️ Nachschub · ${countText}`,
                     tag: 'reinfested',
-                    title: 'Zombie-Nachschub',
-                    description: 'Untote infiltrieren das befreite Viertel!',
+                    title: `Zombie-Nachschub! (${countText})`,
+                    description: `${mastery.masteredWords}/${mastery.totalWords} Wörter gemeistert · Untote infiltrieren das befreite Viertel!`,
                     bonusXpPercent: 50,
                     mastery
                 };
             }
             return {
                 status: 'cleared',
-                badge: '⭐ Befestigt',
+                badge: `⭐ ${countText}`,
                 tag: 'cleared',
                 title: 'Vollständig befreit',
-                description: 'Alle Wörter gemeistert & gesichert',
+                description: `Alle ${mastery.totalWords} Wörter gemeistert & gesichert`,
                 bonusXpPercent: 0,
                 mastery
             };
@@ -254,7 +256,7 @@ window.VocabUtils = Object.freeze({
             badge: `${mastery.masteredWords}/${mastery.totalWords}`,
             tag: 'contested',
             title: 'Umkämpftes Viertel',
-            description: `${mastery.totalWords - mastery.masteredWords} Wörter noch unbefreit`,
+            description: `${mastery.masteredWords}/${mastery.totalWords} Wörter gemeistert · Noch ${mastery.totalWords - mastery.masteredWords} unbefreit`,
             bonusXpPercent: 0,
             mastery
         };

@@ -491,3 +491,23 @@ test('curriculum frontier guides emergency Notruf to finish started district or 
     assert.equal(emergencyEvents.length, 1, 'Only one primary emergency alert at the curriculum frontier');
     assert.equal(emergencyEvents[0].districtId, districtU1A.id);
 });
+
+test('mission boss has multiple lives and target set stays within mission encounter budget', () => {
+    const context = evaluateScripts(['js/vocab_utils.js']);
+    const utilities = context.window.VocabUtils;
+    const largeDistrictVocabulary = Array.from({ length: 60 }, (_, index) => ({
+        id: `vocab-${index + 1}`,
+        known: index < 15
+    }));
+
+    // Target set for a mission with large district (60 words) must produce a bite-sized target set (12 words)
+    const targets = utilities.createMissionTargetSet(largeDistrictVocabulary, {
+        targetSize: 12,
+        newWordLimit: 3,
+        isKnown: v => v.known,
+        random: () => 0.5
+    });
+    assert.equal(targets.length, 12, 'Mission target set should be capped at targetSize (12)');
+    assert.equal(targets.filter(v => !v.known).length, 3, 'Should introduce 3 new words');
+    assert.equal(targets.filter(v => v.known).length, 9, 'Should fill 9 review words');
+});

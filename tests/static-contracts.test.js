@@ -320,3 +320,21 @@ test('hunter intros and hero-city specific audio assets exist and remain wired',
     assert.match(app, /playUIAudio\(`hunter_\$\{hunterId\}_intro\.mp3`\)/);
     assert.match(app, /playUIAudio\(`hunter_\$\{hunterId\}_city_\$\{cityId\}\.mp3`\)/);
 });
+
+test('critical health audio asset exists and is wired to 1 heart condition', () => {
+    const app = read('js/app.js');
+    const html = read('index.html');
+    const audioFile = path.join(root, 'assets/audio/ui/critical_health_heartbeat.mp3');
+    assert.ok(fs.existsSync(audioFile), `missing critical health heartbeat audio: ${audioFile}`);
+    assert.ok(fs.statSync(audioFile).size > 1000, `empty critical health heartbeat audio: ${audioFile}`);
+
+    assert.match(app, /startCriticalHealthAudio/);
+    assert.match(app, /stopCriticalHealthAudio/);
+    assert.match(app, /state\.hearts === 1/);
+
+    // Banner is placed under the vocabulary options
+    const optionsIndex = html.indexOf('id="options-container"');
+    const bannerIndex = html.indexOf('id="marked-retry-banner"');
+    assert.ok(optionsIndex !== -1 && bannerIndex !== -1);
+    assert.ok(bannerIndex > optionsIndex, 'marked-retry-banner must be placed below options-container');
+});

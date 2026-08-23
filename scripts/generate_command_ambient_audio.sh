@@ -197,4 +197,12 @@ generate_ambient_loop \
   "$OUTPUT_DIR/safezone_victory_ambient.mp3" \
   "highpass=f=90,lowpass=f=6000,loudnorm=I=-22:TP=-2:LRA=6"
 
+# 9. Kritische Gesundheit (1 Herz): Schneller Herzschlag und angestrengte Atmung
+generate_ambient_loop \
+  "fast heavy heartbeat thumping rhythm with intense strained heavy breathing and gasping for air" \
+  "dramatic fast heart pulse sound with deep exhausted heavy breathing panting atmosphere" \
+  "tense rapid heartbeat pounding soundscape with breathless heavy breathing and gasping" \
+  "$OUTPUT_DIR/critical_health_heartbeat.mp3" \
+  "highpass=f=40,lowpass=f=6500,loudnorm=I=-19:TP=-2:LRA=6"
+
 echo "Fertig! Alle Spiel-Soundscapes & Effekte erzeugt in $OUTPUT_DIR"
