@@ -6,9 +6,9 @@ Schärfe dein Wissen, triff die richtigen Entscheidungen und überlebe die anrü
 
 ## 🎮 Spielen
 
-Du kannst das Spiel direkt und bequem in deinem Browser spielen via GitHub Pages:
+Das Spiel läuft produktiv und geschützt über Cloudflare Pages:
 
-👉 **[Hier klicken, um Vokabel Zombie zu spielen](https://deepthoughtzero.github.io/VokabelTrainer/)**
+👉 **[Hier klicken, um Vokabel Zombie zu spielen](https://vokabeltrainer-36s.pages.dev/)**
 
 ## ✨ Features
 
@@ -23,9 +23,10 @@ Neue Ergebnisse verwenden Kategorien wie `Englisch 5: Unit 1` und `Englisch 6: U
 
 ## 🔊 Vokabel-Audio erzeugen
 
-Klasse 6 verwendet stabile Audio-IDs im Ordner `assets/audio/vocab/en-6`. Fehlende Dateien lassen sich über die lokale Qwen3-TTS-API erzeugen:
+Klasse 5 und Klasse 6 verwenden stabile technische Audio-IDs in `assets/audio/vocab/en-5` und `assets/audio/vocab/en-6`. Fehlende Dateien lassen sich über die lokale Qwen3-TTS-API erzeugen:
 
 ```bash
+./generate_audio.sh --course en-5 --only-missing --engine qwen3-builtin
 ./generate_audio.sh --course en-6 --only-missing --engine qwen3-builtin
 ```
 
@@ -71,4 +72,4 @@ Entwickelt mit ❤️ von **Magic Fox Studios**.
 ## ⚖️ Lizenz
 
 Alle Rechte vorbehalten. Dieses Projekt ist privates Eigentum von Magic Fox Studios. 
-Das Spielen des Spiels über den offiziellen GitHub Pages Link ist ausdrücklich erlaubt und erwünscht. Jede andere Form der Nutzung, Vervielfältigung, Verbreitung oder Modifikation des Codes und der Assets ist ohne vorherige Erlaubnis untersagt. Weitere Details findest du in der [LICENSE](LICENSE) Datei.
+Das Spielen des Spiels über den offiziellen Cloudflare Pages Link ist ausdrücklich erlaubt und erwünscht. Jede andere Form der Nutzung, Vervielfältigung, Verbreitung oder Modifikation des Codes und der Assets ist ohne vorherige Erlaubnis untersagt. Weitere Details findest du in der [LICENSE](LICENSE) Datei.
