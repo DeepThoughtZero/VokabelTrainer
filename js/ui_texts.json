@@ -9,12 +9,12 @@
     "pink": "vivian"
   },
   "hunter_intros": {
-    "laser": "Commander Neon meldet sich zum Dienst! Laser geladen – retten wir den Tag!",
-    "water": "Hydro Striker am Start! Wasserwerfer bereit, spülen wir den Weg frei!",
-    "fire": "Pyro Blaze ist dabei! Mit Feuerzauber vertreiben wir die Zombies!",
-    "lightning": "Volt Master voll aufgeladen! Bringen wir die Stadt zum Strahlen!",
-    "fuchsia": "Ich bin Fuchsia. Mit Sternen-Magie lüften wir den Nebel.",
-    "pink": "Pinky Pump ist startklar! Keine Chance für die Zombies!"
+    "laser": "Commander Neon! Meine Laser leuchten den Weg!",
+    "water": "Hydro Striker! Wasser marsch, los geht's!",
+    "fire": "Pyro Blaze! Wir bringen Feuerzauber ins Spiel!",
+    "lightning": "Volt Master! Volle Blitz-Energie voraus!",
+    "fuchsia": "Fuchsia! Meine Sternen-Magie schützt uns!",
+    "pink": "Pinky Pump! Konfetti-Power – auf geht's!"
   },
   "hunter_cities": {
     "laser": {
