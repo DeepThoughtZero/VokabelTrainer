@@ -131,14 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let missionPhaseTransitionTimer = null;
     let missionBriefingAudio = null;
     const MISSION_RADIO_INTROS = [
-        { text: 'Echo One to Rescue Team. The next password to jam the zombie radar is', audio: 'assets/audio/ui/mission_radio_password_intro_1.mp3' },
-        { text: 'Echo One to Rescue Team. Attention, your next radar jamming code is', audio: 'assets/audio/ui/mission_radio_password_intro_2.mp3' },
-        { text: 'Echo One to Rescue Team. Incoming tactical update: the next password is', audio: 'assets/audio/ui/mission_radio_password_intro_3.mp3' },
-        { text: 'Echo One to Rescue Team. Priority dispatch: the code to jam their radar is', audio: 'assets/audio/ui/mission_radio_password_intro_4.mp3' },
-        { text: 'Echo One to Rescue Team. Transmission incoming: the target password is', audio: 'assets/audio/ui/mission_radio_password_intro_5.mp3' },
-        { text: 'Echo One to Rescue Team. Airborne update: your next radar bypass code is', audio: 'assets/audio/ui/mission_radio_password_intro_6.mp3' },
-        { text: 'Echo One to Rescue Team. Critical frequency locked: the next password is', audio: 'assets/audio/ui/mission_radio_password_intro_7.mp3' },
-        { text: 'Echo One to Rescue Team. Stand by for radar jamming coordinates: the code is', audio: 'assets/audio/ui/mission_radio_password_intro_8.mp3' }
+        { text: 'The next password to jam the zombie radar is', audio: 'assets/audio/ui/mission_radio_password_intro_1.mp3' },
+        { text: 'Attention, your next radar jamming code is', audio: 'assets/audio/ui/mission_radio_password_intro_2.mp3' },
+        { text: 'Incoming tactical update: the next password is', audio: 'assets/audio/ui/mission_radio_password_intro_3.mp3' },
+        { text: 'Priority dispatch: the code to jam their radar is', audio: 'assets/audio/ui/mission_radio_password_intro_4.mp3' },
+        { text: 'Transmission incoming: the target password is', audio: 'assets/audio/ui/mission_radio_password_intro_5.mp3' },
+        { text: 'Airborne update: your next radar bypass code is', audio: 'assets/audio/ui/mission_radio_password_intro_6.mp3' },
+        { text: 'Critical frequency locked: the next password is', audio: 'assets/audio/ui/mission_radio_password_intro_7.mp3' },
+        { text: 'Stand by for radar jamming coordinates: the code is', audio: 'assets/audio/ui/mission_radio_password_intro_8.mp3' }
     ];
     const MISSION_RADIO_INTRO_PATHS = Array.from(
         { length: 8 },
@@ -2790,7 +2790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getMissionRadioIntro() {
-        return 'Echo One to Rescue Team. The next password to jam the zombie radar is';
+        return 'The next password to jam the zombie radar is';
     }
 
     function playMissionRadioChirp() {

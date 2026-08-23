@@ -286,6 +286,60 @@ Das Spiel kann grundsätzlich auf zwei Arten gestartet werden:
 
 **Fazit:** Solange die Architektur so bleibt (JS direkt eingebunden, keine asynchronen Datenabfragen), hat der direkte Aufruf der `index.html` keine gravierenden Nachteile und kann bequem genutzt werden.
 
+## ☁️ Cloudflare Hosting
+
+Der VokabelTrainer wird zusätzlich zu GitHub über Cloudflare Pages bereitgestellt.
+
+### Aufbau
+- Das GitHub-Repository ist mit Cloudflare Pages verbunden.
+- Jeder Push auf den Branch `main` löst automatisch ein neues Deployment aus.
+- Cloudflare erzeugt dafür zunächst ein sauberes `dist/`-Verzeichnis mit ausschließlich den Dateien der Webanwendung:
+  ```bash
+  rm -rf dist && mkdir dist && cp index.html dist/ && cp -r css js assets dist/
+  ```
+- Als **Build output directory** ist `dist` konfiguriert.
+- `dist/` ist in `.gitignore` eingetragen und wird nicht ins Repository committed.
+
+### Passwortschutz
+
+Der serverseitige Zugriffsschutz erfolgt über:
+`functions/_middleware.js`
+
+Die Cloudflare-Pages-Middleware läuft vor der eigentlichen Website und somit auch vor statischen Dateien wie:
+- HTML
+- JavaScript
+- CSS
+- Bildern
+- Videos
+- MP3-Dateien
+
+Ohne gültige HTTP-Basic-Authentifizierung werden die Inhalte nicht ausgeliefert.
+
+Das Passwort selbst befindet sich nicht im Repository, sondern wird als verschlüsseltes Cloudflare-Secret unter:
+`AUTH_PASS`
+hinterlegt.
+
+Falls `AUTH_PASS` auf dem Server fehlt, liefert die Middleware absichtlich einen Fehler (HTTP 503) und gibt die Website nicht ungeschützt frei (Fail-Closed).
+
+### Deployment
+
+Produktiv läuft die Anwendung derzeit unter:
+**https://vokabeltrainer-36s.pages.dev/**
+
+Cloudflare Pages ist mit dem GitHub-Branch `main` verbunden:
+
+```text
+GitHub Push
+    ↓
+Cloudflare Pages Build
+    ↓
+dist/ erzeugen
+    ↓
+Pages Functions / Auth-Middleware
+    ↓
+neue Version veröffentlichen
+```
+
 ## 🗺️ Zukünftige Verbesserungen (Roadmap)
 
 Dieser Abschnitt dokumentiert alle geplanten, aber noch nicht umgesetzten Ideen zur Verbesserung der GUI und des Spielerlebnisses.

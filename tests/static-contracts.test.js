@@ -155,7 +155,8 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.match(html, /assets\/video\/HaloJump\.mp4/);
     assert.match(html, /id="skip-halo-video-btn"/);
     assert.match(html, /id="command-radio-message"/);
-    assert.match(app, /Echo One to Rescue Team/);
+    assert.match(app, /The next password to jam the zombie radar is/);
+    assert.doesNotMatch(app, /Echo One to Rescue Team/);
     assert.match(app, /getMissionRadioIntro/);
     assert.match(app, /startMissionRadioStatic/);
     assert.match(app, /MISSION_RADIO_INTRO_PATHS = Array\.from\(\s*\{ length: 8 \}/);

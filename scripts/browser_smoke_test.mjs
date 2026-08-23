@@ -479,7 +479,8 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     assert.ok(commandCenterState.foreign, 'Kommandozentrale zeigt kein englisches Wort');
     assert.ok(commandCenterState.letters > 0, 'Kommandozentrale enthält keine Buchstabenaufgabe');
     assert.match(commandCenterState.audioLabel, /Funk wiederholen/);
-    assert.match(commandCenterState.radioMessage, /^Echo One to Rescue Team\./);
+    assert.match(commandCenterState.radioMessage, /^(The next password|Attention|Incoming tactical update|Priority dispatch|Transmission incoming|Airborne update|Critical frequency locked|Stand by for radar jamming)/);
+    assert.doesNotMatch(commandCenterState.radioMessage, /Echo One/);
     const radioBeforeReplay = commandCenterState.radioMessage;
     await click(client, '#command-replay-audio-btn');
     const radioAfterReplay = await evaluate(client, `document.querySelector('#command-radio-message').textContent.trim()`);

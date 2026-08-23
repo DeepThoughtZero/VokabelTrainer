@@ -6,14 +6,14 @@ MODEL="${MODEL:-qwen3-tts}"
 VOICE="${VOICE:-ryan}"
 OUTPUT_DIR="assets/audio/ui"
 TEXTS=(
-  "Echo One to Rescue Team. The next password to jam the zombie radar is"
-  "Echo One to Rescue Team. Attention, your next radar jamming code is"
-  "Echo One to Rescue Team. Incoming tactical update: the next password is"
-  "Echo One to Rescue Team. Priority dispatch: the code to jam their radar is"
-  "Echo One to Rescue Team. Transmission incoming: the target password is"
-  "Echo One to Rescue Team. Airborne update: your next radar bypass code is"
-  "Echo One to Rescue Team. Critical frequency locked: the next password is"
-  "Echo One to Rescue Team. Stand by for radar jamming coordinates: the code is"
+  "The next password to jam the zombie radar is"
+  "Attention, your next radar jamming code is"
+  "Incoming tactical update: the next password is"
+  "Priority dispatch: the code to jam their radar is"
+  "Transmission incoming: the target password is"
+  "Airborne update: your next radar bypass code is"
+  "Critical frequency locked: the next password is"
+  "Stand by for radar jamming coordinates: the code is"
 )
 
 INSTRUCTIONS=(
