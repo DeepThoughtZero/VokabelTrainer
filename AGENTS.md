@@ -153,7 +153,8 @@ Erzeugte MP3-Dateien liegen in `assets/audio/ui/`:
 
 ## Arbeitsweise für Änderungen
 
-- Bestehende Nutzeränderungen und nicht zugehörige Dateien nicht überschreiben.
+- **Immer direkt auf `main` arbeiten**: Als kleines Team arbeiten wir ausschließlich auf `main` und erstellen keine separaten Branches.
+- **Niemals Arbeitsstände oder Nutzeränderungen verwerfen**: Bestehende uncommittete Änderungen, Nutzeranpassungen und Dateien dürfen niemals durch destruktive Befehle (wie `git reset --hard`, `git clean -fd` etc.) überschrieben oder gelöscht werden; es darf nie etwas verloren gehen!
 - Generierte Daten nur zusammen mit ihren Quellen, Korrekturen und Berichten ändern.
 - Kursabhängige Zustände stets über `state.courseId` trennen.
 - Englisch-5-`localStorage`-Migrationen erhalten; bestehende Lernstände dürfen nicht verloren gehen.
