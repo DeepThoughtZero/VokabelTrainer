@@ -392,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearEvasiveManeuver() {
         const card = document.getElementById('command-vocab-card');
         screens.command?.classList.remove('turbulence-active');
+        document.body.classList.remove('turbulence-active');
         card?.classList.remove('turbulence-active', 'evasive-left', 'evasive-right', 'evasive-dive');
 
         if (isAmbientPlaying && currentAmbientSceneKey === 'command' && screens.command?.classList.contains('active')) {
@@ -406,9 +407,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!screens.command) return;
 
         screens.command.classList.remove('turbulence-active');
+        document.body.classList.remove('turbulence-active');
         card?.classList.remove('turbulence-active', 'evasive-left', 'evasive-right', 'evasive-dive');
         void screens.command.offsetWidth;
+        void document.body.offsetWidth;
         screens.command.classList.add('turbulence-active');
+        document.body.classList.add('turbulence-active');
 
         // Duck ambient slightly during turbulence, then restore smoothly
         duckAmbientAudio(true, 250);
@@ -2404,6 +2408,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('command-active', screenName === 'command');
         if (screenName !== 'halo') {
             document.body.classList.remove('halo-jumping');
+        }
+        if (screenName !== 'command') {
+            document.body.classList.remove('turbulence-active');
+            screens.command?.classList.remove('turbulence-active');
         }
 
         switch (screenName) {

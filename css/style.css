@@ -43,16 +43,28 @@ body.halo-jumping {
 
 body.command-active {
     background-color: #000;
-    background-image: url('../assets/background_helicopter_command.webp') !important;
+    background-image: none !important;
+}
+
+body.command-active::before {
+    content: '';
+    position: fixed;
+    inset: -32px;
+    z-index: 0;
+    background-image: url('../assets/background_helicopter_command.webp');
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
+    transform: scale(1.03);
+    will-change: transform;
+    pointer-events: none;
 }
 
 #app-container {
     width: 1920px;
     height: 1200px;
     position: relative;
+    z-index: 1;
     overflow: hidden;
     transform-origin: center bottom;
     flex-shrink: 0;
@@ -851,6 +863,7 @@ body.halo-active .halo-screen::before {
     transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.4s ease;
 }
 
+body.command-active.turbulence-active::before,
 .command-center-screen.turbulence-active::before {
     animation: helicopterBgShake 1.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
