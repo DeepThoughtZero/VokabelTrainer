@@ -4,3 +4,4 @@ __pycache__/
 *.py[cod]
 *.tmp.mp3
 /local-design/
+/dist/
