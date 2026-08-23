@@ -80,7 +80,7 @@ Dafür gibt es ein Automatisierungs-Skript. Wenn ein neues Bild (z.B. aus einem 
 ## 🎬 Sprite Sheet Animationen
 
 ### Übersicht
-Ausgewählte Zombies (aktuell: Boss-Zombie `zombie10`) verwenden **animierte Laufbewegungen** anstelle statischer Bilder. Der Workflow basiert auf Videos, die mit **Google Flow** (KI-Videoerstellung) im 9:16-Format vor einem **Greenscreen** erzeugt wurden.
+Ausgewählte Zombies (Boss-Zombie `zombie10` und Standard-Zombie `zombie03`) verwenden **animierte Laufbewegungen** anstelle statischer Bilder. Der Workflow basiert auf Videos, die mit **Google Flow** (KI-Videoerstellung) im 9:16-Format vor einem **Greenscreen** erzeugt wurden.
 
 ### Workflow: Video → Sprite Sheet → Animation
 
@@ -88,7 +88,7 @@ Ausgewählte Zombies (aktuell: Boss-Zombie `zombie10`) verwenden **animierte Lau
 MP4-Video (Google Flow, 9:16, Greenscreen)
     ↓  scripts/mp4_to_spritesheet.sh (ffmpeg)
 Sprite Sheet PNG (6 Spalten, N Zeilen, transparenter Hintergrund)
-    ↓  In assets/ abgelegt
+    ↓  In assets/ abgelegt (z.B. assets/zombie03_sheet.png, assets/zombie10_sheet.png)
 Canvas-Animation im Browser (Frame-basiert im Game Loop)
 ```
 
@@ -97,54 +97,73 @@ Canvas-Animation im Browser (Frame-basiert im Game Loop)
 Das Bash-Skript konvertiert ein MP4-Video in ein Sprite Sheet:
 
 ```bash
-# Einzelnes Video konvertieren (Output nach assets/)
-./scripts/mp4_to_spritesheet.sh --output-dir assets assets/spritesheets/zombie10_video.mp4
+# 9:16 KI-Video konvertieren mit Zuschnitt auf die untere Bildhälfte (--crop-bottom)
+./scripts/mp4_to_spritesheet.sh --crop-bottom --output-dir assets assets/spritesheets/zombie_03_video.mp4
+mv assets/zombie_03_video_sheet.png assets/zombie03_sheet.png
 
-# Mit angepassten Parametern
-./scripts/mp4_to_spritesheet.sh --fps 12 --height 400 --cols 8 --output-dir assets mein_video.mp4
+# Mit manuellen Parametern
+./scripts/mp4_to_spritesheet.sh --fps 8 --height 360 --cols 6 --crop-bottom --output-dir assets mein_video.mp4
 
 # Batch-Modus: Alle MP4s im aktuellen Ordner
-./scripts/mp4_to_spritesheet.sh --batch
+./scripts/mp4_to_spritesheet.sh --crop-bottom --batch
 ```
 
 **Was das Skript tut:**
 1. Liest Videodauer per `ffprobe`
-2. Entfernt den Greenscreen per **Chromakey** (`0x00FF00`, Similarity 0.25, Blend 0.08) + Despill
-3. Skaliert Frames auf die gewünschte Höhe (Standard: **360px**, passend zur CSS-Klasse `.sprite-img`)
-4. Berechnet Framerate → Gesamtframes → Raster-Zeilen
-5. Fügt Frames per `tile`-Filter in ein einziges PNG zusammen (Standard: **6 Spalten**, **8 FPS**)
+2. Schneidet bei `--crop-bottom` den leeren oberen Greenscreen-Himmel automatisch ab, sodass die Figur formatfüllend im Frame sitzt
+3. Entfernt den Greenscreen per **Chromakey** (`0x00FF00`, Similarity 0.25, Blend 0.08) + Despill
+4. Skaliert Frames auf die gewünschte Höhe (Standard: **360px**, passend zur Höhe des Jägers und der Standard-Zombies)
+5. Berechnet Framerate → Gesamtframes → Raster-Zeilen
+6. Fügt Frames per `tile`-Filter in ein einziges PNG zusammen (Standard: **6 Spalten**, **8 FPS**)
 
-**Beispiel-Output:** `zombie10_video_sheet.png` → 1218×3960px, 6×11 Raster, 64 Frames
+**Beispiel-Outputs:**
+- `zombie10_sheet.png` → 1218×3960px, 6×11 Raster, 64 Frames (Boss)
+- `zombie01_sheet.png` bis `zombie07_sheet.png` → 2160×2520px, 6×7 Raster, 40 Frames (360×360px Frame-Größe)
 
 **Wichtige Hinweise:**
-- Videos aus Google Flow sind im 9:16-Format. Die Figur ist typischerweise in der unteren Hälfte, der obere Bereich ist grüner Hintergrund. Dieser wird automatisch transparent.
+- Bei quadratischen Videos (1:1 / 512×512) füllt die Figur direkt das 360×360px Canvas aus.
+- Videos im 9:16-Format mit Figur in der unteren Hälfte können mit `--crop-bottom` konvertiert werden.
 - Die Greenscreen-Chromakey-Parameter (`KEY_SIMILARITY`, `KEY_BLEND`) können je nach Video angepasst werden.
-- Ausgabedatei: `{videoname}_sheet.png` – muss ggf. umbenannt werden (z.B. `zombie10_sheet.png`).
+- Ausgabedatei: `{videoname}_sheet.png` – muss ggf. umbenannt werden (z.B. `zombie01_sheet.png`).
 
 ### 2. Animation in der App (Canvas-basiert)
 
 **Dateien:**
 - **`index.html`**: Enthält ein `<canvas id="zombie-sprite-canvas">` im `#zombie`-Container (neben dem statischen `<img>`)
-- **`js/app.js`**: Frame-Steuerung und Canvas-Rendering
-- **`css/style.css`**: Canvas-Styling und Deaktivierung der CSS-Walk-Animation für Bosse
+- **`js/app.js`**: Frame-Steuerung, Sprite-Registry `ZOMBIE_SPRITES` und Canvas-Rendering
+- **`css/style.css`**: Canvas-Styling (360px normal, 500px für Boss) und Deaktivierung der CSS-Walk-Animation
 
 **Ablauf im Code:**
-1. Beim App-Start wird das Sprite Sheet (`zombie10_sheet.png`) als `Image()`-Objekt **vorgeladen**
-2. Wenn ein Boss-Zombie spawnt (`spawnZombie()`):
-   - Statisches `<img>` wird versteckt
-   - `<canvas>` wird eingeblendet
-   - Frame-Counter auf 0 gesetzt
+1. Beim App-Start werden alle konfigurierten Sprite Sheets in `ZOMBIE_SPRITES` als `Image()`-Objekte **vorgeladen**
+2. Wenn ein Zombie spawnt (`spawnZombie()`):
+   - Wenn der gewählte Zombie (z. B. `zombie01`–`zombie07` oder Boss `zombie10`) in `ZOMBIE_SPRITES` registriert ist und das Sheet geladen ist:
+     - Statisches `<img>` wird versteckt
+     - `<canvas>` wird eingeblendet
+     - Frame-Counter auf 0 gesetzt
+   - Wenn kein Sheet vorhanden ist: Canvas wird versteckt, statisches `<img>` wird gezeigt
 3. Im **Game Loop** (`gameLoop()`):
-   - Alle `1000 / BOSS_FPS` ms wird der Frame-Index hochgezählt
-   - `renderBossFrame()` zeichnet den aktuellen Frame per `drawImage()` mit Source-Clipping auf das Canvas
-4. Bei normalem Zombie: Canvas wird versteckt, `<img>` wird wieder gezeigt
+   - Alle `1000 / FPS` ms wird der Frame-Index des aktiven Sprites hochgezählt
+   - `renderZombieSpriteFrame()` zeichnet den aktuellen Frame per `drawImage()` mit Source-Clipping auf das Canvas
 
 **Konfiguration (in `app.js`):**
 ```javascript
-const BOSS_SHEET_COLS = 6;      // Spalten im Sprite Sheet
-const BOSS_SHEET_ROWS = 11;     // Zeilen im Sprite Sheet
-const BOSS_FRAME_COUNT = 64;    // Tatsächliche Anzahl Frames (letzte Zeile ggf. nicht voll)
-const BOSS_FPS = 8;             // Animations-Framerate
+const ZOMBIE_SPRITES = {
+    'assets/zombie10.png': {
+        sheetSrc: 'assets/zombie10_sheet.png',
+        cols: 6,
+        rows: 11,
+        frameCount: 64,
+        fps: 8,
+        img: new Image()
+    },
+    'assets/zombie01.png': { sheetSrc: 'assets/zombie01_sheet.png', cols: 6, rows: 7, frameCount: 40, fps: 8, img: new Image() },
+    'assets/zombie02.png': { sheetSrc: 'assets/zombie02_sheet.png', cols: 6, rows: 7, frameCount: 40, fps: 8, img: new Image() },
+    'assets/zombie03.png': { sheetSrc: 'assets/zombie03_sheet.png', cols: 6, rows: 7, frameCount: 40, fps: 8, img: new Image() },
+    'assets/zombie04.png': { sheetSrc: 'assets/zombie04_sheet.png', cols: 6, rows: 7, frameCount: 40, fps: 8, img: new Image() },
+    'assets/zombie05.png': { sheetSrc: 'assets/zombie05_sheet.png', cols: 6, rows: 7, frameCount: 40, fps: 8, img: new Image() },
+    'assets/zombie06.png': { sheetSrc: 'assets/zombie06_sheet.png', cols: 6, rows: 7, frameCount: 40, fps: 8, img: new Image() },
+    'assets/zombie07.png': { sheetSrc: 'assets/zombie07_sheet.png', cols: 6, rows: 7, frameCount: 40, fps: 8, img: new Image() }
+};
 ```
 
 ### 3. Neuen animierten Zombie hinzufügen
@@ -158,7 +177,7 @@ Wenn zukünftig weitere Zombies animiert werden sollen:
    ./scripts/mp4_to_spritesheet.sh --output-dir assets assets/spritesheets/zombieXX_video.mp4
    mv assets/zombieXX_video_sheet.png assets/zombieXX_sheet.png
    ```
-4. **Code anpassen:** Die Sprite-Sheet-Konstanten und Canvas-Logik in `app.js` verallgemeinern (pro Zombie eigene Sheet-Referenz)
+4. **In `ZOMBIE_SPRITES` in `js/app.js` eintragen** mit `cols`, `rows`, `frameCount` und `fps`.
 
 ## 🔒 Sicherheit & Geheime Daten (API-Keys, Passwörter)
 

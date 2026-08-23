@@ -1334,17 +1334,82 @@ document.addEventListener('DOMContentLoaded', () => {
     const correctionFeedback = document.getElementById('correction-feedback');
     const markedRetryBanner = document.getElementById('marked-retry-banner');
 
-    // Boss Sprite Sheet Animation
+    // Zombie Sprite Sheet Animation
     const zombieSpriteCanvas = document.getElementById('zombie-sprite-canvas');
     const zombieSpriteCtx = zombieSpriteCanvas ? zombieSpriteCanvas.getContext('2d') : null;
-    const bossSheetImg = new Image();
-    bossSheetImg.src = 'assets/zombie10_sheet.png';
-    const BOSS_SHEET_COLS = 6;
-    const BOSS_SHEET_ROWS = 11;
-    const BOSS_FRAME_COUNT = 64; // 6x11=66 tiles, but only 64 actual frames
-    const BOSS_FPS = 8;
-    let bossCurrentFrame = 0;
-    let bossLastFrameTime = 0;
+    const ZOMBIE_SPRITES = {
+        'assets/zombie10.png': {
+            sheetSrc: 'assets/zombie10_sheet.png',
+            cols: 6,
+            rows: 11,
+            frameCount: 64, // 6x11=66 tiles, but only 64 actual frames
+            fps: 8,
+            img: new Image()
+        },
+        'assets/zombie01.png': {
+            sheetSrc: 'assets/zombie01_sheet.png',
+            cols: 6,
+            rows: 7,
+            frameCount: 40, // 6x7=42 tiles, exactly 40 actual frames (0..39)
+            fps: 8,
+            img: new Image()
+        },
+        'assets/zombie02.png': {
+            sheetSrc: 'assets/zombie02_sheet.png',
+            cols: 6,
+            rows: 7,
+            frameCount: 40, // 6x7=42 tiles, exactly 40 actual frames (0..39)
+            fps: 8,
+            img: new Image()
+        },
+        'assets/zombie03.png': {
+            sheetSrc: 'assets/zombie03_sheet.png',
+            cols: 6,
+            rows: 7,
+            frameCount: 40, // 6x7=42 tiles, exactly 40 actual frames (0..39)
+            fps: 8,
+            img: new Image()
+        },
+        'assets/zombie04.png': {
+            sheetSrc: 'assets/zombie04_sheet.png',
+            cols: 6,
+            rows: 7,
+            frameCount: 40, // 6x7=42 tiles, exactly 40 actual frames (0..39)
+            fps: 8,
+            img: new Image()
+        },
+        'assets/zombie05.png': {
+            sheetSrc: 'assets/zombie05_sheet.png',
+            cols: 6,
+            rows: 7,
+            frameCount: 40, // 6x7=42 tiles, exactly 40 actual frames (0..39)
+            fps: 8,
+            img: new Image()
+        },
+        'assets/zombie06.png': {
+            sheetSrc: 'assets/zombie06_sheet.png',
+            cols: 6,
+            rows: 7,
+            frameCount: 40, // 6x7=42 tiles, exactly 40 actual frames (0..39)
+            fps: 8,
+            img: new Image()
+        },
+        'assets/zombie07.png': {
+            sheetSrc: 'assets/zombie07_sheet.png',
+            cols: 6,
+            rows: 7,
+            frameCount: 40, // 6x7=42 tiles, exactly 40 actual frames (0..39)
+            fps: 8,
+            img: new Image()
+        }
+    };
+    Object.values(ZOMBIE_SPRITES).forEach(sprite => {
+        sprite.img.src = sprite.sheetSrc;
+    });
+
+    let activeZombieSprite = null;
+    let zombieCurrentFrame = 0;
+    let zombieLastFrameTime = 0;
 
     const HUNTERS = [
         { id: 'laser', name: 'Commander Neon', desc: 'Meister der Laser-Waffen.', img: 'assets/hunter_commanderneon.png', element: 'laser' },
@@ -3632,19 +3697,6 @@ document.addEventListener('DOMContentLoaded', () => {
             state.bossMaxHealth = state.bossHealth;
             zombieEl.classList.add('boss');
             
-            // Boss Sprite Sheet: Canvas zeigen, statisches Bild verstecken
-            if (zombieSpriteCanvas && bossSheetImg.complete) {
-                zombieImgEl.style.display = 'none';
-                zombieSpriteCanvas.style.display = 'block';
-                bossCurrentFrame = 0;
-                bossLastFrameTime = 0;
-                renderBossFrame(); // Ersten Frame sofort zeichnen
-            } else {
-                // Fallback: Statisches Bild verwenden, falls Sheet noch nicht geladen
-                zombieImgEl.style.display = '';
-                if (zombieSpriteCanvas) zombieSpriteCanvas.style.display = 'none';
-            }
-            
             const hb = document.getElementById('boss-health-bar');
             hb.innerHTML = '';
             hb.classList.remove('hidden');
@@ -3657,10 +3709,6 @@ document.addEventListener('DOMContentLoaded', () => {
             state.bossActive = false;
             zombieEl.classList.remove('boss');
             document.getElementById('boss-health-bar').classList.add('hidden');
-            
-            // Normaler Zombie: Canvas verstecken, statisches Bild zeigen
-            zombieImgEl.style.display = '';
-            if (zombieSpriteCanvas) zombieSpriteCanvas.style.display = 'none';
         }
 
         const nextEncounter = selectNextEncounter();
@@ -3722,6 +3770,7 @@ document.addEventListener('DOMContentLoaded', () => {
         zombieEl.style.opacity = '0';
         zombieEl.classList.add('walking');
         zombieEl.classList.remove('dead');
+        zombieImgEl.style.animationDuration = `${Math.max(0.3, 1.5 / Math.max(0.6, state.zombieSpeed || 1.0))}s`;
         
         if (CONFIG.bubbleOnLeft) {
             zombieEl.classList.add('bubble-left');
@@ -3729,11 +3778,23 @@ document.addEventListener('DOMContentLoaded', () => {
             zombieEl.classList.remove('bubble-left');
         }
         
-        if (state.bossActive) {
-            // Boss nutzt Sprite Sheet Canvas – statisches Bild nur als Fallback setzen
-            zombieImgEl.src = 'assets/zombie10.png';
+        const chosenZombieSrc = state.bossActive
+            ? 'assets/zombie10.png'
+            : zombieImages[Math.floor(Math.random() * zombieImages.length)];
+        zombieImgEl.src = chosenZombieSrc;
+
+        const spriteConfig = ZOMBIE_SPRITES[chosenZombieSrc];
+        if (zombieSpriteCanvas && spriteConfig && spriteConfig.img.complete) {
+            activeZombieSprite = spriteConfig;
+            zombieImgEl.style.display = 'none';
+            zombieSpriteCanvas.style.display = 'block';
+            zombieCurrentFrame = 0;
+            zombieLastFrameTime = 0;
+            renderZombieSpriteFrame(); // Ersten Frame sofort zeichnen
         } else {
-            zombieImgEl.src = zombieImages[Math.floor(Math.random() * zombieImages.length)];
+            activeZombieSprite = null;
+            zombieImgEl.style.display = '';
+            if (zombieSpriteCanvas) zombieSpriteCanvas.style.display = 'none';
         }
 
         if (currentMode === 'de-foreign-write') {
@@ -4219,6 +4280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 state.zombieSpeed += 3.0; // Deutlich schneller werden
             }
+            zombieImgEl.style.animationDuration = `${Math.max(0.2, 1.5 / Math.max(0.6, state.zombieSpeed || 1.0))}s`;
 
             state.streak = 0;
             updateBoostUI();
@@ -4367,18 +4429,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Boss Sprite Sheet: Einzelnen Frame auf Canvas zeichnen
-    function renderBossFrame() {
-        if (!zombieSpriteCtx || !bossSheetImg.complete) return;
-        const frameW = bossSheetImg.width / BOSS_SHEET_COLS;
-        const frameH = bossSheetImg.height / BOSS_SHEET_ROWS;
-        const srcX = (bossCurrentFrame % BOSS_SHEET_COLS) * frameW;
-        const srcY = Math.floor(bossCurrentFrame / BOSS_SHEET_COLS) * frameH;
+    // Zombie Sprite Sheet: Einzelnen Frame auf Canvas zeichnen
+    function renderZombieSpriteFrame() {
+        if (!zombieSpriteCtx || !activeZombieSprite || !activeZombieSprite.img.complete) return;
+        const sprite = activeZombieSprite;
+        const frameW = sprite.img.width / sprite.cols;
+        const frameH = sprite.img.height / sprite.rows;
+        const srcX = (zombieCurrentFrame % sprite.cols) * frameW;
+        const srcY = Math.floor(zombieCurrentFrame / sprite.cols) * frameH;
 
         zombieSpriteCanvas.width = frameW;
         zombieSpriteCanvas.height = frameH;
         zombieSpriteCtx.clearRect(0, 0, frameW, frameH);
-        zombieSpriteCtx.drawImage(bossSheetImg, srcX, srcY, frameW, frameH, 0, 0, frameW, frameH);
+        zombieSpriteCtx.drawImage(sprite.img, srcX, srcY, frameW, frameH, 0, 0, frameW, frameH);
     }
 
     function gameLoop(timestamp) {
@@ -4397,13 +4460,16 @@ document.addEventListener('DOMContentLoaded', () => {
             state.zombiePosition -= frameSpeed;
         }
         
-        // Boss Sprite Sheet Animation: Frame weiterschalten
-        if (state.bossActive && zombieSpriteCanvas && zombieSpriteCanvas.style.display !== 'none') {
-            const frameDuration = 1000 / BOSS_FPS;
-            if (timestamp - bossLastFrameTime >= frameDuration) {
-                bossCurrentFrame = (bossCurrentFrame + 1) % BOSS_FRAME_COUNT;
-                renderBossFrame();
-                bossLastFrameTime = timestamp;
+        // Zombie Sprite Sheet Animation: Frame dynamisch anhand der Laufgeschwindigkeit weiterschalten
+        if (activeZombieSprite && zombieSpriteCanvas && zombieSpriteCanvas.style.display !== 'none') {
+            const baseFps = activeZombieSprite.fps || 8;
+            const speedFactor = Math.max(0.6, (state.zombieSpeed || 1.0) / 1.0);
+            const dynamicFps = Math.min(28, baseFps * speedFactor);
+            const frameDuration = 1000 / dynamicFps;
+            if (timestamp - zombieLastFrameTime >= frameDuration) {
+                zombieCurrentFrame = (zombieCurrentFrame + 1) % activeZombieSprite.frameCount;
+                renderZombieSpriteFrame();
+                zombieLastFrameTime = timestamp;
             }
         }
         

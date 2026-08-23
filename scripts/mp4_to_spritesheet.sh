@@ -84,6 +84,19 @@ while [[ $# -gt 0 ]]; do
       COLS="$2"
       shift 2
       ;;
+    --crop-bottom)
+      ENABLE_CROP=1
+      CROP_W="iw"
+      CROP_H="iw*1.05"
+      CROP_X="0"
+      CROP_Y="ih-(iw*1.05)"
+      shift
+      ;;
+    --crop)
+      ENABLE_CROP=1
+      IFS=':' read -r CROP_W CROP_H CROP_X CROP_Y <<< "$2"
+      shift 2
+      ;;
     *)
       INPUT_FILE="$1"
       shift
@@ -98,7 +111,7 @@ process_video() {
   local current_input="$1"
   local basename="${current_input%.*}"
   basename="$(basename "$basename")"
-  
+
   local output_png
   if [[ -n "$OUTPUT_DIR" ]]; then
     mkdir -p "$OUTPUT_DIR"
@@ -135,11 +148,11 @@ process_video() {
       }')
   fi
 
-  # Anzahl Frames / Zeilen berechnen
+  # Anzahl Frames / Zeilen berechnen (entspricht ffmpeg fps-Filter Output)
   local frames
   frames=$(awk -v fps="$FPS" -v dur="$current_duration" '
     BEGIN {
-      f = int((fps * dur) + 0.999999)
+      f = int(fps * dur)
       if (f < 1) f = 1
       print f
     }')
@@ -168,7 +181,7 @@ process_video() {
     -frames:v 1 \
     -update 1 \
     "$output_png" \
-    -compression_level 9 
+    -compression_level 9
 
   echo "Fertig:     $output_png"
   echo "Raster:     ${COLS}x${rows} (Frames: $frames)"
@@ -186,7 +199,7 @@ if [[ "$BATCH_MODE" -eq 1 ]]; then
   echo "Starte Batch-Modus für alle MP4-Dateien..."
   shopt -s nullglob
   mp4_files=(*.mp4)
-  
+
   if [ ${#mp4_files[@]} -eq 0 ]; then
     echo "Keine MP4-Dateien im aktuellen Ordner gefunden."
     exit 0

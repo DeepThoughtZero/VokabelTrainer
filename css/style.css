@@ -3352,9 +3352,13 @@ select {
 }
 
 #zombie-sprite-canvas {
-    height: 500px;
+    height: 360px;
     width: auto;
     filter: drop-shadow(0 0 15px rgba(0,0,0,0.8));
+}
+
+#zombie.boss #zombie-sprite-canvas {
+    height: 500px;
 }
 
 .boss-hit .sprite-img,

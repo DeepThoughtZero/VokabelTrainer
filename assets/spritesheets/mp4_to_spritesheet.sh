@@ -9,7 +9,8 @@ export LANG=C
 # Betriebsmodus
 # ===================================
 BATCH_MODE=0                      # 1 = Alle MP4s im Ordner verarbeiten, 0 = Nur Einzeldatei
-INPUT_FILE="horse_dancing3.mp4" # Wird nur genutzt, wenn BATCH_MODE=0
+INPUT_FILE=""                     # Wird über Argument oder Default gesetzt
+OUTPUT_DIR=""                     # Optional: Zielordner für die PNG-Datei
 
 # ===================================
 # Zeitbereich
@@ -23,11 +24,10 @@ DURATION="2.0"    # nur aktiv, wenn AUTO_DURATION=0
 # ===================================
 FPS=8
 SPRITE_W=-1       # -1 = Breite wird automatisch passend zur Höhe berechnet
-SPRITE_H=160      # Feste Höhe (für bessere Qualität hier den Wert erhöhen!)
+SPRITE_H=360      # Höhe pro Frame (passend zur .sprite-img CSS-Höhe)
 COLS=6
 
 # lanczos = besser für Video / AI-Material
-# neighbor = härterer Pixel-Look
 SCALE_FLAGS="lanczos"
 
 # ===================================
@@ -60,12 +60,65 @@ KEY_SIMILARITY="$(normalize_num "$KEY_SIMILARITY")"
 KEY_BLEND="$(normalize_num "$KEY_BLEND")"
 
 # ===================================
+# Argumente parsen
+# ===================================
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --batch)
+      BATCH_MODE=1
+      shift
+      ;;
+    --output-dir)
+      OUTPUT_DIR="$2"
+      shift 2
+      ;;
+    --fps)
+      FPS="$2"
+      shift 2
+      ;;
+    --height)
+      SPRITE_H="$2"
+      shift 2
+      ;;
+    --cols)
+      COLS="$2"
+      shift 2
+      ;;
+    --crop-bottom)
+      ENABLE_CROP=1
+      CROP_W="iw"
+      CROP_H="iw*1.05"
+      CROP_X="0"
+      CROP_Y="ih-(iw*1.05)"
+      shift
+      ;;
+    --crop)
+      ENABLE_CROP=1
+      IFS=':' read -r CROP_W CROP_H CROP_X CROP_Y <<< "$2"
+      shift 2
+      ;;
+    *)
+      INPUT_FILE="$1"
+      shift
+      ;;
+  esac
+done
+
+# ===================================
 # Kernfunktion für die Verarbeitung
 # ===================================
 process_video() {
   local current_input="$1"
   local basename="${current_input%.*}"
-  local output_png="${basename}_sheet.png"
+  basename="$(basename "$basename")"
+
+  local output_png
+  if [[ -n "$OUTPUT_DIR" ]]; then
+    mkdir -p "$OUTPUT_DIR"
+    output_png="${OUTPUT_DIR}/${basename}_sheet.png"
+  else
+    output_png="${basename}_sheet.png"
+  fi
 
   echo "-------------------------------------------------"
   echo "Verarbeite: $current_input"
@@ -95,11 +148,11 @@ process_video() {
       }')
   fi
 
-  # Anzahl Frames / Zeilen berechnen
+  # Anzahl Frames / Zeilen berechnen (entspricht ffmpeg fps-Filter Output)
   local frames
   frames=$(awk -v fps="$FPS" -v dur="$current_duration" '
     BEGIN {
-      f = int((fps * dur) + 0.999999)
+      f = int(fps * dur)
       if (f < 1) f = 1
       print f
     }')
@@ -128,7 +181,7 @@ process_video() {
     -frames:v 1 \
     -update 1 \
     "$output_png" \
-    -compression_level 9 
+    -compression_level 9
 
   echo "Fertig:     $output_png"
   echo "Raster:     ${COLS}x${rows} (Frames: $frames)"
@@ -144,10 +197,9 @@ fi
 
 if [[ "$BATCH_MODE" -eq 1 ]]; then
   echo "Starte Batch-Modus für alle MP4-Dateien..."
-  # Fängt ab, falls keine MP4-Dateien im Ordner existieren
   shopt -s nullglob
   mp4_files=(*.mp4)
-  
+
   if [ ${#mp4_files[@]} -eq 0 ]; then
     echo "Keine MP4-Dateien im aktuellen Ordner gefunden."
     exit 0
@@ -159,5 +211,10 @@ if [[ "$BATCH_MODE" -eq 1 ]]; then
   echo "-------------------------------------------------"
   echo "Alle Dateien erfolgreich verarbeitet!"
 else
+  if [[ -z "$INPUT_FILE" ]]; then
+    echo "Fehler: Keine Eingabedatei angegeben." >&2
+    echo "Verwendung: $0 [--batch] [--output-dir DIR] [--fps N] [--height N] [--cols N] <video.mp4>" >&2
+    exit 1
+  fi
   process_video "$INPUT_FILE"
 fi
