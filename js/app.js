@@ -2753,8 +2753,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getVocabularyAudioPath(vocab) {
         if (!vocab) return '';
-        const legacyFilename = getForeign(vocab).replace(/\//g, '_') + '.mp3';
-        return vocab.audio || (state.courseId === 'en-5' ? `assets/audio/${legacyFilename}` : '');
+        if (vocab.audio) return vocab.audio;
+        if (vocab.id && state.courseId) {
+            return `assets/audio/vocab/${state.courseId}/${vocab.id}.mp3`;
+        }
+        return '';
     }
 
     function stopMissionBriefingAudio() {
@@ -3578,8 +3581,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playCorrectionAudio(vocab) {
         stopCorrectionAudio();
-        const legacyFilename = getForeign(vocab).replace(/\//g, '_') + '.mp3';
-        const audioPath = vocab.audio || (state.courseId === 'en-5' ? `assets/audio/${legacyFilename}` : '');
+        const audioPath = getVocabularyAudioPath(vocab);
         if (!audioPath) return;
         duckAmbientAudio(true, 150);
         state.correction.audio = new Audio(audioPath);
@@ -4457,9 +4459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         dialog.classList.remove('hidden');
         
-        const legacyFilename = getForeign(state.currentWord.vocab).replace(/\//g, '_') + '.mp3';
-        const audioPath = state.currentWord.vocab.audio
-            || (state.courseId === 'en-5' ? `assets/audio/${legacyFilename}` : '');
+        const audioPath = getVocabularyAudioPath(state.currentWord.vocab);
         const audio = audioPath ? new Audio(audioPath) : null;
         
         let dialogClosed = false;

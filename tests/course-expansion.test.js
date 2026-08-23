@@ -43,6 +43,14 @@ test('class 5 remains complete and class 6 covers every photographed page', () =
     const english6 = Array.from(context.window.VOCABULARIES['en-6']);
     assert.equal(english5.length, 999);
     assert.equal(english6.length, 869);
+    assert.equal(new Set(english5.map(row => row.id)).size, english5.length);
+    for (const row of english5) {
+        assert.ok(row.foreign.trim(), `missing foreign value in ${row.id}`);
+        assert.ok(row.german.trim(), `missing German value in ${row.id}`);
+        assert.ok(row.unit.trim(), `missing unit in ${row.id}`);
+        assert.match(row.id, new RegExp(`^en-5-p${row.page}-\\d{3}$`));
+        assert.ok(fs.existsSync(path.join(root, `assets/audio/vocab/en-5/${row.id}.mp3`)));
+    }
     assert.deepEqual([...new Set(english6.map(row => row.page))], Array.from({ length: 34 }, (_, i) => 285 + i));
     assert.equal(new Set(english6.map(row => row.id)).size, english6.length);
     for (const row of english6) {

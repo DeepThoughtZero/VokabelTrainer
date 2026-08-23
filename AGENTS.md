@@ -39,8 +39,8 @@ Spielbereit sind Englisch 5 und Englisch 6. Französisch 6 und Latein 6 sind im 
 - `js/leaderboard.js`: Laden, Speichern, Normalisieren und Filtern der Bestenliste
 - `scripts/apps-script.js`: serverseitiger Google-Sheets-Endpunkt
 - `pictures/Englisch_Klasse5` und `pictures/Englisch_Klasse6`: Quellfotos; durch `.gitignore` ausgeschlossen
-- `scripts/vocab_import`: reproduzierbare OCR-, Korrektur-, Build- und Audit-Daten für Englisch 6
-- `assets/audio`: bestehende Englisch-5-Audios
+- `assets/audio/ui`: Sounds für UI, Funk, Ambiente und Effekte
+- `assets/audio/vocab/en-5`: Englisch-5-Audios, Dateiname gleich stabiler Vokabel-ID
 - `assets/audio/vocab/en-6`: Englisch-6-Audios, Dateiname gleich stabiler Vokabel-ID
 - `tests/course-expansion.test.js`: Kurs-, Migrations- und Filtertests
 - `tests/static-contracts.test.js`: statische Pfade, DOM, Ladefolge, Persistenz- und Apps-Script-Verträge

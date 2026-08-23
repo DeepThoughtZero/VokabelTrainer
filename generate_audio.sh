@@ -70,7 +70,7 @@ done
 ENGINE="${ENGINE:-qwen3-builtin}"
 if [[ "$COURSE_ID" == "en-5" ]]; then
   VOCAB_FILE="js/vocabs.js"
-  OUTPUT_DIR="${OUTPUT_DIR:-assets/audio}"
+  OUTPUT_DIR="${OUTPUT_DIR:-assets/audio/vocab/en-5}"
 elif [[ "$COURSE_ID" == "en-6" ]]; then
   VOCAB_FILE="js/vocabs_en_6.js"
   OUTPUT_DIR="${OUTPUT_DIR:-assets/audio/vocab/en-6}"
@@ -222,10 +222,6 @@ else
 fi
 
 if [[ -n "$ID_FILTER" ]]; then
-  [[ "$COURSE_ID" == "en-6" ]] || {
-    echo "--id wird nur für Kurse mit stabilen Audio-IDs unterstützt." >&2
-    exit 1
-  }
   jq_items=$(echo "$jq_input" | jq -c --arg id "$ID_FILTER" 'map(select(.id == $id))')
 elif [[ -n "$IDS_REPORT" ]]; then
   [[ -f "$IDS_REPORT" ]] || {
@@ -248,13 +244,8 @@ count_current=0
 
 while IFS= read -r item; do
   count_current=$((count_current + 1))
-  if [[ "$COURSE_ID" == "en-5" ]]; then
-    foreign=$(jq -r '.english' <<<"$item")
-    filename=$(echo "$foreign" | sed 's/\//_/g')
-  else
-    foreign=$(jq -r '.foreign' <<<"$item")
-    filename=$(jq -r '.id' <<<"$item")
-  fi
+  foreign=$(jq -r '.foreign // .english' <<<"$item")
+  filename=$(jq -r '.id' <<<"$item")
   filepath="$OUTPUT_DIR/${filename}.mp3"
   count_total=$((count_total + 1))
 

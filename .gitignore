@@ -5,3 +5,4 @@ __pycache__/
 *.tmp.mp3
 /local-design/
 /dist/
+/scratch/

@@ -6,7 +6,20 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const audioDirectory = path.join(root, 'assets/audio/vocab/en-6');
+const audioDirectoryEn6 = path.join(root, 'assets/audio/vocab/en-6');
+const audioDirectoryEn5 = path.join(root, 'assets/audio/vocab/en-5');
+const audioDirectoryRoot = path.join(root, 'assets/audio');
+
+function loadEnglish5() {
+    const context = { window: { VOCABULARIES: {} } };
+    vm.createContext(context);
+    vm.runInContext(
+        fs.readFileSync(path.join(root, 'js/vocabs.js'), 'utf8'),
+        context,
+        { filename: 'js/vocabs.js' }
+    );
+    return Array.from(context.window.VOCABULARIES['en-5']);
+}
 
 function loadEnglish6() {
     const context = { window: { VOCABULARIES: {} } };
@@ -18,6 +31,43 @@ function loadEnglish6() {
     );
     return Array.from(context.window.VOCABULARIES['en-6']);
 }
+
+test('English 5 entries satisfy the stable id and schema contract', () => {
+    const entries = loadEnglish5();
+    assert.ok(entries.length > 0);
+    const seenIds = new Set();
+    for (const entry of entries) {
+        const foreign = entry.foreign || entry.english;
+        assert.equal(typeof foreign, 'string');
+        assert.ok(foreign.trim(), `empty foreign text: ${entry.id}`);
+        assert.equal(typeof entry.german, 'string');
+        assert.ok(entry.german.trim(), `empty German text: ${entry.id}`);
+        assert.ok(entry.unit.trim(), `empty unit: ${entry.id}`);
+        assert.ok(Number.isInteger(entry.page) && entry.page >= 225 && entry.page <= 261);
+        assert.match(entry.id, new RegExp(`^en-5-p${entry.page}-\\d{3}$`));
+        assert.equal(seenIds.has(entry.id), false, `duplicate id: ${entry.id}`);
+        seenIds.add(entry.id);
+    }
+    assert.equal(seenIds.size, entries.length);
+});
+
+test('English 5 audio directory is a complete one-to-one materialization of the database', () => {
+    const entries = loadEnglish5();
+    const expected = entries.map(entry => `${entry.id}.mp3`).sort();
+    const actual = fs.readdirSync(audioDirectoryEn5).filter(file => file.endsWith('.mp3')).sort();
+    assert.deepEqual(actual, expected);
+    assert.equal(actual.length, entries.length);
+    for (const file of actual) {
+        const stats = fs.statSync(path.join(audioDirectoryEn5, file));
+        assert.ok(stats.size >= 1000, `implausibly small audio file: ${file} (${stats.size} bytes)`);
+        assert.equal(file.endsWith('.tmp.mp3'), false);
+    }
+});
+
+test('root audio directory contains no loose vocabulary MP3 files', () => {
+    const looseMp3s = fs.readdirSync(audioDirectoryRoot).filter(file => file.endsWith('.mp3'));
+    assert.deepEqual(looseMp3s, [], 'assets/audio must only contain subdirectories (ui, vocab), no loose mp3s');
+});
 
 test('generated vocabulary agrees with the reviewed import report', () => {
     const entries = loadEnglish6();
@@ -62,11 +112,11 @@ test('every entry satisfies the stable id and audio-path contract', () => {
 test('audio directory is a complete one-to-one materialization of the database', () => {
     const entries = loadEnglish6();
     const expected = entries.map(entry => path.basename(entry.audio)).sort();
-    const actual = fs.readdirSync(audioDirectory).filter(file => file.endsWith('.mp3')).sort();
+    const actual = fs.readdirSync(audioDirectoryEn6).filter(file => file.endsWith('.mp3')).sort();
     assert.deepEqual(actual, expected);
     assert.equal(actual.length, 869);
     for (const file of actual) {
-        const stats = fs.statSync(path.join(audioDirectory, file));
+        const stats = fs.statSync(path.join(audioDirectoryEn6, file));
         assert.ok(stats.size >= 1000, `implausibly small audio file: ${file} (${stats.size} bytes)`);
         assert.equal(file.endsWith('.tmp.mp3'), false);
     }
