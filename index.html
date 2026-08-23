@@ -276,29 +276,23 @@
             <button id="back-from-command-btn" class="btn-secondary screen-back-btn" type="button">⬅ Stadtkarte</button>
 
             <header class="command-center-header">
-                <span class="command-phase-badge">Phase 2 · Hubschrauber-Briefing</span>
+                <span class="command-phase-badge">Phase 2 · Flugzeug-Briefing</span>
                 <h1>Mobile Kommandozentrale</h1>
-                <p>Auf dem Weg zur Absprungzone: drei neue Zielwörter hören, tarnen und selbst entschlüsseln.</p>
+                <p>🚨 Alarm im Luftraum: Knacke die 3 Einsatz-Passwörter vor dem Absprung!</p>
             </header>
 
             <div class="command-center-layout">
                 <article id="command-vocab-card" class="command-vocab-card glass">
                     <span id="command-word-status" class="command-word-status">Neues Zielwort</span>
                     <div class="command-briefing-meta">
-                        <div>
-                            <small>Zielgebiet</small>
-                            <strong id="command-district-name">Zielviertel wird geladen</strong>
-                            <span id="command-district-detail">Unit und Part werden als Stadtviertel sichtbar.</span>
-                        </div>
                         <div class="command-word-progress" aria-label="Fortschritt im Briefing">
-                            <span id="command-word-progress-label">Wort 1 von 3</span>
+                            <span id="command-word-progress-label">Passwort 1 von 3</span>
                             <div><i id="command-word-progress-fill"></i></div>
                         </div>
                     </div>
                     <div class="command-radio-transmission" aria-live="polite">
                         <span class="command-radio-icon" aria-hidden="true">📻</span>
-                        <div>
-                            <small>LIVE · ECHO ONE</small>
+                        <div class="command-radio-text-wrap">
                             <p id="command-radio-message">Echo One to Rescue Team. The next password to jam the zombie radar is …</p>
                         </div>
                         <button id="command-replay-audio-btn" class="command-audio-btn" type="button" title="Funkspruch erneut abspielen">📻 Funk wiederholen</button>
@@ -317,7 +311,7 @@
                     </div>
 
                     <div class="command-builder">
-                        <p>Baue das englische Wort aus den Einsatzcodes:</p>
+                        <p>Baue das Passwort:</p>
                         <div id="command-letter-target" class="letter-target command-letter-target" aria-label="Zusammengesetzte Lösung"></div>
                         <div id="command-letter-pool" class="letter-pool command-letter-pool" aria-label="Verfügbare Buchstaben"></div>
                     </div>
@@ -364,7 +358,7 @@
 
             <div class="halo-deploy-panel glass">
                 <span id="halo-deploy-status">Markiere eine Unit und einen Part auf der Stadtkarte.</span>
-                <button id="halo-deploy-btn" class="btn-primary" type="button" disabled>Briefing im Hubschrauber starten</button>
+                <button id="halo-deploy-btn" class="btn-primary" type="button" disabled>Briefing im Flugzeug starten</button>
             </div>
         </section>
 
@@ -381,7 +375,6 @@
                     <div class="mission-hud-copy">
                         <span id="mission-phase-label">Aufklärung</span>
                         <div class="mission-hud-counts">
-                            <strong id="mission-objective-label">0 / 12 gesichert</strong>
                             <span id="mission-encounter-label">⚔ 0 / 20</span>
                         </div>
                     </div>
@@ -433,7 +426,6 @@
                     <p id="correction-instruction">Präge dir die Lösung ein und baue sie aus den Buchstaben zusammen.</p>
                     <div id="correction-pool" class="letter-pool correction-letter-pool" aria-label="Verfügbare Buchstaben"></div>
                     <div id="correction-target" class="letter-target correction-letter-target" aria-label="Zusammengesetzte Lösung"></div>
-                    <p id="correction-feedback" class="correction-feedback" role="status" aria-live="polite">Setze die Buchstaben in der richtigen Reihenfolge ein.</p>
                 </div>
             </section>
 

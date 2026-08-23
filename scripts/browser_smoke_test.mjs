@@ -361,8 +361,50 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     await evaluate(client, `document.querySelector('#secret-password').value = 'Zombie'`);
     await click(client, '#login-btn');
     await waitForCondition(client, `document.querySelector('#terms-screen.active')`, 'AGB-Screen aktiv');
+
+    await client.send('Emulation.setDeviceMetricsOverride', {
+        width: 390,
+        height: 844,
+        deviceScaleFactor: 1,
+        mobile: true,
+    });
+    await waitForCondition(
+        client,
+        `getComputedStyle(document.querySelector('#orientation-notice')).display === 'none'`,
+        'Querformat-Hinweis auf AGB-Screen im Hochformat ausgeblendet',
+    );
+    await client.send('Emulation.setDeviceMetricsOverride', {
+        width: 1280,
+        height: 720,
+        deviceScaleFactor: 1,
+        mobile: false,
+    });
+
     await click(client, '#accept-terms-btn');
     await waitForCondition(client, `document.querySelector('#course-selection-screen.active')`, 'Kursauswahl aktiv');
+
+    await client.send('Emulation.setDeviceMetricsOverride', {
+        width: 390,
+        height: 844,
+        deviceScaleFactor: 1,
+        mobile: true,
+    });
+    await waitForCondition(
+        client,
+        `getComputedStyle(document.querySelector('#orientation-notice')).display === 'flex'`,
+        'Querformat-Hinweis bei Kursauswahl im Hochformat sichtbar',
+    );
+    await client.send('Emulation.setDeviceMetricsOverride', {
+        width: 1280,
+        height: 720,
+        deviceScaleFactor: 1,
+        mobile: false,
+    });
+    await waitForCondition(
+        client,
+        `getComputedStyle(document.querySelector('#orientation-notice')).display === 'none'`,
+        'Querformat-Hinweis bei Kursauswahl im Querformat ausgeblendet',
+    );
     await click(client, '[data-grade="6"]');
     await waitForCondition(client, `document.querySelector('[data-course-id="en-6"]:not(:disabled)')`, 'Englisch 6 verfügbar');
     await click(client, '[data-course-id="en-6"]');
@@ -402,7 +444,7 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     assert.equal(planningState.targets, 1);
     assert.equal(planningState.clickable, true);
     assert.equal(planningState.startScreenActive, false, 'Rettungsmission zeigt noch den alten Lernpfad-Dialog');
-    assert.equal(planningState.button, 'Briefing im Hubschrauber starten');
+    assert.equal(planningState.button, 'Briefing im Flugzeug starten');
     await assertInsideViewport(client, '.halo-city-map');
     const directMapState = await evaluate(client, `({
         mapBackground: getComputedStyle(document.querySelector('.halo-city-map')).backgroundImage,
@@ -502,17 +544,15 @@ async function runSmokeTest(client, baseUrl, browserProblems) {
     await waitForCondition(client, `document.querySelectorAll('#options-container .option-btn').length >= 4`, 'Antwortmöglichkeiten sichtbar');
     const missionHudState = await evaluate(client, `({
         phase: document.querySelector('#mission-phase-label').textContent.trim(),
-        objective: document.querySelector('#mission-objective-label').textContent.trim(),
         encounter: document.querySelector('#mission-encounter-label').textContent.trim(),
         transition: document.querySelector('#mission-phase-overlay-title').textContent.trim(),
         transitionVisible: !document.querySelector('#mission-phase-overlay').classList.contains('hidden'),
-        clipped: ['mission-phase-label', 'mission-objective-label', 'mission-encounter-label'].some(id => {
+        clipped: ['mission-phase-label', 'mission-encounter-label'].some(id => {
             const element = document.getElementById(id);
-            return element.scrollWidth > element.clientWidth + 1;
+            return element && element.scrollWidth > element.clientWidth + 1;
         }),
     })`);
     assert.equal(missionHudState.phase, 'Angriffswelle');
-    assert.match(missionHudState.objective, /^0 \/ \d+ gesichert$/);
     assert.equal(missionHudState.encounter, '⚔ 1 / 20');
     assert.equal(missionHudState.transition, 'Die Horde ist da!');
     assert.equal(missionHudState.transitionVisible, true);

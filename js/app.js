@@ -185,9 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const AMBIENT_SCENES = {
         'command': {
-            src: 'assets/audio/ui/helicopter_cabin_ambient.mp3',
-            targetVol: 0.36,
-            duckVol: 0.14
+            src: 'assets/audio/ui/halo_cargo_plane_ambient.mp3',
+            targetVol: 0.32,
+            duckVol: 0.12
         },
         'halo': {
             src: 'assets/audio/ui/halo_cargo_plane_ambient.mp3',
@@ -419,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1600);
 
         try {
-            const windAudio = new Audio('assets/audio/ui/helicopter_evasion_wind.mp3');
+            const windAudio = new Audio('assets/audio/ui/halo_freefall_wind.mp3');
             windAudio.volume = 0.55;
             windAudio.play().catch(() => {});
         } catch (e) {}
@@ -1323,95 +1323,123 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const CITY_DISTRICT_MAP_POINTS = {
         sf: [
-            { x: 26, y: 22, scale: 1.05 }, { x: 42, y: 23, scale: 1.02 },
-            { x: 58, y: 22, scale: 1.05 }, { x: 72, y: 24, scale: 1.08 },
-            { x: 22, y: 35, scale: 1.10 }, { x: 36, y: 36, scale: 1.12 },
-            { x: 50, y: 35, scale: 1.14 }, { x: 64, y: 36, scale: 1.15 },
-            { x: 76, y: 38, scale: 1.12 }, { x: 20, y: 50, scale: 1.15 },
-            { x: 34, y: 52, scale: 1.18 }, { x: 48, y: 50, scale: 1.20 },
-            { x: 62, y: 53, scale: 1.22 }, { x: 74, y: 54, scale: 1.18 },
-            { x: 24, y: 66, scale: 1.22 }, { x: 38, y: 68, scale: 1.24 },
-            { x: 52, y: 67, scale: 1.25 }, { x: 66, y: 69, scale: 1.24 },
-            { x: 78, y: 70, scale: 1.20 }, { x: 36, y: 80, scale: 1.24 },
-            { x: 52, y: 82, scale: 1.25 }, { x: 68, y: 81, scale: 1.22 }
+            { x: 12, y: 22, scale: 1.02 }, { x: 28, y: 24, scale: 1.00 },
+            { x: 72, y: 24, scale: 1.00 }, { x: 88, y: 22, scale: 1.02 },
+            { x: 9, y: 41, scale: 1.05 }, { x: 25, y: 43, scale: 1.06 },
+            { x: 41, y: 41, scale: 1.08 }, { x: 59, y: 41, scale: 1.08 },
+            { x: 75, y: 43, scale: 1.06 }, { x: 91, y: 41, scale: 1.05 },
+            { x: 9, y: 59, scale: 1.08 }, { x: 25, y: 61, scale: 1.10 },
+            { x: 41, y: 59, scale: 1.12 }, { x: 59, y: 59, scale: 1.12 },
+            { x: 75, y: 61, scale: 1.10 }, { x: 91, y: 59, scale: 1.08 },
+            { x: 15, y: 77, scale: 1.12 }, { x: 33, y: 79, scale: 1.15 },
+            { x: 50, y: 76, scale: 1.15 }, { x: 67, y: 79, scale: 1.15 },
+            { x: 85, y: 77, scale: 1.12 },
+            { x: 42, y: 24, scale: 1.00 }, { x: 58, y: 24, scale: 1.00 },
+            { x: 50, y: 42, scale: 1.08 }, { x: 50, y: 60, scale: 1.12 },
+            { x: 6, y: 78, scale: 1.10 }, { x: 94, y: 78, scale: 1.10 },
+            { x: 50, y: 22, scale: 1.00 }
         ],
         london: [
-            { x: 14, y: 18, scale: 1.05 }, { x: 34, y: 20, scale: 1.02 },
-            { x: 52, y: 19, scale: 1.00 }, { x: 70, y: 22, scale: 1.02 },
-            { x: 86, y: 20, scale: 1.05 }, { x: 10, y: 34, scale: 1.08 },
-            { x: 26, y: 35, scale: 1.10 }, { x: 44, y: 36, scale: 1.12 },
-            { x: 62, y: 36, scale: 1.12 }, { x: 78, y: 38, scale: 1.10 },
-            { x: 90, y: 36, scale: 1.08 }, { x: 12, y: 52, scale: 1.12 },
-            { x: 28, y: 54, scale: 1.15 }, { x: 44, y: 52, scale: 1.18 },
-            { x: 60, y: 55, scale: 1.18 }, { x: 76, y: 54, scale: 1.15 },
-            { x: 90, y: 55, scale: 1.12 }, { x: 18, y: 72, scale: 1.20 },
-            { x: 36, y: 74, scale: 1.22 }, { x: 54, y: 75, scale: 1.24 },
-            { x: 72, y: 73, scale: 1.22 }, { x: 86, y: 72, scale: 1.20 }
+            { x: 10, y: 21, scale: 1.02 }, { x: 27, y: 23, scale: 1.00 },
+            { x: 73, y: 23, scale: 1.00 }, { x: 90, y: 21, scale: 1.02 },
+            { x: 8, y: 40, scale: 1.05 }, { x: 24, y: 42, scale: 1.06 },
+            { x: 40, y: 40, scale: 1.08 }, { x: 60, y: 40, scale: 1.08 },
+            { x: 76, y: 42, scale: 1.06 }, { x: 92, y: 40, scale: 1.05 },
+            { x: 8, y: 58, scale: 1.08 }, { x: 24, y: 60, scale: 1.10 },
+            { x: 40, y: 58, scale: 1.12 }, { x: 60, y: 58, scale: 1.12 },
+            { x: 76, y: 60, scale: 1.10 }, { x: 92, y: 58, scale: 1.08 },
+            { x: 14, y: 76, scale: 1.12 }, { x: 32, y: 78, scale: 1.15 },
+            { x: 50, y: 75, scale: 1.15 }, { x: 68, y: 78, scale: 1.15 },
+            { x: 86, y: 76, scale: 1.12 },
+            { x: 41, y: 23, scale: 1.00 }, { x: 59, y: 23, scale: 1.00 },
+            { x: 50, y: 41, scale: 1.08 }, { x: 50, y: 59, scale: 1.12 },
+            { x: 6, y: 77, scale: 1.10 }, { x: 94, y: 77, scale: 1.10 },
+            { x: 50, y: 21, scale: 1.00 }
         ],
         brighton: [
-            { x: 12, y: 20, scale: 1.00 }, { x: 28, y: 19, scale: 1.02 },
-            { x: 44, y: 21, scale: 1.00 }, { x: 60, y: 20, scale: 1.02 },
-            { x: 76, y: 19, scale: 1.00 }, { x: 88, y: 22, scale: 1.02 },
-            { x: 10, y: 30, scale: 1.08 }, { x: 24, y: 29, scale: 1.10 },
-            { x: 38, y: 31, scale: 1.12 }, { x: 52, y: 30, scale: 1.12 },
-            { x: 66, y: 32, scale: 1.10 }, { x: 80, y: 30, scale: 1.08 },
-            { x: 92, y: 32, scale: 1.08 }, { x: 8, y: 44, scale: 1.18 },
-            { x: 20, y: 45, scale: 1.20 }, { x: 32, y: 46, scale: 1.22 },
-            { x: 44, y: 47, scale: 1.25 }, { x: 56, y: 47, scale: 1.25 },
-            { x: 68, y: 46, scale: 1.22 }, { x: 80, y: 45, scale: 1.20 },
-            { x: 92, y: 44, scale: 1.18 }, { x: 50, y: 38, scale: 1.15 }
+            { x: 11, y: 22, scale: 1.02 }, { x: 28, y: 24, scale: 1.00 },
+            { x: 72, y: 24, scale: 1.00 }, { x: 89, y: 22, scale: 1.02 },
+            { x: 9, y: 41, scale: 1.05 }, { x: 25, y: 43, scale: 1.06 },
+            { x: 41, y: 41, scale: 1.08 }, { x: 59, y: 41, scale: 1.08 },
+            { x: 75, y: 43, scale: 1.06 }, { x: 91, y: 41, scale: 1.05 },
+            { x: 9, y: 59, scale: 1.08 }, { x: 25, y: 61, scale: 1.10 },
+            { x: 41, y: 59, scale: 1.12 }, { x: 59, y: 59, scale: 1.12 },
+            { x: 75, y: 61, scale: 1.10 }, { x: 91, y: 59, scale: 1.08 },
+            { x: 15, y: 77, scale: 1.12 }, { x: 33, y: 79, scale: 1.15 },
+            { x: 50, y: 76, scale: 1.15 }, { x: 67, y: 79, scale: 1.15 },
+            { x: 85, y: 77, scale: 1.12 },
+            { x: 42, y: 24, scale: 1.00 }, { x: 58, y: 24, scale: 1.00 },
+            { x: 50, y: 42, scale: 1.08 }, { x: 50, y: 60, scale: 1.12 },
+            { x: 6, y: 78, scale: 1.10 }, { x: 94, y: 78, scale: 1.10 },
+            { x: 50, y: 22, scale: 1.00 }
         ],
         buehl: [
-            { x: 14, y: 20, scale: 1.05 }, { x: 32, y: 22, scale: 1.02 },
-            { x: 50, y: 20, scale: 1.00 }, { x: 68, y: 22, scale: 1.02 },
-            { x: 86, y: 20, scale: 1.05 }, { x: 10, y: 36, scale: 1.10 },
-            { x: 28, y: 38, scale: 1.12 }, { x: 46, y: 36, scale: 1.14 },
-            { x: 64, y: 38, scale: 1.12 }, { x: 82, y: 36, scale: 1.10 },
-            { x: 92, y: 38, scale: 1.08 }, { x: 12, y: 54, scale: 1.15 },
-            { x: 30, y: 56, scale: 1.18 }, { x: 48, y: 55, scale: 1.20 },
-            { x: 66, y: 56, scale: 1.18 }, { x: 84, y: 54, scale: 1.15 },
-            { x: 16, y: 72, scale: 1.20 }, { x: 34, y: 74, scale: 1.22 },
-            { x: 52, y: 76, scale: 1.25 }, { x: 70, y: 75, scale: 1.22 },
-            { x: 86, y: 73, scale: 1.20 }, { x: 50, y: 46, scale: 1.16 }
+            { x: 10, y: 22, scale: 1.02 }, { x: 27, y: 24, scale: 1.00 },
+            { x: 73, y: 24, scale: 1.00 }, { x: 90, y: 22, scale: 1.02 },
+            { x: 8, y: 41, scale: 1.05 }, { x: 24, y: 43, scale: 1.06 },
+            { x: 40, y: 41, scale: 1.08 }, { x: 60, y: 41, scale: 1.08 },
+            { x: 76, y: 43, scale: 1.06 }, { x: 92, y: 41, scale: 1.05 },
+            { x: 8, y: 59, scale: 1.08 }, { x: 24, y: 61, scale: 1.10 },
+            { x: 40, y: 59, scale: 1.12 }, { x: 60, y: 59, scale: 1.12 },
+            { x: 76, y: 61, scale: 1.10 }, { x: 92, y: 59, scale: 1.08 },
+            { x: 14, y: 77, scale: 1.12 }, { x: 32, y: 79, scale: 1.15 },
+            { x: 50, y: 76, scale: 1.15 }, { x: 68, y: 79, scale: 1.15 },
+            { x: 86, y: 77, scale: 1.12 },
+            { x: 41, y: 24, scale: 1.00 }, { x: 59, y: 24, scale: 1.00 },
+            { x: 50, y: 42, scale: 1.08 }, { x: 50, y: 60, scale: 1.12 },
+            { x: 6, y: 78, scale: 1.10 }, { x: 94, y: 78, scale: 1.10 },
+            { x: 50, y: 22, scale: 1.00 }
         ],
         capetown: [
-            { x: 22, y: 36, scale: 1.05 }, { x: 38, y: 35, scale: 1.02 },
-            { x: 52, y: 36, scale: 1.05 }, { x: 68, y: 34, scale: 1.02 },
-            { x: 82, y: 36, scale: 1.05 }, { x: 18, y: 48, scale: 1.10 },
-            { x: 32, y: 47, scale: 1.12 }, { x: 46, y: 48, scale: 1.15 },
-            { x: 60, y: 49, scale: 1.15 }, { x: 74, y: 48, scale: 1.12 },
-            { x: 86, y: 47, scale: 1.10 }, { x: 22, y: 62, scale: 1.18 },
-            { x: 36, y: 63, scale: 1.20 }, { x: 50, y: 64, scale: 1.22 },
-            { x: 64, y: 63, scale: 1.22 }, { x: 78, y: 62, scale: 1.20 },
-            { x: 28, y: 76, scale: 1.24 }, { x: 44, y: 77, scale: 1.25 },
-            { x: 58, y: 78, scale: 1.25 }, { x: 72, y: 76, scale: 1.22 },
-            { x: 84, y: 75, scale: 1.20 }, { x: 54, y: 56, scale: 1.18 }
+            { x: 12, y: 23, scale: 1.02 }, { x: 29, y: 25, scale: 1.00 },
+            { x: 71, y: 25, scale: 1.00 }, { x: 88, y: 23, scale: 1.02 },
+            { x: 9, y: 42, scale: 1.05 }, { x: 25, y: 44, scale: 1.06 },
+            { x: 41, y: 42, scale: 1.08 }, { x: 59, y: 42, scale: 1.08 },
+            { x: 75, y: 44, scale: 1.06 }, { x: 91, y: 42, scale: 1.05 },
+            { x: 9, y: 60, scale: 1.08 }, { x: 25, y: 62, scale: 1.10 },
+            { x: 41, y: 60, scale: 1.12 }, { x: 59, y: 60, scale: 1.12 },
+            { x: 75, y: 62, scale: 1.10 }, { x: 91, y: 60, scale: 1.08 },
+            { x: 15, y: 78, scale: 1.12 }, { x: 33, y: 80, scale: 1.15 },
+            { x: 50, y: 76, scale: 1.15 }, { x: 67, y: 80, scale: 1.15 },
+            { x: 85, y: 78, scale: 1.12 },
+            { x: 42, y: 25, scale: 1.00 }, { x: 58, y: 25, scale: 1.00 },
+            { x: 50, y: 43, scale: 1.08 }, { x: 50, y: 61, scale: 1.12 },
+            { x: 6, y: 79, scale: 1.10 }, { x: 94, y: 79, scale: 1.10 },
+            { x: 50, y: 23, scale: 1.00 }
         ],
         istanbul: [
-            { x: 16, y: 22, scale: 1.05 }, { x: 32, y: 24, scale: 1.02 },
-            { x: 68, y: 24, scale: 1.02 }, { x: 84, y: 22, scale: 1.05 },
-            { x: 12, y: 38, scale: 1.10 }, { x: 26, y: 39, scale: 1.12 },
-            { x: 40, y: 37, scale: 1.14 }, { x: 62, y: 38, scale: 1.14 },
-            { x: 76, y: 40, scale: 1.12 }, { x: 90, y: 38, scale: 1.10 },
-            { x: 14, y: 54, scale: 1.15 }, { x: 28, y: 56, scale: 1.18 },
-            { x: 42, y: 55, scale: 1.20 }, { x: 60, y: 55, scale: 1.20 },
-            { x: 74, y: 57, scale: 1.18 }, { x: 88, y: 55, scale: 1.15 },
-            { x: 18, y: 72, scale: 1.20 }, { x: 32, y: 74, scale: 1.22 },
-            { x: 44, y: 76, scale: 1.25 }, { x: 64, y: 75, scale: 1.25 },
-            { x: 78, y: 74, scale: 1.22 }, { x: 88, y: 72, scale: 1.20 }
+            { x: 11, y: 22, scale: 1.02 }, { x: 28, y: 24, scale: 1.00 },
+            { x: 72, y: 24, scale: 1.00 }, { x: 89, y: 22, scale: 1.02 },
+            { x: 9, y: 41, scale: 1.05 }, { x: 25, y: 43, scale: 1.06 },
+            { x: 41, y: 41, scale: 1.08 }, { x: 59, y: 41, scale: 1.08 },
+            { x: 75, y: 43, scale: 1.06 }, { x: 91, y: 41, scale: 1.05 },
+            { x: 9, y: 59, scale: 1.08 }, { x: 25, y: 61, scale: 1.10 },
+            { x: 41, y: 59, scale: 1.12 }, { x: 59, y: 59, scale: 1.12 },
+            { x: 75, y: 61, scale: 1.10 }, { x: 91, y: 59, scale: 1.08 },
+            { x: 15, y: 77, scale: 1.12 }, { x: 33, y: 79, scale: 1.15 },
+            { x: 50, y: 76, scale: 1.15 }, { x: 67, y: 79, scale: 1.15 },
+            { x: 85, y: 77, scale: 1.12 },
+            { x: 42, y: 24, scale: 1.00 }, { x: 58, y: 24, scale: 1.00 },
+            { x: 50, y: 42, scale: 1.08 }, { x: 50, y: 60, scale: 1.12 },
+            { x: 6, y: 78, scale: 1.10 }, { x: 94, y: 78, scale: 1.10 },
+            { x: 50, y: 22, scale: 1.00 }
         ],
         rio: [
-            { x: 20, y: 22, scale: 1.05 }, { x: 38, y: 24, scale: 1.02 },
-            { x: 56, y: 22, scale: 1.00 }, { x: 74, y: 24, scale: 1.02 },
-            { x: 86, y: 22, scale: 1.05 }, { x: 14, y: 38, scale: 1.10 },
-            { x: 30, y: 40, scale: 1.12 }, { x: 48, y: 38, scale: 1.15 },
-            { x: 66, y: 40, scale: 1.12 }, { x: 82, y: 38, scale: 1.10 },
-            { x: 16, y: 56, scale: 1.15 }, { x: 32, y: 58, scale: 1.18 },
-            { x: 50, y: 57, scale: 1.20 }, { x: 68, y: 58, scale: 1.18 },
-            { x: 84, y: 56, scale: 1.15 }, { x: 22, y: 74, scale: 1.22 },
-            { x: 40, y: 76, scale: 1.25 }, { x: 58, y: 77, scale: 1.25 },
-            { x: 74, y: 75, scale: 1.22 }, { x: 86, y: 73, scale: 1.20 },
-            { x: 50, y: 48, scale: 1.16 }
+            { x: 10, y: 22, scale: 1.02 }, { x: 26, y: 24, scale: 1.00 },
+            { x: 74, y: 24, scale: 1.00 }, { x: 90, y: 22, scale: 1.02 },
+            { x: 8, y: 41, scale: 1.05 }, { x: 24, y: 43, scale: 1.06 },
+            { x: 40, y: 41, scale: 1.08 }, { x: 60, y: 41, scale: 1.08 },
+            { x: 76, y: 43, scale: 1.06 }, { x: 92, y: 41, scale: 1.05 },
+            { x: 8, y: 59, scale: 1.08 }, { x: 24, y: 61, scale: 1.10 },
+            { x: 40, y: 59, scale: 1.12 }, { x: 60, y: 59, scale: 1.12 },
+            { x: 76, y: 61, scale: 1.10 }, { x: 92, y: 59, scale: 1.08 },
+            { x: 14, y: 77, scale: 1.12 }, { x: 32, y: 79, scale: 1.15 },
+            { x: 50, y: 76, scale: 1.15 }, { x: 68, y: 79, scale: 1.15 },
+            { x: 86, y: 77, scale: 1.12 },
+            { x: 42, y: 24, scale: 1.00 }, { x: 58, y: 24, scale: 1.00 },
+            { x: 50, y: 42, scale: 1.08 }, { x: 50, y: 60, scale: 1.12 },
+            { x: 6, y: 78, scale: 1.10 }, { x: 94, y: 78, scale: 1.10 },
+            { x: 50, y: 22, scale: 1.00 }
         ]
     };
 
@@ -2156,6 +2184,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 appContainer.scrollLeft = 0;
             });
         }
+        const requiresLandscape = screenName !== 'login' && screenName !== 'terms';
+        document.body.classList.toggle('requires-landscape', requiresLandscape);
         document.body.classList.toggle('game-active', screenName === 'game');
         document.body.classList.toggle('halo-active', screenName === 'halo');
         document.body.classList.toggle('command-active', screenName === 'command');
@@ -2170,6 +2200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'game':
                 startSceneAmbient('game');
                 break;
+            case 'hunter':
             case 'city':
             case 'mission':
                 startSceneAmbient('tactical');
@@ -2182,7 +2213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
         }
 
-        if (screenName !== 'game') {
+        if (!requiresLandscape) {
             document.body.classList.remove('orientation-notice-dismissed');
         }
     }
@@ -2410,13 +2441,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const activePhaseIndex = phaseOrder.indexOf(phase);
 
         const phaseLabel = document.getElementById('mission-phase-label');
-        const objectiveLabel = document.getElementById('mission-objective-label');
         const encounterLabel = document.getElementById('mission-encounter-label');
         const progress = document.getElementById('mission-hud-progress');
         if (phaseLabel) phaseLabel.textContent = phaseLabels[phase];
-        if (objectiveLabel) {
-            objectiveLabel.textContent = `${securedCount} / ${targetCount} gesichert`;
-        }
         if (encounterLabel) encounterLabel.textContent = `⚔ ${state.mission.encounters} / ${CONFIG.missionMaxEncounters}`;
         if (progress) progress.style.width = `${percentage}%`;
 
@@ -2668,17 +2695,24 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(missionBriefingAdvanceTimer);
         card?.classList.remove('word-secured', 'solution-concealed');
 
-        document.getElementById('command-district-name').textContent = district
-            ? `${district.label} · ${district.subtitle}`
-            : 'Zielviertel';
-        document.getElementById('command-district-detail').textContent = district
-            ? `${newTargetCount} neu · ${knownTargetCount} bekannt. Mission abschließen und ${district.label} grün markieren.`
-            : 'Unit und Part werden als Stadtviertel sichtbar.';
-        document.getElementById('command-word-progress-label').textContent = `Wort ${index + 1} von ${words.length}`;
-        document.getElementById('command-word-progress-fill').style.width = `${progress}%`;
-        document.getElementById('command-word-status').textContent = isKnownMissionWord(vocab)
-            ? 'Einsatzwort auffrischen'
-            : 'Neues Zielwort';
+        const districtNameEl = document.getElementById('command-district-name');
+        if (districtNameEl) {
+            districtNameEl.textContent = district ? `${district.label} · ${district.subtitle}` : 'Zielviertel';
+        }
+        const districtDetailEl = document.getElementById('command-district-detail');
+        if (districtDetailEl) {
+            districtDetailEl.textContent = district
+                ? `${newTargetCount} neu · ${knownTargetCount} bekannt. Mission abschließen und ${district.label} grün markieren.`
+                : 'Unit und Part werden als Stadtviertel sichtbar.';
+        }
+        const progressLabelEl = document.getElementById('command-word-progress-label');
+        if (progressLabelEl) progressLabelEl.textContent = `Passwort ${index + 1} von ${words.length}`;
+        const progressFillEl = document.getElementById('command-word-progress-fill');
+        if (progressFillEl) progressFillEl.style.width = `${progress}%`;
+        const wordStatusEl = document.getElementById('command-word-status');
+        if (wordStatusEl) {
+            wordStatusEl.textContent = isKnownMissionWord(vocab) ? 'Einsatzwort auffrischen' : 'Neues Zielwort';
+        }
         document.getElementById('command-german-word').textContent = getGerman(vocab);
         document.getElementById('command-foreign-label').textContent = activeCourse?.subjectLabel || 'Fremdsprache';
         document.getElementById('command-foreign-word').textContent = getForeign(vocab);
@@ -2694,8 +2728,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onCorrect: () => {
                 card?.classList.add('word-secured');
                 document.getElementById('command-feedback').textContent = index === words.length - 1
-                    ? '✓ Zielwort erkannt. Absprungroute wird geöffnet …'
-                    : '✓ Zielwort erkannt. Nächstes Wort wird geladen …';
+                    ? '✓ Passwort entschlüsselt! Absprungroute wird geöffnet …'
+                    : '✓ Passwort entschlüsselt! Nächstes Passwort wird geladen …';
                 missionBriefingAdvanceTimer = setTimeout(advanceMissionBriefing, 1050);
             },
             onIncorrect: () => {
@@ -2856,7 +2890,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('halo-deploy-status').textContent = `${district.label} · ${district.subtitle} markiert · ${district.vocabCount} Wörter im Viertel`;
         const deployButton = document.getElementById('halo-deploy-btn');
         deployButton.disabled = false;
-        deployButton.textContent = 'Briefing im Hubschrauber starten';
+        deployButton.textContent = 'Briefing im Flugzeug starten';
     }
 
     function beginMissionDistrictSelection(preferredDistrictId = '') {
@@ -2893,7 +2927,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('back-from-halo-btn').textContent = '⬅ Einsatzwahl';
         const deployButton = document.getElementById('halo-deploy-btn');
         deployButton.disabled = !suggested;
-        deployButton.textContent = 'Briefing im Hubschrauber starten';
+        deployButton.textContent = 'Briefing im Flugzeug starten';
         document.getElementById('halo-deploy-status').textContent = suggested
             ? `${suggested.label} · ${suggested.subtitle} als nächstes Ziel vorgeschlagen`
             : 'Markiere eine Unit und einen Part auf der Stadtkarte.';
@@ -3429,7 +3463,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('correction-question').textContent = entry.question;
         document.getElementById('correction-answer').textContent = entry.answer;
         document.getElementById('correction-return-label').textContent = `nach ${entry.spacerCount} ${entry.spacerCount === 1 ? 'Wort' : 'Wörtern'}`;
-        correctionFeedback.textContent = 'Setze die Buchstaben in der richtigen Reihenfolge ein.';
+        if (correctionFeedback) correctionFeedback.textContent = 'Setze die Buchstaben in der richtigen Reihenfolge ein.';
 
         const playableAnswer = getPlayableAnswer(entry.answer);
         const letterCount = tokenizeAnswer(playableAnswer).filter(token => token.type === 'letter').length;
@@ -3446,7 +3480,7 @@ document.addEventListener('DOMContentLoaded', () => {
             onStart: () => correctionPanel?.classList.add('solution-concealed'),
             onCorrect: completeCorrectionConfirmation,
             onIncorrect: () => {
-                correctionFeedback.textContent = 'Fast – die markierten Buchstaben springen zurück. Versuch es noch einmal.';
+                if (correctionFeedback) correctionFeedback.textContent = 'Fast – die markierten Buchstaben springen zurück. Versuch es noch einmal.';
             }
         });
 
@@ -3464,7 +3498,9 @@ document.addEventListener('DOMContentLoaded', () => {
         correctionPanel?.classList.add('confirmed');
         const emblemSymbol = correctionPanel?.querySelector('.correction-mark-emblem > span');
         if (emblemSymbol) emblemSymbol.textContent = '✓';
-        correctionFeedback.textContent = `Lösung bestätigt! Achte auf das ⟳ – der Zombie kehrt nach ${entry.spacerCount} ${entry.spacerCount === 1 ? 'Wort' : 'Wörtern'} zurück.`;
+        if (correctionFeedback) {
+            correctionFeedback.textContent = `Lösung bestätigt! Achte auf das ⟳ – der Zombie kehrt nach ${entry.spacerCount} ${entry.spacerCount === 1 ? 'Wort' : 'Wörtern'} zurück.`;
+        }
         stopCorrectionAudio();
 
         clearTimeout(state.correction.confirmationTimer);

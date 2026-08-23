@@ -110,7 +110,7 @@ body.command-active {
 }
 
 @media (orientation: portrait) {
-    body.game-active:not(.orientation-notice-dismissed) #orientation-notice {
+    body.requires-landscape:not(.orientation-notice-dismissed) #orientation-notice {
         display: flex;
     }
 }
@@ -691,7 +691,8 @@ body.command-active {
 .halo-screen {
     isolation: isolate;
     overflow: hidden;
-    padding: 52px 70px 70px;
+    padding: 24px 24px 70px;
+    justify-content: flex-start;
 }
 
 .command-center-screen::before,
@@ -761,7 +762,14 @@ body.halo-active .halo-screen::before {
     text-shadow: 0 0 24px rgba(0, 255, 136, 0.54), 0 5px 18px #000;
 }
 
-.command-center-header p,
+.command-center-header p {
+    color: #e6fff4;
+    font-size: clamp(1.2rem, 2vw, 1.5rem);
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+    letter-spacing: 0.2px;
+}
+
 .halo-header p {
     color: #d4ded9;
     font-size: 1.3rem;
@@ -791,16 +799,18 @@ body.halo-active .halo-screen::before {
 }
 
 .command-word-progress {
-    width: min(300px, 34%);
+    width: min(340px, 45%);
     margin: 0;
 }
 
 .command-word-progress > span {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: #fff;
-    font-size: 1.05rem;
-    font-weight: bold;
+    font-size: 1.15rem;
+    font-weight: 800;
+    text-align: right;
+    letter-spacing: 0.5px;
 }
 
 .command-word-progress > div {
@@ -865,9 +875,9 @@ body.halo-active .halo-screen::before {
 .command-briefing-meta {
     display: flex;
     gap: 28px;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin: 17px 0 8px;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 8px 0 10px;
 }
 
 .command-briefing-meta > div:first-child {
@@ -944,8 +954,8 @@ body.halo-active .halo-screen::before {
     grid-template-columns: 52px minmax(0, 1fr) auto auto;
     gap: 14px;
     align-items: center;
-    margin: 18px 0 12px;
-    padding: 13px 17px;
+    margin: 14px 0 12px;
+    padding: 14px 18px;
     color: #d9fff0;
     background: linear-gradient(90deg, rgba(0, 21, 16, 0.96), rgba(0, 70, 47, 0.82));
     border: 1px solid rgba(0, 255, 136, 0.42);
@@ -971,11 +981,11 @@ body.halo-active .halo-screen::before {
 }
 
 .command-radio-transmission p {
-    margin-top: 3px;
+    margin: 0;
     color: #fff;
-    font-size: 1.08rem;
+    font-size: clamp(1.08rem, 1.6vw, 1.28rem);
     font-weight: 700;
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 .command-radio-wave {
@@ -1009,10 +1019,10 @@ body.halo-active .halo-screen::before {
     grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr);
     gap: 18px;
     align-items: center;
-    margin-top: 0;
+    margin-top: 4px;
     padding: 22px 25px;
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.045), rgba(0, 255, 136, 0.075));
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 15px;
 }
 
@@ -1022,9 +1032,9 @@ body.halo-active .halo-screen::before {
 
 .command-language-row small {
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     color: #7dffbc;
-    font-size: 0.85rem;
+    font-size: clamp(1rem, 1.4vw, 1.25rem);
     font-weight: 900;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -1034,13 +1044,14 @@ body.halo-active .halo-screen::before {
     display: block;
     overflow-wrap: anywhere;
     color: #fff;
-    font-size: clamp(1.55rem, 2.1vw, 2.75rem);
-    line-height: 1.12;
+    font-size: clamp(2rem, 3.2vw, 3.4rem);
+    font-weight: 900;
+    line-height: 1.15;
 }
 
 .command-language-row > span {
     color: var(--accent-color);
-    font-size: 2.4rem;
+    font-size: 2.6rem;
     text-align: center;
 }
 
@@ -1074,10 +1085,13 @@ body.halo-active .halo-screen::before {
 }
 
 .command-builder > p {
-    margin-bottom: 10px;
-    color: #c8d2cd;
-    font-size: 1.05rem;
+    margin-bottom: 12px;
+    color: #8effca;
+    font-size: clamp(1.25rem, 2vw, 1.6rem);
+    font-weight: 800;
     text-align: center;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 12px rgba(0, 255, 136, 0.35);
 }
 
 .command-builder .letter-target,
@@ -1798,7 +1812,19 @@ body.halo-active .halo-screen::before {
 }
 
 .halo-screen.is-planning .halo-header {
-    margin-bottom: 12px;
+    margin-bottom: 0;
+}
+
+.halo-screen.is-planning .halo-header h1 {
+    font-size: clamp(2.4rem, 4.5vw, 3.6rem);
+    margin: 4px 0 2px;
+    line-height: 1.1;
+}
+
+.halo-screen.is-planning .halo-header p {
+    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+    margin: 2px 0 0;
+    color: #e0eae5;
 }
 
 .halo-screen.is-planning .halo-jump-stage {
@@ -1806,7 +1832,7 @@ body.halo-active .halo-screen::before {
 }
 
 .halo-screen.is-planning .halo-city-map {
-    top: 142px;
+    top: 195px;
     left: 18px;
     right: 18px;
     bottom: 84px;
@@ -1828,8 +1854,8 @@ body.halo-active .halo-screen::before {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    width: min(640px, 92%);
+    gap: 8px;
+    width: min(680px, 94%);
     pointer-events: none;
 }
 
@@ -1843,12 +1869,12 @@ body.halo-active .halo-screen::before {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 7px 18px;
-    border: 1px solid rgba(0, 255, 136, 0.35);
+    padding: 8px 22px;
+    border: 1px solid rgba(0, 255, 136, 0.45);
     border-radius: 999px;
-    background: rgba(2, 14, 12, 0.88);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    background: rgba(2, 14, 12, 0.92);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
     pointer-events: auto;
 }
 
@@ -1856,34 +1882,46 @@ body.halo-active .halo-screen::before {
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin: 0 auto;
-    padding: 5px 16px;
-    background: rgba(45, 18, 0, 0.92);
-    border: 1px solid rgba(255, 170, 0, 0.85);
+    gap: 14px;
+    margin: 2px auto 0;
+    padding: 10px 24px;
+    max-width: min(720px, 96%);
+    background: linear-gradient(135deg, rgba(54, 20, 0, 0.96), rgba(28, 8, 0, 0.96));
+    border: 2px solid rgba(255, 185, 20, 0.9);
     border-radius: 999px;
-    box-shadow: 0 4px 18px rgba(255, 153, 0, 0.45);
-    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 26px rgba(255, 153, 0, 0.55), 0 0 16px rgba(255, 170, 0, 0.35);
+    backdrop-filter: blur(10px);
     pointer-events: auto;
     animation: eventBannerGlow 1.8s ease-in-out infinite alternate;
 }
 
 .halo-screen.is-planning .halo-event-icon {
-    font-size: 1.15rem;
+    font-size: 1.8rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 6px #ffaa00);
 }
 
 .halo-screen.is-planning .halo-event-banner strong {
-    font-size: 0.92rem;
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 900;
     color: #ffcc00;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .halo-screen.is-planning .halo-event-banner small {
-    font-size: 0.8rem;
-    color: #ffe0a3;
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #fff4dc;
+    margin-top: 2px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .halo-screen.is-planning .halo-map-heading h2 {
-    font-size: 1.18rem;
+    font-size: 1.22rem;
+    font-weight: 800;
 }
 
 .halo-screen.is-planning #halo-map-eyebrow {
@@ -2304,7 +2342,7 @@ select {
 
 .mission-hud {
     display: grid;
-    grid-template-columns: minmax(285px, 1fr) minmax(230px, 1.25fr) auto;
+    grid-template-columns: minmax(180px, auto) minmax(200px, 1.25fr) auto;
     gap: 15px;
     align-items: center;
     width: min(1040px, 64%);
@@ -2327,12 +2365,6 @@ select {
     font-weight: 900;
     letter-spacing: 2px;
     text-transform: uppercase;
-}
-
-#mission-objective-label {
-    color: #fff;
-    font-size: 1.2rem;
-    white-space: nowrap;
 }
 
 .mission-hud-counts {
@@ -2707,42 +2739,65 @@ select {
 .correction-panel .letter-target {
     width: 100%;
     min-width: 0;
-    min-height: 72px;
-    max-height: 112px;
-    gap: 8px;
-    padding: 10px;
+    min-height: 96px;
+    max-height: 140px;
+    gap: 14px;
+    padding: 14px 18px;
     overflow: auto;
     border-width: 1px;
     border-radius: 12px;
 }
 
 .correction-panel .letter-pool {
-    background: rgba(0, 0, 0, 0.52);
+    background: rgba(0, 0, 0, 0.66);
     border-color: rgba(255, 202, 83, 0.32);
 }
 
 .correction-panel .letter-target {
+    min-height: 84px;
     background: rgba(4, 36, 23, 0.72);
     border-color: rgba(0, 255, 136, 0.42);
 }
 
 .correction-panel .word-group {
-    gap: 5px !important;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px !important;
 }
 
 .correction-panel .letter-slot {
-    width: 46px;
-    height: 52px;
-    border-bottom-width: 3px;
+    width: 52px;
+    height: 62px;
+    border-bottom-width: 3.5px;
+}
+
+.correction-panel .letter-slot .letter-btn {
+    width: 100%;
+    height: 100%;
+    font-size: 2.5rem;
+    padding: 0;
+}
+
+.correction-panel .letter-pool .letter-btn {
+    min-width: 68px;
+    min-height: 74px;
+    padding: 8px 18px;
+    font-size: 3.2rem;
+    border-width: 2px;
+    border-radius: 14px;
+    border-color: #ffc44d;
+    box-shadow: 0 0 16px rgba(255, 190, 42, 0.35);
+    touch-action: manipulation;
 }
 
 .correction-panel .letter-btn {
-    min-width: 50px;
-    min-height: 54px;
-    padding: 6px 12px;
-    font-size: 2.1rem;
+    min-width: 52px;
+    min-height: 62px;
+    padding: 6px 14px;
+    font-size: 2.5rem;
     border-color: #ffc44d;
-    box-shadow: 0 0 9px rgba(255, 190, 42, 0.16);
+    box-shadow: 0 0 12px rgba(255, 190, 42, 0.22);
     touch-action: manipulation;
 }
 
@@ -2753,38 +2808,45 @@ select {
 
 .correction-panel .fixed-token {
     padding: 0 2px;
-    font-size: 1.65rem;
+    font-size: 2rem;
 }
 
 .correction-builder.builder-dense .letter-slot {
-    width: 36px;
-    height: 43px;
+    width: 44px;
+    height: 52px;
+}
+
+.correction-builder.builder-dense .letter-pool .letter-btn {
+    min-width: 54px;
+    min-height: 60px;
+    padding: 6px 12px;
+    font-size: 2.4rem;
 }
 
 .correction-builder.builder-dense .letter-btn {
-    min-width: 36px;
-    min-height: 43px;
-    padding: 4px 8px;
-    font-size: 1.65rem;
+    min-width: 44px;
+    min-height: 52px;
+    padding: 4px 10px;
+    font-size: 2rem;
 }
 
 .correction-builder.builder-very-dense .letter-slot {
-    width: 30px;
-    height: 37px;
+    width: 36px;
+    height: 44px;
+}
+
+.correction-builder.builder-very-dense .letter-pool .letter-btn {
+    min-width: 42px;
+    min-height: 48px;
+    padding: 4px 8px;
+    font-size: 1.9rem;
 }
 
 .correction-builder.builder-very-dense .letter-btn {
-    min-width: 30px;
-    min-height: 37px;
+    min-width: 36px;
+    min-height: 44px;
     padding: 3px 6px;
-    font-size: 1.4rem;
-}
-
-.correction-feedback {
-    color: #ffda78;
-    font-size: 1rem;
-    font-weight: bold;
-    letter-spacing: 0.2px;
+    font-size: 1.6rem;
 }
 
 .correction-panel.confirmed {
@@ -4211,21 +4273,52 @@ select {
 }
 
 @media (max-width: 768px) {
+    .halo-screen.is-planning .halo-city-map {
+        top: 155px;
+    }
+
+    .halo-screen.is-planning .halo-map-heading {
+        padding: 6px 16px;
+    }
+
+    .halo-screen.is-planning .halo-map-heading h2 {
+        font-size: 1.05rem;
+    }
+
+    .halo-screen.is-planning .halo-event-banner {
+        padding: 8px 16px;
+        gap: 10px;
+        border-radius: 18px;
+    }
+
+    .halo-screen.is-planning .halo-event-icon {
+        font-size: 1.5rem;
+    }
+
+    .halo-screen.is-planning .halo-event-banner strong {
+        font-size: 1.15rem;
+    }
+
+    .halo-screen.is-planning .halo-event-banner small {
+        font-size: 0.95rem;
+    }
+
     .command-center-screen {
-        padding: 24px 16px 36px;
+        padding: 20px 14px 32px;
         overflow-y: auto;
     }
 
     .command-center-header {
-        margin: 0 auto 16px;
+        margin: 0 auto 14px;
     }
 
     .command-center-header h1 {
-        font-size: clamp(2.4rem, 8vw, 3.4rem);
+        font-size: clamp(2.2rem, 7.5vw, 3.2rem);
     }
 
     .command-center-header p {
-        font-size: 1.05rem;
+        font-size: clamp(1.1rem, 3.8vw, 1.35rem);
+        line-height: 1.35;
     }
 
     .command-center-layout {
@@ -4234,13 +4327,35 @@ select {
 
     .command-vocab-card {
         min-height: auto;
-        padding: 18px 14px 20px;
+        padding: 20px 14px 20px;
+    }
+
+    .command-word-status {
+        left: 18px;
+        font-size: 0.82rem;
+        padding: 5px 12px;
+    }
+
+    .command-briefing-meta {
+        margin: 12px 0 10px;
+        justify-content: flex-end;
+    }
+
+    .command-word-progress {
+        width: 100%;
+        max-width: 240px;
+    }
+
+    .command-word-progress > span {
+        font-size: 1.1rem;
+        margin-bottom: 6px;
     }
 
     .command-radio-transmission {
         grid-template-columns: 42px minmax(0, 1fr) auto;
         gap: 10px;
         padding: 10px 12px;
+        margin: 12px 0 10px;
     }
 
     .command-radio-icon {
@@ -4253,50 +4368,106 @@ select {
         display: none;
     }
 
+    .command-radio-transmission p {
+        font-size: 1.05rem;
+        line-height: 1.3;
+    }
+
+    .command-audio-btn {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
     .command-language-row {
-        padding: 12px 14px;
+        padding: 14px 14px;
         gap: 10px;
+        margin-top: 4px;
+    }
+
+    .command-language-row small {
+        font-size: 0.95rem;
     }
 
     .command-language-row strong {
-        font-size: clamp(1.3rem, 5vw, 1.8rem);
+        font-size: clamp(1.55rem, 5.5vw, 2.2rem);
     }
 
-    .command-builder .letter-pool .letter-btn {
+    .command-language-row > span {
+        font-size: 2rem;
+    }
+
+    .command-builder {
+        margin: 14px 0;
+    }
+
+    .command-builder > p {
+        font-size: clamp(1.18rem, 4vw, 1.45rem);
+        margin-bottom: 8px;
+    }
+
+    .command-builder .letter-pool .letter-btn,
+    .correction-panel .letter-pool .letter-btn {
         min-width: 58px;
         min-height: 66px;
         padding: 6px 14px;
         font-size: 2.8rem;
     }
 
-    .command-builder .letter-slot {
+    .command-builder .letter-slot,
+    .correction-panel .letter-slot {
         width: 46px;
         height: 54px;
     }
 
-    .command-builder .letter-slot .letter-btn {
+    .command-builder .letter-slot .letter-btn,
+    .correction-panel .letter-slot .letter-btn {
         font-size: 2.2rem;
     }
 
-    .command-builder .fixed-token {
+    .command-builder .fixed-token,
+    .correction-panel .fixed-token {
         font-size: 1.7rem;
     }
 }
 
 @media (max-width: 480px) {
-    .command-builder .letter-pool .letter-btn {
+    .command-word-progress {
+        max-width: 200px;
+    }
+
+    .command-language-row {
+        padding: 12px 10px;
+        gap: 8px;
+    }
+
+    .command-language-row small {
+        font-size: 0.9rem;
+    }
+
+    .command-language-row strong {
+        font-size: clamp(1.4rem, 5vw, 1.85rem);
+    }
+
+    .command-builder > p {
+        font-size: 1.15rem;
+    }
+
+    .command-builder .letter-pool .letter-btn,
+    .correction-panel .letter-pool .letter-btn {
         min-width: 52px;
         min-height: 58px;
         padding: 4px 10px;
         font-size: 2.4rem;
     }
 
-    .command-builder .letter-slot {
+    .command-builder .letter-slot,
+    .correction-panel .letter-slot {
         width: 40px;
         height: 48px;
     }
 
-    .command-builder .letter-slot .letter-btn {
+    .command-builder .letter-slot .letter-btn,
+    .correction-panel .letter-slot .letter-btn {
         font-size: 1.9rem;
     }
 }

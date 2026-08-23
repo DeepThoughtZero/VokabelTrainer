@@ -231,13 +231,13 @@ test('leaderboard filters are stacked and separate class from learning path', ()
     assert.match(css, /\.leaderboard-filter-field select\s*\{[\s\S]*?width:\s*100%;/);
 });
 
-test('portrait orientation notice is limited to the active game and can be dismissed', () => {
+test('portrait orientation notice is active after terms and can be dismissed', () => {
     const html = read('index.html');
     const css = read('css/style.css');
     const app = read('js/app.js');
     assert.match(html, /id="orientation-notice"[\s\S]*?id="dismiss-orientation-notice-btn"/);
-    assert.match(css, /@media \(orientation: portrait\)[\s\S]*?body\.game-active:not\(\.orientation-notice-dismissed\) #orientation-notice/);
-    assert.match(app, /classList\.toggle\('game-active', screenName === 'game'\)/);
+    assert.match(css, /@media \(orientation: portrait\)[\s\S]*?body\.requires-landscape:not\(\.orientation-notice-dismissed\) #orientation-notice/);
+    assert.match(app, /classList\.toggle\('requires-landscape',/);
     assert.match(app, /classList\.add\('orientation-notice-dismissed'\)/);
 });
 
