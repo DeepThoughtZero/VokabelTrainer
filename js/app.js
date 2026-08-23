@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         maxZombieDuration: 15.0,
         streakForExtraOption: 3,
         streakForHeart: 10,
-        missionTargetSize: 12,
+        missionTargetSize: 20,
         missionNewWordLimit: 3,
         missionMaxEncounters: 20,
         missionBossWordCount: 3,
@@ -1411,6 +1411,110 @@ document.addEventListener('DOMContentLoaded', () => {
     let zombieCurrentFrame = 0;
     let zombieLastFrameTime = 0;
 
+    // Hunter Sprite Sheet Animation
+    const hunterSpriteCanvas = document.getElementById('hunter-sprite-canvas');
+    const hunterSpriteCtx = hunterSpriteCanvas ? hunterSpriteCanvas.getContext('2d') : null;
+    const HUNTER_SPRITES = {
+        'laser': {
+            sheetSrc: 'assets/hunter_commanderneon_sheet.png',
+            cols: 5,
+            rows: 5,
+            frameCount: 25,
+            fps: 24,
+            muzzleY: 220,
+            startX: 430,
+            img: new Image()
+        },
+        'water': {
+            sheetSrc: 'assets/hunter_water_sheet.png',
+            cols: 5,
+            rows: 5,
+            frameCount: 25,
+            fps: 24,
+            muzzleY: 275,
+            startX: 430,
+            img: new Image()
+        },
+        'fire': {
+            sheetSrc: 'assets/hunter_pyroblaze_sheet.png',
+            cols: 5,
+            rows: 5,
+            frameCount: 25,
+            fps: 24,
+            muzzleY: 590,
+            startX: 420,
+            img: new Image()
+        },
+        'lightning': {
+            sheetSrc: 'assets/hunter_voltmaster_sheet.png',
+            cols: 5,
+            rows: 5,
+            frameCount: 25,
+            fps: 24,
+            muzzleY: 300,
+            startX: 430,
+            img: new Image()
+        },
+        'fuchsia': {
+            sheetSrc: 'assets/hunter_fuchsia_sheet.png',
+            cols: 5,
+            rows: 5,
+            frameCount: 25,
+            fps: 24,
+            muzzleY: 405,
+            startX: 430,
+            img: new Image()
+        },
+        'pink': {
+            sheetSrc: 'assets/hunter_pinkypump_sheet.png',
+            cols: 5,
+            rows: 5,
+            frameCount: 25,
+            fps: 24,
+            muzzleY: 440,
+            startX: 440,
+            img: new Image()
+        }
+    };
+    Object.values(HUNTER_SPRITES).forEach(sprite => {
+        sprite.img.src = sprite.sheetSrc;
+    });
+
+    let hunterAnimationActive = false;
+    let hunterCurrentFrame = 0;
+    let hunterLastFrameTime = 0;
+
+    function renderHunterSpriteFrame(sprite) {
+        if (!hunterSpriteCtx || !sprite || !sprite.img.complete) return;
+        const frameW = sprite.img.width / sprite.cols;
+        const frameH = sprite.img.height / sprite.rows;
+        const srcX = (hunterCurrentFrame % sprite.cols) * frameW;
+        const srcY = Math.floor(hunterCurrentFrame / sprite.cols) * frameH;
+
+        hunterSpriteCanvas.width = frameW;
+        hunterSpriteCanvas.height = frameH;
+        hunterSpriteCtx.clearRect(0, 0, frameW, frameH);
+        hunterSpriteCtx.drawImage(sprite.img, srcX, srcY, frameW, frameH, 0, 0, frameW, frameH);
+    }
+
+    function triggerHunterShootAnimation() {
+        const sprite = HUNTER_SPRITES[state.hunterType] || HUNTER_SPRITES['laser'];
+        if (hunterSpriteCanvas && sprite && sprite.img.complete) {
+            hunterAnimationActive = true;
+            hunterCurrentFrame = 0;
+            hunterLastFrameTime = performance.now();
+            hunterEl.style.display = 'none';
+            hunterSpriteCanvas.style.display = 'block';
+            renderHunterSpriteFrame(sprite);
+        }
+    }
+
+    function resetHunterAnimation() {
+        hunterAnimationActive = false;
+        if (hunterSpriteCanvas) hunterSpriteCanvas.style.display = 'none';
+        if (hunterEl) hunterEl.style.display = '';
+    }
+
     const HUNTERS = [
         { id: 'laser', name: 'Commander Neon', desc: 'Meister der Laser-Waffen.', img: 'assets/hunter_commanderneon.png', element: 'laser' },
         { id: 'water', name: 'Hydro Striker', desc: 'Spezialist für Wasser-Angriffe.', img: 'assets/hunter_water.png', element: 'water' },
@@ -2298,6 +2402,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('game-active', screenName === 'game');
         document.body.classList.toggle('halo-active', screenName === 'halo');
         document.body.classList.toggle('command-active', screenName === 'command');
+        if (screenName !== 'halo') {
+            document.body.classList.remove('halo-jumping');
+        }
 
         switch (screenName) {
             case 'command':
@@ -2865,6 +2972,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(missionBriefingAdvanceTimer);
         state.mission.briefingIndex = 0;
         currentBriefingRadioIntro = null;
+        document.body.style.backgroundImage = '';
         showScreen('command');
         startCommandAmbientAudio();
         clearTimeout(commandEvasiveTimer);
@@ -3059,6 +3167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function stopHaloSequence() {
         clearTimeout(haloDeploymentTimer);
         haloDeploymentTimer = null;
+        document.body.classList.remove('halo-jumping');
         screens.halo?.classList.remove('is-jumping');
         const haloVideo = document.getElementById('halo-jump-video');
         if (haloVideo) {
@@ -3075,7 +3184,8 @@ document.addEventListener('DOMContentLoaded', () => {
         stopHaloSequence();
         haloMode = 'deployment';
         const selectedCity = CITIES.find(city => city.id === state.city) || CITIES[0];
-        document.body.style.backgroundImage = `url('${selectedCity.mapImg || selectedCity.img}')`;
+        document.body.style.backgroundImage = '';
+        document.body.classList.add('halo-jumping');
 
         const activeDistrict = getActiveMissionDistrict();
         const deployButton = document.getElementById('halo-deploy-btn');
@@ -3415,6 +3525,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBoostUI();
         
         const selectedHunter = HUNTERS.find(h => h.id === state.hunterType) || HUNTERS[0];
+        resetHunterAnimation();
         hunterEl.src = selectedHunter.img;
         
         if (isMissionMode()) {
@@ -4180,36 +4291,60 @@ document.addEventListener('DOMContentLoaded', () => {
             updateBoostUI();
             
             playShootSound();
+            triggerHunterShootAnimation();
             
             // Laser/Schuss abfeuern
             projectile.className = 'proj-' + state.hunterType;
-            const startX = 430;
+
+            const hunterConfig = HUNTER_SPRITES[state.hunterType] || HUNTER_SPRITES['laser'];
+            const startX = hunterConfig.startX || 430;
             projectile.style.left = startX + 'px';
             projectile.style.width = '0px';
+
+            // Mündungshöhe exakt nach Vorgabe berechnen (1024-px Quellhöhe auf aktuelle Hunter-Höhe skaliert)
+            const hunterVisualHeight = (hunterSpriteCanvas && hunterSpriteCanvas.style.display !== 'none')
+                ? hunterSpriteCanvas.offsetHeight
+                : (hunterEl.offsetHeight || 360);
+            const muzzleBottom = 140 + ((1024 - hunterConfig.muzzleY) / 1024) * hunterVisualHeight;
+            projectile.style.bottom = muzzleBottom + 'px';
+            
+            // Zielpunkt auf dem Zombie (Brustbereich bei ~55% Höhe vom Boden mit dezentem Jitter)
+            const zombieVisualHeight = (state.bossActive && zombieSpriteCanvas && zombieSpriteCanvas.style.display !== 'none') 
+                ? zombieSpriteCanvas.offsetHeight 
+                : (zombieImgEl.offsetHeight || 360);
+            const targetBottom = 140 + (zombieVisualHeight * 0.55) + ((Math.random() - 0.5) * 20);
             
             // Zielpunkt 20% links von der horizontalen Mitte des Zombies (bei 30% der Breite)
             const targetX = state.zombiePosition + (zombieEl.offsetWidth * 0.3);
             const distanceX = Math.max(10, targetX - startX);
+            const deltaY = targetBottom - muzzleBottom; // Positiv = Ziel ist höher als Mündung
+
+            // Winkel berechnen und strikt auf [-10°, +10°] begrenzen (verhindert Schüsse in Boden oder Himmel)
+            const rawAngleDeg = Math.atan2(-deltaY, distanceX) * (180 / Math.PI);
+            const maxAngle = 10;
+            const clampedAngle = Math.max(-maxAngle, Math.min(maxAngle, rawAngleDeg));
+            projectile.style.rotate = clampedAngle + 'deg';
             
-            // Zielpunkt auf der Y-Achse: Lasse 20% oben und unten frei, treffe also die mittleren 60%
-            // 30% vom Zentrum in beide Richtungen
-            const zombieVisualHeight = (state.bossActive && zombieSpriteCanvas && zombieSpriteCanvas.style.display !== 'none') 
-                ? zombieSpriteCanvas.offsetHeight 
-                : zombieImgEl.offsetHeight;
-            const maxVerticalOffset = zombieVisualHeight * 0.3;
-            const randomYOffset = (Math.random() - 0.5) * 2 * maxVerticalOffset;
-            
-            // Winkel und tatsächliche Schusslänge (Hypotenuse) berechnen
-            const angleRad = Math.atan2(randomYOffset, distanceX);
-            const randomAngle = angleRad * (180 / Math.PI);
-            projectile.style.rotate = randomAngle + 'deg';
-            
-            const shootDistance = Math.sqrt(distanceX * distanceX + randomYOffset * randomYOffset);
+            const shootDistance = Math.sqrt(distanceX * distanceX + deltaY * deltaY);
             
             state.zombieDead = true; // Stop zombie immediately
+
+            // Strahl schnell ausfahren (~100ms) und ca. 900ms halten (synchron zur 1s Hunter-Sprite-Animation)
             setTimeout(() => {
                 projectile.style.width = shootDistance + 'px';
+
+                // Kontinuierliche Treffer-Partikel am Ziel während des anhaltenden Schusses
+                const impactX = targetX;
+                const impactY = zombieEl.offsetTop + (zombieVisualHeight * 0.45);
+                spawnParticles(impactX, impactY, state.hunterType);
+                const pTimer1 = setTimeout(() => spawnParticles(impactX, impactY, state.hunterType), 250);
+                const pTimer2 = setTimeout(() => spawnParticles(impactX, impactY, state.hunterType), 500);
+                const pTimer3 = setTimeout(() => spawnParticles(impactX, impactY, state.hunterType), 750);
+
                 setTimeout(() => {
+                    clearTimeout(pTimer1);
+                    clearTimeout(pTimer2);
+                    clearTimeout(pTimer3);
                     projectile.className = 'hidden';
                     const bossNeedsAnotherHit = state.bossActive && state.bossHealth > 1;
                     if (bossNeedsAnotherHit) {
@@ -4252,8 +4387,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         killZombie(recoveredCorrectionRetry);
                     }
-                }, 300);
-            }, 50);
+                }, 900);
+            }, 40);
             
         } else {
             // GAMIFICATION: Update SRS failed
@@ -4472,6 +4607,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 zombieLastFrameTime = timestamp;
             }
         }
+
+        // Hunter Sprite Sheet Animation: Schuss- und Rückstoß-Animation bei 24 fps abspielen
+        if (hunterAnimationActive && hunterSpriteCanvas && hunterSpriteCanvas.style.display !== 'none') {
+            const hunterSprite = HUNTER_SPRITES[state.hunterType] || HUNTER_SPRITES['laser'];
+            const frameDuration = 1000 / (hunterSprite.fps || 24);
+            if (timestamp - hunterLastFrameTime >= frameDuration) {
+                hunterLastFrameTime = timestamp;
+                hunterCurrentFrame++;
+                if (hunterCurrentFrame >= hunterSprite.frameCount) {
+                    hunterAnimationActive = false;
+                    hunterSpriteCanvas.style.display = 'none';
+                    hunterEl.style.display = '';
+                } else {
+                    renderHunterSpriteFrame(hunterSprite);
+                }
+            }
+        }
         
         // Parallax Scroll
         if (CONFIG.enableParallax) {
@@ -4688,24 +4840,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const boostFactor = 1 + (currentBoost / maxStreak) * 2; 
         const baseHeights = {
-            'water': 15,
-            'fire': 20,
-            'lightning': 10,
-            'laser': 8,
-            'fuchsia': 12,
-            'pink': 15
+            'water': 18,
+            'fire': 22,
+            'lightning': 12,
+            'laser': 10,
+            'fuchsia': 16,
+            'pink': 18
         };
-        const baseHeight = baseHeights[state.hunterType] || 8;
+        const baseHeight = baseHeights[state.hunterType] || 10;
         proj.style.setProperty('--boost-height', (baseHeight * boostFactor) + 'px');
-        proj.style.setProperty('--boost-glow', (15 * boostFactor) + 'px');
+        proj.style.setProperty('--boost-glow', (16 * boostFactor) + 'px');
 
         const colors = {
-            'lightning': { color: '#ffff00', glow: 'rgba(255, 255, 0, 0.5)' },
-            'fire': { color: '#ff3300', glow: 'rgba(255, 51, 0, 0.5)' },
-            'water': { color: '#00ccff', glow: 'rgba(0, 204, 255, 0.5)' },
-            'laser': { color: '#0000ff', glow: 'rgba(0, 0, 255, 0.5)' },
-            'fuchsia': { color: '#ff00ff', glow: 'rgba(255, 0, 255, 0.5)' },
-            'pink': { color: '#ff66b2', glow: 'rgba(255, 102, 178, 0.5)' }
+            'lightning': { color: '#ffff00', glow: 'rgba(255, 255, 0, 0.6)' },
+            'fire': { color: '#ff3300', glow: 'rgba(255, 51, 0, 0.6)' },
+            'water': { color: '#00d2ff', glow: 'rgba(0, 210, 255, 0.6)' },
+            'laser': { color: '#00ffff', glow: 'rgba(0, 255, 255, 0.6)' },
+            'fuchsia': { color: '#ff00ea', glow: 'rgba(255, 0, 234, 0.6)' },
+            'pink': { color: '#ff1493', glow: 'rgba(255, 20, 147, 0.6)' }
         };
         const theme = colors[state.hunterType] || colors['laser'];
         container.style.setProperty('--boost-border-color', theme.color);
@@ -4744,24 +4896,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function spawnParticles(x, y, element) {
         if (!fxCanvas || !fxCtx) return;
-        const count = 40;
-        let baseColor = '#00ff88';
-        if (element === 'laser' || element === 'fuchsia') baseColor = '#00ffff';
-        else if (element === 'fire') baseColor = '#ff5500';
-        else if (element === 'water' || element === 'pink') baseColor = '#0088ff';
-        else if (element === 'lightning') baseColor = '#ffff00';
+        const count = 45;
+        const colorPalettes = {
+            'laser': ['#00ffff', '#80ffff', '#ffffff', '#00aaff'],
+            'water': ['#00d2ff', '#0077b6', '#caf0f8', '#ffffff'],
+            'fire': ['#ff3300', '#ff9900', '#ffcc00', '#ffffff'],
+            'lightning': ['#ffff00', '#ffff99', '#ffffff', '#ffaa00'],
+            'fuchsia': ['#ff00ea', '#d500f9', '#ffffff', '#aa00ff'],
+            'pink': ['#ff1493', '#ff69b4', '#ffd1dc', '#ffffff']
+        };
+        const palette = colorPalettes[element] || colorPalettes['laser'];
 
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 8 + 2;
+            const speed = Math.random() * 9 + 2;
+            const chosenColor = palette[Math.floor(Math.random() * palette.length)];
             particles.push({
                 x: x,
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed + (element === 'fire' ? -4 : 0),
                 life: 1.0,
-                decay: Math.random() * 0.02 + 0.015,
-                color: baseColor,
+                decay: Math.random() * 0.025 + 0.015,
+                color: chosenColor,
                 size: Math.random() * 5 + 2,
                 element: element
             });
@@ -4779,7 +4936,7 @@ document.addEventListener('DOMContentLoaded', () => {
             p.life -= p.decay;
             
             if (p.element === 'water' || p.element === 'pink') p.vy += 0.3; // gravity
-            if (p.element === 'fire') p.vy -= 0.15; // rise
+            if (p.element === 'fire') p.vy -= 0.18; // rising heat/embers
 
             if (p.life <= 0) {
                 particles.splice(i, 1);
@@ -4787,7 +4944,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fxCtx.globalAlpha = p.life;
                 fxCtx.fillStyle = p.color;
                 if (p.element === 'lightning') {
-                    fxCtx.fillRect(p.x, p.y, p.size, p.size * 2);
+                    fxCtx.fillRect(p.x, p.y, p.size * 0.8, p.size * 2.2);
+                } else if (p.element === 'laser') {
+                    fxCtx.fillRect(p.x, p.y, p.size * 1.8, p.size * 0.8);
                 } else {
                     fxCtx.beginPath();
                     fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);

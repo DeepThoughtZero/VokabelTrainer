@@ -87,7 +87,7 @@ test('mission loop is a separate play style with a finite learning objective', (
     assert.match(html, /id="profile-rescue-medals"/);
     assert.doesNotMatch(html, /Klares Lernziel · sichtbares Ende/);
     assert.doesNotMatch(html, /<option value="mission"/);
-    assert.match(app, /missionTargetSize:\s*12/);
+    assert.match(app, /missionTargetSize:\s*20/);
     assert.match(app, /missionMaxEncounters:\s*20/);
     assert.match(app, /missionNewWordLimit:\s*3/);
     assert.match(app, /finishMissionIfNeeded/);
@@ -337,4 +337,33 @@ test('critical health audio asset exists and is wired to 1 heart condition', () 
     const bannerIndex = html.indexOf('id="marked-retry-banner"');
     assert.ok(optionsIndex !== -1 && bannerIndex !== -1);
     assert.ok(bannerIndex > optionsIndex, 'marked-retry-banner must be placed below options-container');
+});
+
+test('hunter sprite sheets, canvas and exact muzzle heights exist and remain wired', () => {
+    const app = read('js/app.js');
+    const html = read('index.html');
+    const css = read('css/style.css');
+
+    assert.ok(html.includes('id="hunter-sprite-canvas"'), 'index.html must include hunter-sprite-canvas');
+    assert.ok(css.includes('#hunter-sprite-canvas'), 'css must style #hunter-sprite-canvas');
+
+    const hunterExpected = {
+        'laser': { file: 'assets/hunter_commanderneon_sheet.png', muzzleY: 220 },
+        'water': { file: 'assets/hunter_water_sheet.png', muzzleY: 275 },
+        'fire': { file: 'assets/hunter_pyroblaze_sheet.png', muzzleY: 590 },
+        'lightning': { file: 'assets/hunter_voltmaster_sheet.png', muzzleY: 300 },
+        'fuchsia': { file: 'assets/hunter_fuchsia_sheet.png', muzzleY: 405 },
+        'pink': { file: 'assets/hunter_pinkypump_sheet.png', muzzleY: 440 }
+    };
+
+    for (const [id, config] of Object.entries(hunterExpected)) {
+        const sheetPath = path.join(root, config.file);
+        assert.ok(fs.existsSync(sheetPath), `missing hunter sprite sheet: ${config.file}`);
+        assert.ok(fs.statSync(sheetPath).size > 100000, `hunter sprite sheet too small: ${config.file}`);
+        assert.ok(app.includes(`muzzleY: ${config.muzzleY}`), `app.js must define muzzleY ${config.muzzleY} for ${id}`);
+    }
+
+    assert.match(app, /triggerHunterShootAnimation/);
+    assert.match(app, /renderHunterSpriteFrame/);
+    assert.match(app, /clampedAngle/);
 });

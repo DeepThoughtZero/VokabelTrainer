@@ -16,14 +16,14 @@ Das Spiel ist ein reines Frontend-Projekt ohne Backend.
 - **`js/vocabs.js`**: Die Datenquelle. Eine Array-Struktur von Vokabel-Objekten.
 
 ## 📖 Vokabel-Daten & Extraktion
-Die Vokabeln wurden ursprünglich aus Fotos eines Lehrbuchs extrahiert. 
-Da die manuelle Eingabe ineffizient wäre, wurde ein **KI-Vision-Subagent** genutzt, um alle Bilder auszulesen und in ein einheitliches JSON/JS-Format zu konvertieren. 
-Die Bilder der Buchseiten liegen thematisch sortiert in Ordnern (z.B. `pictures/Englisch_Klasse5/Unit3u4`). Der Subagent durchläuft diese Bilder systematisch. Für jedes Bild extrahiert er die englischen Begriffe, die deutschen Übersetzungen sowie strukturelle Meta-Informationen aus dem Kontext der Buchseite (z.B. "Unit 3", "Part A", oder die Seitenzahl, sofern sichtbar oder aus der Reihenfolge ableitbar). 
+Die Vokabeln wurden ursprünglich aus Fotos eines Lehrbuchs extrahiert.
+Da die manuelle Eingabe ineffizient wäre, wurde ein **KI-Vision-Subagent** genutzt, um alle Bilder auszulesen und in ein einheitliches JSON/JS-Format zu konvertieren.
+Die Bilder der Buchseiten liegen thematisch sortiert in Ordnern (z.B. `pictures/Englisch_Klasse5/Unit3u4`). Der Subagent durchläuft diese Bilder systematisch. Für jedes Bild extrahiert er die englischen Begriffe, die deutschen Übersetzungen sowie strukturelle Meta-Informationen aus dem Kontext der Buchseite (z.B. "Unit 3", "Part A", oder die Seitenzahl, sofern sichtbar oder aus der Reihenfolge ableitbar).
 Diese Meta-Informationen sind essenziell, damit später im Spiel präzise gefiltert werden kann. Sie fließen direkt als Eigenschaften (`unit`, `part`, `page`) in das JSON-Objekt jedes Vokabel-Paares ein.
 
 ### 🧰 Helfer-Skripte zur Datenextraktion (`scripts/vocab_parsers/`)
 
-Damit das Hauptverzeichnis aufgeräumt bleibt, liegen alle bisher genutzten Python-Skripte im Ordner `scripts/vocab_parsers/`. 
+Damit das Hauptverzeichnis aufgeräumt bleibt, liegen alle bisher genutzten Python-Skripte im Ordner `scripts/vocab_parsers/`.
 Diese Skripte dienen zukünftigen KI-Agenten als exzellente Vorlage (Boilerplate), wenn neue Units (z.B. Unit 5, Unit 6) in das Spiel integriert werden sollen.
 
 #### 1. Strukturierte Bild-für-Bild-Extraktion (Best Practice)
@@ -80,16 +80,20 @@ Dafür gibt es ein Automatisierungs-Skript. Wenn ein neues Bild (z.B. aus einem 
 ## 🎬 Sprite Sheet Animationen
 
 ### Übersicht
-Ausgewählte Zombies (Boss-Zombie `zombie10` und Standard-Zombie `zombie03`) verwenden **animierte Laufbewegungen** anstelle statischer Bilder. Der Workflow basiert auf Videos, die mit **Google Flow** (KI-Videoerstellung) im 9:16-Format vor einem **Greenscreen** erzeugt wurden.
+Sämtliche regulären Zombies (`zombie01`–`zombie07`) sowie der Boss-Zombie (`zombie10`) verwenden **animierte Laufbewegungen** anstelle statischer Bilder.
+
+Die Erstellung der Ausgangsvideos erfolgt wahlweise über:
+- **Google Flow** (KI-Videoerstellung im 9:16-Format vor Greenscreen)
+- **LTX 2.5 via ComfyUI** (First & Last Frame to Video, Workflow: `workflows/video_ltx2_5_flf2v_NVFP4.json`)
 
 ### Workflow: Video → Sprite Sheet → Animation
 
 ```
-MP4-Video (Google Flow, 9:16, Greenscreen)
+MP4-Video (Google Flow 9:16 oder LTX 2.5 / ComfyUI 1:1, Greenscreen)
     ↓  scripts/mp4_to_spritesheet.sh (ffmpeg)
 Sprite Sheet PNG (6 Spalten, N Zeilen, transparenter Hintergrund)
-    ↓  In assets/ abgelegt (z.B. assets/zombie03_sheet.png, assets/zombie10_sheet.png)
-Canvas-Animation im Browser (Frame-basiert im Game Loop)
+    ↓  In assets/ abgelegt (z.B. assets/zombie01_sheet.png ... zombie07_sheet.png, zombie10_sheet.png)
+Canvas-Animation im Browser (Frame-basiert & geschwindigkeitsdynamisch im Game Loop)
 ```
 
 ### 1. Sprite Sheet erzeugen (`scripts/mp4_to_spritesheet.sh`)
@@ -170,14 +174,42 @@ const ZOMBIE_SPRITES = {
 
 Wenn zukünftig weitere Zombies animiert werden sollen:
 
-1. **Video erstellen** (Google Flow, 9:16, Greenscreen)
-2. **Video in `assets/spritesheets/` ablegen**
-3. **Sprite Sheet generieren:**
+#### A. Video erstellen (2 Optionen):
+- **Option 1: ComfyUI mit LTX 2.5 (First & Last Frame to Video)**
+  - **Workflow:** `workflows/video_ltx2_5_flf2v_NVFP4.json`
+  - **Format:** 1:1 Quadratisch (z.B. 512×512)
+  - **Prompt:**
+    ```text
+    A zombie walking continuously in side profile towards the left, seamless walking cycle animation, 2d game asset, comic book style, full body character, isolated in front of a solid pure bright green screen background (#00FF00), even lighting, no shadows on the green background
+    ```
+- **Option 2: Google Flow**
+  - **Format:** 9:16 (Figur in unterer Bildhälfte, vor solidem `#00FF00` Greenscreen)
+
+#### B. Sprite-Sheet generieren & registrieren:
+1. **Video in `assets/spritesheets/` ablegen** (z. B. `assets/spritesheets/zombieXX_video.mp4`)
+2. **Sprite Sheet generieren:**
    ```bash
+   # Bei 1:1 Videos (z.B. aus ComfyUI / LTX 2.5):
    ./scripts/mp4_to_spritesheet.sh --output-dir assets assets/spritesheets/zombieXX_video.mp4
    mv assets/zombieXX_video_sheet.png assets/zombieXX_sheet.png
+
+   # Bei 9:16 Videos (z.B. aus Google Flow):
+   ./scripts/mp4_to_spritesheet.sh --crop-bottom --output-dir assets assets/spritesheets/zombieXX_video.mp4
+   mv assets/zombieXX_video_sheet.png assets/zombieXX_sheet.png
    ```
-4. **In `ZOMBIE_SPRITES` in `js/app.js` eintragen** mit `cols`, `rows`, `frameCount` und `fps`.
+3. **In `ZOMBIE_SPRITES` in `js/app.js` eintragen** mit `cols`, `rows`, `frameCount` und `fps`.
+
+### 4. Jäger-Schuss-Animation (ComfyUI / LTX 2.5)
+
+Für die Schuss-Animationen der Spielfiguren (Hunter) wird ebenfalls ComfyUI mit LTX 2.5 (First & Last Frame to Video) verwendet:
+
+- **Workflow-Pfad:** `workflows/video_ltx2_5_flf2v_NVFP4.json`
+- **Format:** 1:1 Quadratisch (z.B. 512×512 vor Greenscreen)
+- **Prompt:**
+  ```text
+  The character drops into a low, braced combat stance and fires a single, high-impact shot. A massive, explosive muzzle flash and visual blast effect erupt directly at the weapon, triggering a violent full-body recoil: the torso kicks back, knees flex to absorb the kinetic shock, and clothing/hair react dynamically to the blast wave while the aim remains locked forward. Nothing leaves the weapon: no projectiles, no bullets, no laser beams, no flying particles.
+  ```
+- **Besonderheit:** Der Prompt schließt Projektile, Laserstrahlen und Partikel explizit aus, da die Projektile (`.proj-laser`, `.proj-water`, `.proj-fire` etc.) separat im Code per CSS/JS berechnet und über die Flugbahn gerendert werden.
 
 ## 🔒 Sicherheit & Geheime Daten (API-Keys, Passwörter)
 
@@ -197,7 +229,7 @@ Die Kollision findet auf der horizontalen X-Achse statt. Da der Jäger bei `left
 **Ursache:** Im CSS war `right: -100px` gesetzt, während `app.js` gleichzeitig `left: ...px` animierte. Das führte dazu, dass der Container sich über den Bildschirm streckte, anstatt sich zu bewegen. Durch das Entfernen des `right` Werts wurde dies behoben.
 
 ### Schuss-Animation
-Die Projektile sind reine CSS-Animationen (`.proj-laser`, `.proj-water`, etc.). 
+Die Projektile sind reine CSS-Animationen (`.proj-laser`, `.proj-water`, etc.).
 Dammit der Schuss direkt aus der Waffe kommt, startet er bei `left: 320px`. Anstatt den Schuss nach links zu verschieben, **wird per JS dynamisch seine Breite (`width`) animiert**, sodass er sich von der Mündung bis zum aktuellen Standort des Zombies (`state.zombiePosition`) streckt.
 
 ### Boss-Zombies
@@ -222,14 +254,14 @@ Das Skript unterstützt verschiedene lokale TTS-APIs:
 - **Alternative Engines:** `voxtral` (Port 8091), `chatterbox` (Port 4123) oder Qwen3-Voice-Cloning (`qwen3`).
 
 ### 2. Prompt-Engineering gegen KI-Füllwörter
-Ein typisches Problem von KI-basierten TTS-Modellen (wie Qwen3 oder Voxtral) ist das Einfügen von Konversations-Füllwörtern wie "Ähm" oder "Uhm", wenn sie nur einzelne Wörter oder kurze Fragmente ohne Satzzeichen erhalten. 
+Ein typisches Problem von KI-basierten TTS-Modellen (wie Qwen3 oder Voxtral) ist das Einfügen von Konversations-Füllwörtern wie "Ähm" oder "Uhm", wenn sie nur einzelne Wörter oder kurze Fragmente ohne Satzzeichen erhalten.
 **Lösung im Skript:** Die `generate_audio.sh` bereitet den Text vor dem Senden an die API automatisch auf:
 1. Der erste Buchstabe wird konsequent **großgeschrieben**.
 2. An das Ende der Vokabel wird zwingend ein **Satzzeichen (Punkt `.`)** gehängt.
 Dadurch wird die API gezwungen, das Wort als geschlossenen Aussagesatz zu interpretieren. Füllwörter treten somit nicht mehr auf.
 
 ### 3. Inline-Normalisierung (EBU R128)
-Da unterschiedliche Vokabeln leicht variierende Lautstärken haben können, nutzt das Skript direkt nach der Erstellung jeder einzelnen Audiodatei das Tool `ffmpeg`, um einen `loudnorm`-Filter (EBU R128 Standard) anzuwenden. 
+Da unterschiedliche Vokabeln leicht variierende Lautstärken haben können, nutzt das Skript direkt nach der Erstellung jeder einzelnen Audiodatei das Tool `ffmpeg`, um einen `loudnorm`-Filter (EBU R128 Standard) anzuwenden.
 - Parameter: `loudnorm=I=-16:TP=-1.5:LRA=11`
 - Das sorgt für ein komplett gleichmäßiges und verzerrungsfreies Audio-Level über das gesamte Vokabular hinweg.
 

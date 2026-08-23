@@ -36,10 +36,17 @@ body.halo-active {
     background-size: cover;
 }
 
+body.halo-jumping {
+    background-color: #000 !important;
+    background-image: none !important;
+}
+
 body.command-active {
+    background-color: #000;
     background-image: url('../assets/background_helicopter_command.webp') !important;
     background-position: center;
     background-size: cover;
+    background-repeat: no-repeat;
 }
 
 #app-container {
@@ -709,6 +716,10 @@ body.command-active {
 
 .command-center-screen::before {
     background-image: url('../assets/background_helicopter_command.webp');
+}
+
+body.command-active .command-center-screen::before {
+    background-image: none;
 }
 
 body.halo-active .halo-screen::before {
@@ -3229,101 +3240,106 @@ select {
     border-color: transparent transparent transparent white;
 }
 
+#hunter-sprite-canvas {
+    height: 360px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 15px rgba(0,0,0,0.8));
+}
+
 #projectile {
     position: absolute;
     z-index: 20;
-    transition: width 0.2s linear;
+    transition: width 0.12s ease-out;
     transform-origin: left center;
 }
 
 .proj-laser {
-    width: 60px;
-    height: var(--boost-height, 8px);
-    background: #00ffff;
+    height: var(--boost-height, 10px);
+    background: linear-gradient(to right, #ffffff, #00ffff 15%, #00e5ff 85%, #ffffff);
     color: #00ffff;
-    bottom: 340px;
-    border-radius: 4px;
-    box-shadow: 0 0 var(--boost-glow, 15px) #00ffff, 0 0 calc(var(--boost-glow, 15px) * 2) #00ffff;
+    border-radius: 5px;
+    box-shadow: 0 0 var(--boost-glow, 15px) #00ffff, 0 0 calc(var(--boost-glow, 15px) * 2.2) #0088ff, inset 0 0 4px #ffffff;
+    animation: laserPulse 0.08s infinite alternate;
 }
 
 .proj-water {
-    width: 50px;
-    height: var(--boost-height, 15px);
-    background: #0088ff;
+    height: var(--boost-height, 18px);
+    background: linear-gradient(to bottom, rgba(255,255,255,0.95), #00d2ff 25%, #0077b6 75%, rgba(255,255,255,0.9));
     color: #0088ff;
-    bottom: 350px;
-    border-radius: 10px;
-    box-shadow: 0 0 var(--boost-glow, 10px) #0088ff, inset 0 0 5px rgba(255,255,255,0.5);
-    animation: waterRipple 0.2s infinite alternate;
+    border-radius: 12px;
+    box-shadow: 0 0 var(--boost-glow, 14px) #00b4d8, 0 0 calc(var(--boost-glow, 14px) * 2.2) #023e8a, inset 0 0 6px #caf0f8;
+    animation: waterJetWave 0.12s infinite linear;
 }
 
 .proj-fire {
-    width: 70px;
-    height: var(--boost-height, 20px);
-    background: linear-gradient(to right, #ffcc00, #ff3300);
+    height: var(--boost-height, 22px);
+    background: linear-gradient(to right, #ffffff 0%, #fff700 15%, #ff7700 50%, #ff1100 85%, #ff0055 100%);
     color: #ff5500;
-    bottom: 255px;
-    border-radius: 10px;
-    box-shadow: 0 0 var(--boost-glow, 20px) #ff3300, 0 0 calc(var(--boost-glow, 20px) * 2) #ff9900;
-    animation: fireFlicker 0.1s infinite alternate;
+    border-radius: 14px;
+    box-shadow: 0 0 var(--boost-glow, 22px) #ff3300, 0 0 calc(var(--boost-glow, 22px) * 2.5) #ff9900, 0 0 calc(var(--boost-glow, 22px) * 4) rgba(255,0,0,0.6);
+    animation: fireInferno 0.08s infinite alternate;
 }
 
 .proj-lightning {
-    width: 80px;
-    height: var(--boost-height, 10px);
-    background: #ffff00;
+    height: var(--boost-height, 12px);
+    background: linear-gradient(to right, #ffffff, #ffff55 20%, #ffea00 80%, #ffffff);
     color: #ffff00;
-    bottom: 360px;
-    border-radius: 2px;
-    box-shadow: 0 0 var(--boost-glow, 15px) #ffff00, 0 0 calc(var(--boost-glow, 15px) * 2) #ffff00;
-    animation: lightningStrike 0.05s infinite alternate;
+    border-radius: 4px;
+    box-shadow: 0 0 var(--boost-glow, 20px) #ffff00, 0 0 calc(var(--boost-glow, 20px) * 2.2) #ff9900, 0 0 calc(var(--boost-glow, 20px) * 3) #ffffff;
+    animation: lightningZap 0.04s infinite alternate;
 }
 
 .proj-fuchsia {
-    width: 60px;
-    height: var(--boost-height, 12px);
-    background: #ff00ff;
+    height: var(--boost-height, 16px);
+    background: linear-gradient(to right, #ffffff 0%, #ff77ff 20%, #d500f9 60%, #aa00ff 90%, #ffffff 100%);
     color: #ff00ff;
-    bottom: 350px;
-    border-radius: 6px;
-    box-shadow: 0 0 var(--boost-glow, 15px) #ff00ff, 0 0 calc(var(--boost-glow, 15px) * 2) #ff00ff;
-    animation: magicPulse 0.1s infinite alternate;
+    border-radius: 10px;
+    box-shadow: 0 0 var(--boost-glow, 18px) #ff00ea, 0 0 calc(var(--boost-glow, 18px) * 2.5) #7c4dff, inset 0 0 6px #ffffff;
+    animation: arcaneSurge 0.1s infinite alternate;
 }
 
 .proj-pink {
-    width: 45px;
-    height: var(--boost-height, 15px);
-    background: #ff66b2;
+    height: var(--boost-height, 18px);
+    background: linear-gradient(to right, #ffffff 0%, #ff66b2 25%, #ff1493 70%, #ff69b4 100%);
     color: #ff66b2;
-    bottom: 345px;
-    border-radius: 8px;
-    box-shadow: 0 0 var(--boost-glow, 10px) #ff66b2, 0 0 calc(var(--boost-glow, 10px) * 2) #ff66b2;
-    animation: pumpShot 0.1s infinite alternate;
+    border-radius: 10px;
+    box-shadow: 0 0 var(--boost-glow, 16px) #ff1493, 0 0 calc(var(--boost-glow, 16px) * 2.2) #ff80bf, inset 0 0 6px rgba(255,255,255,0.85);
+    animation: pumpgunBlast 0.07s infinite alternate;
 }
 
-@keyframes magicPulse {
-    from { opacity: 0.8; transform: scaleY(0.9); }
-    to { opacity: 1; transform: scaleY(1.1); }
+@keyframes laserPulse {
+    from { opacity: 0.85; transform: scaleY(0.92); }
+    to { opacity: 1.0; transform: scaleY(1.08); }
 }
 
-@keyframes pumpShot {
-    from { transform: scaleX(0.9); }
-    to { transform: scaleX(1.1); }
+@keyframes waterJetWave {
+    0% { transform: scaleY(0.85) skewY(-1deg); }
+    50% { transform: scaleY(1.15) skewY(1deg); }
+    100% { transform: scaleY(0.95) skewY(-0.5deg); }
 }
 
-@keyframes waterRipple {
-    from { transform: scaleY(0.8); }
-    to { transform: scaleY(1.2); }
+@keyframes fireInferno {
+    0% { opacity: 0.85; transform: scaleY(0.88) scaleX(0.98); filter: drop-shadow(0 0 10px #ff3300); }
+    50% { opacity: 1.0; transform: scaleY(1.2) scaleX(1.02); filter: drop-shadow(0 0 25px #ff9900); }
+    100% { opacity: 0.9; transform: scaleY(0.95) scaleX(1.0); filter: drop-shadow(0 0 15px #ff2200); }
 }
 
-@keyframes fireFlicker {
-    from { opacity: 0.8; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1.05); }
+@keyframes lightningZap {
+    0% { opacity: 0.7; transform: translateY(-2px) scaleY(0.8); }
+    50% { opacity: 1.0; transform: translateY(2px) scaleY(1.2); }
+    100% { opacity: 0.85; transform: translateY(0px) scaleY(1.0); }
 }
 
-@keyframes lightningStrike {
-    from { opacity: 0.5; transform: translateY(-2px); }
-    to { opacity: 1; transform: translateY(2px); }
+@keyframes arcaneSurge {
+    0% { opacity: 0.85; transform: scaleY(0.9) rotate(0deg); }
+    50% { opacity: 1.0; transform: scaleY(1.2) rotate(0.5deg); }
+    100% { opacity: 0.9; transform: scaleY(1.0) rotate(-0.5deg); }
+}
+
+@keyframes pumpgunBlast {
+    0% { opacity: 0.8; transform: scaleY(0.85) scaleX(0.95); }
+    50% { opacity: 1.0; transform: scaleY(1.2) scaleX(1.05); }
+    100% { opacity: 0.9; transform: scaleY(1.0) scaleX(1.0); }
 }
 
 .hidden {

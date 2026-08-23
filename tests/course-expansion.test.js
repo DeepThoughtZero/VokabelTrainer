@@ -92,23 +92,23 @@ test('long vocabulary prompts use smaller speech-bubble text', () => {
     assert.equal(density('sich drehen; sich umdrehen; ausschalten ... einschalten; (nach) links/rechts abbiegen; lauter stellen; dunkel werden'), 'very-long');
 });
 
-test('mission planning teaches three new words and fills the rest with known words', () => {
+test('mission planning teaches three new words and fills the rest up to target size', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
     const utilities = context.window.VocabUtils;
-    const vocabulary = Array.from({ length: 18 }, (_, index) => ({
+    const vocabulary = Array.from({ length: 30 }, (_, index) => ({
         id: `word-${index + 1}`,
         known: index < 8
     }));
     const targets = Array.from(utilities.createMissionTargetSet(vocabulary, {
-        targetSize: 12,
+        targetSize: 20,
         newWordLimit: 3,
         isKnown: vocab => vocab.known,
         random: () => 0.25
     }));
 
-    assert.equal(targets.length, 11, 'only eight known words are available to fill the mission');
-    assert.equal(targets.filter(vocab => !vocab.known).length, 3);
-    assert.equal(targets.filter(vocab => vocab.known).length, 8);
+    assert.equal(targets.length, 20, 'target set should fill up to target size 20');
+    assert.equal(targets.filter(vocab => vocab.known).length, 8, 'includes all 8 available known words');
+    assert.equal(targets.filter(vocab => !vocab.known).length, 12, 'fills the remaining slots with new district words');
     assert.equal(new Set(targets.map(vocab => vocab.id)).size, targets.length);
 
     const lastTarget = targets[0];
@@ -322,16 +322,16 @@ test('rescue career persists completed missions, medals, rescued words and perfe
     assert.equal(afterIncomplete.bestStreak, 1);
 });
 
-test('a first mission contains exactly three entirely new words', () => {
+test('a first mission in a district selects 20 target words when available', () => {
     const context = evaluateScripts(['js/vocab_utils.js']);
-    const vocabulary = Array.from({ length: 20 }, (_, index) => ({ id: `new-${index + 1}` }));
+    const vocabulary = Array.from({ length: 25 }, (_, index) => ({ id: `new-${index + 1}` }));
     const targets = Array.from(context.window.VocabUtils.createMissionTargetSet(vocabulary, {
-        targetSize: 12,
+        targetSize: 20,
         newWordLimit: 3,
         isKnown: () => false,
         random: () => 0.5
     }));
-    assert.equal(targets.length, 3);
+    assert.equal(targets.length, 20);
 });
 
 test('learning-path filter segments preserve colons in class-6 unit names', () => {
@@ -500,14 +500,14 @@ test('mission boss has multiple lives and target set stays within mission encoun
         known: index < 15
     }));
 
-    // Target set for a mission with large district (60 words) must produce a bite-sized target set (12 words)
+    // Target set for a mission with large district (60 words) must produce a standard target set (20 words)
     const targets = utilities.createMissionTargetSet(largeDistrictVocabulary, {
-        targetSize: 12,
+        targetSize: 20,
         newWordLimit: 3,
         isKnown: v => v.known,
         random: () => 0.5
     });
-    assert.equal(targets.length, 12, 'Mission target set should be capped at targetSize (12)');
-    assert.equal(targets.filter(v => !v.known).length, 3, 'Should introduce 3 new words');
-    assert.equal(targets.filter(v => v.known).length, 9, 'Should fill 9 review words');
+    assert.equal(targets.length, 20, 'Mission target set should be capped at targetSize (20)');
+    assert.equal(targets.filter(v => v.known).length, 15, 'Should include all 15 known review words');
+    assert.equal(targets.filter(v => !v.known).length, 5, 'Should include 3 priority + 2 additional new words to reach 20');
 });

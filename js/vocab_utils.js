@@ -113,17 +113,21 @@ window.VocabUtils = Object.freeze({
         const requestedNewWordLimit = Number(options.newWordLimit);
         const targetSize = Number.isFinite(requestedTargetSize) && requestedTargetSize > 0
             ? Math.floor(requestedTargetSize)
-            : 12;
+            : 20;
         const newWordLimit = Number.isFinite(requestedNewWordLimit) && requestedNewWordLimit >= 0
             ? Math.floor(requestedNewWordLimit)
             : 3;
 
         const knownWords = shuffled(uniqueVocabulary.filter(isKnown));
         const newWords = shuffled(uniqueVocabulary.filter(vocab => !isKnown(vocab)));
-        const selectedNewWords = newWords.slice(0, Math.min(newWordLimit, newWords.length));
-        const selectedKnownWords = knownWords.slice(0, Math.max(0, targetSize - selectedNewWords.length));
+        const priorityNewWords = newWords.slice(0, Math.min(newWordLimit, newWords.length));
+        const remainingNewWords = newWords.slice(priorityNewWords.length);
+        const neededAfterPriority = Math.max(0, targetSize - priorityNewWords.length);
+        const selectedKnownWords = knownWords.slice(0, neededAfterPriority);
+        const stillNeeded = Math.max(0, targetSize - (priorityNewWords.length + selectedKnownWords.length));
+        const additionalNewWords = remainingNewWords.slice(0, stillNeeded);
 
-        return shuffled([...selectedKnownWords, ...selectedNewWords]);
+        return shuffled([...priorityNewWords, ...selectedKnownWords, ...additionalNewWords]);
     },
 
     getDistrictMastery(district, vocabulary, srsData, courseId = '') {
