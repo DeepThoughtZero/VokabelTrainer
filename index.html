@@ -156,7 +156,6 @@
                         <span class="play-style-icon" aria-hidden="true">♾️</span>
                         <span class="play-style-copy">
                             <strong>Freie Jagd</strong>
-                            <small>Jage ohne Limit – bis dein letztes Herz fällt.</small>
                         </span>
                         <span class="play-style-check" aria-hidden="true">✓</span>
                     </button>
@@ -165,7 +164,6 @@
                         <span class="play-style-icon" aria-hidden="true">🎯</span>
                         <span class="play-style-copy">
                             <strong>Rettungsmission</strong>
-                            <small>Lerne Zielwörter. Springe ab. Befreie ein Stadtviertel.</small>
                         </span>
                         <span class="play-style-check" aria-hidden="true">✓</span>
                     </button>
@@ -173,11 +171,7 @@
 
                 <div id="mission-briefing" class="mission-briefing-panel hidden">
                     <div class="mission-briefing-heading">
-                        <div>
-                            <span class="mission-eyebrow">Neuer Notruf · Operation Morgenrot</span>
-                            <h2>Brich durch die Horde – und stürze den Boss!</h2>
-                            <p class="mission-briefing-story">Jedes gesicherte Wort bringt dein Team näher zur Extraktion.</p>
-                        </div>
+                        <h2>Brich durch die Horde – und stürze den Boss!</h2>
                         <div class="mission-duration"><span aria-hidden="true">⏱</span><strong>≈ 5 Min.</strong></div>
                     </div>
 
@@ -186,44 +180,30 @@
                         <div class="mission-route-stop complete">
                             <span class="mission-route-node" aria-hidden="true">🗺️</span>
                             <strong>Aufklärung</strong>
-                            <small>Stadtviertel wählen</small>
                         </div>
                         <div class="mission-route-stop">
                             <span class="mission-route-node" aria-hidden="true">🚁</span>
                             <strong>Briefing</strong>
-                            <small>3 neue Wörter</small>
                         </div>
                         <div class="mission-route-stop">
                             <span class="mission-route-node" aria-hidden="true">🧟</span>
                             <strong>Angriff</strong>
-                            <small>Horde stoppen</small>
                         </div>
                         <div class="mission-route-stop boss-stop">
                             <span class="mission-route-node" aria-hidden="true">👑</span>
                             <strong>Boss</strong>
-                            <small>Anführer stürzen</small>
                         </div>
                         <div class="mission-route-stop">
                             <span class="mission-route-node" aria-hidden="true">🚁</span>
                             <strong>Extraktion</strong>
-                            <small>Stadt gerettet</small>
                         </div>
-                    </div>
-
-                    <div class="mission-rules">
-                        <span><strong>bis 12</strong> Wörter im Einsatz</span>
-                        <span><strong>20</strong> Chancen bis zum Abflug</span>
-                        <span><strong>3</strong> neue Wörter pro Mission</span>
-                        <span><strong>🥇</strong> Gold für 3 Herzen</span>
                     </div>
                 </div>
 
                 <div id="hunt-briefing" class="hunt-briefing-panel">
                     <span class="hunt-briefing-icon" aria-hidden="true">🧟‍♂️</span>
                     <div>
-                        <span class="mission-eyebrow">Klassische Endlosjagd</span>
                         <h2>Halte die Horde so lange wie möglich auf</h2>
-                        <p>Kein festes Lernziel und keine Begegnungsgrenze. Die Jagd endet, wenn alle drei Herzen verloren sind.</p>
                     </div>
                 </div>
 
@@ -429,8 +409,8 @@
                 </div>
                 <div class="correction-builder">
                     <p id="correction-instruction">Präge dir die Lösung ein und baue sie aus den Buchstaben zusammen.</p>
-                    <div id="correction-pool" class="letter-pool correction-letter-pool" aria-label="Verfügbare Buchstaben"></div>
                     <div id="correction-target" class="letter-target correction-letter-target" aria-label="Zusammengesetzte Lösung"></div>
+                    <div id="correction-pool" class="letter-pool correction-letter-pool" aria-label="Verfügbare Buchstaben"></div>
                 </div>
             </section>
 
@@ -439,8 +419,8 @@
             </div>
 
             <div id="writing-container" class="hidden writing-mode-ui">
-                <div id="writing-pool" class="letter-pool"></div>
                 <div id="writing-target" class="letter-target"></div>
+                <div id="writing-pool" class="letter-pool"></div>
             </div>
 
             <div id="marked-retry-banner" class="marked-retry-banner hidden" role="status" aria-live="polite">
