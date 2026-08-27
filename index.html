@@ -41,6 +41,11 @@
 
         <!-- Course Selection Screen -->
         <section id="course-selection-screen" class="screen">
+            <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+                <button id="profile-course-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
+                <button id="show-leaderboard-course-btn" class="gear-btn" title="Weltrangliste">🏆</button>
+                <button id="info-course-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
+            </div>
             <h1 class="title">Mission auswählen</h1>
             <div class="glass course-selection-box">
                 <p class="course-intro">Wähle zuerst deine Klassenstufe und danach das Fach, in dem du die Zombie-Horde bekämpfen willst.</p>
@@ -82,7 +87,7 @@
 
         <!-- Hunter Selection Screen -->
         <section id="hunter-selection-screen" class="screen">
-            <button id="change-course-btn" class="btn-secondary course-change-btn" type="button" title="Klasse oder Fach ändern">📚 Klasse/Fach</button>
+            <button id="change-course-btn" class="btn-secondary screen-back-btn" type="button" title="Klasse oder Fach ändern">⬅ Zurück</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
                 <button id="profile-hunter-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-hunter-btn" class="gear-btn" title="Weltrangliste">🏆</button>
@@ -123,7 +128,7 @@
 
         <!-- City Selection Screen -->
         <section id="city-selection-screen" class="screen">
-            <button id="back-to-hunter-from-city-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Jägerauswahl">⬅ Zurück</button>
+            <button id="back-to-hunter-from-city-btn" class="btn-secondary screen-back-btn" type="button" title="Zurück zur Jägerauswahl">⬅ Zurück</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
                 <button id="profile-city-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-city-btn" class="gear-btn" title="Weltrangliste">🏆</button>
@@ -147,8 +152,12 @@
         <!-- Play Style Selection Screen -->
         <section id="mission-selection-screen" class="screen mission-selection-screen">
             <button id="back-to-city-from-mission-btn" class="btn-secondary screen-back-btn" type="button" title="Zurück zur Stadtauswahl">⬅ Zurück</button>
+            <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+                <button id="profile-mission-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
+                <button id="show-leaderboard-mission-btn" class="gear-btn" title="Weltrangliste">🏆</button>
+                <button id="info-mission-btn" class="gear-btn" title="Spielinfo & Regeln">❓</button>
+            </div>
             <h1 class="title">Einsatz wählen</h1>
-            <p class="mission-screen-kicker">Wie willst du <span id="mission-city-name">die Stadt</span> retten?</p>
 
             <div class="mission-command-center glass">
                 <div class="play-style-grid" role="radiogroup" aria-label="Spielart">
@@ -172,7 +181,6 @@
                 <div id="mission-briefing" class="mission-briefing-panel hidden">
                     <div class="mission-briefing-heading">
                         <h2>Brich durch die Horde – und stürze den Boss!</h2>
-                        <div class="mission-duration"><span aria-hidden="true">⏱</span><strong>≈ 5 Min.</strong></div>
                     </div>
 
                     <div class="mission-route" aria-label="Missionspfad: Aufklärung, Briefing, Angriff, Boss und Extraktion">
@@ -213,7 +221,7 @@
 
         <!-- Start Screen (Settings) -->
         <section id="start-screen" class="screen">
-            <button id="back-to-mission-btn" class="btn-secondary" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.9); color: var(--accent-color); border-color: var(--accent-color); font-size: 1.5rem; padding: 5px 15px;" title="Zurück zur Einsatzwahl">⬅ Einsatzart</button>
+            <button id="back-to-mission-btn" class="btn-secondary screen-back-btn" type="button" title="Zurück zur Einsatzwahl">⬅ Zurück</button>
             <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
                 <button id="profile-start-btn" class="gear-btn" title="Spielerprofil & Abzeichen">🏅</button>
                 <button id="show-leaderboard-start-btn" class="gear-btn" title="Weltrangliste">🏆</button>
@@ -258,7 +266,7 @@
         <!-- Mission Briefing: learn new target words before deployment -->
         <section id="command-center-screen" class="screen command-center-screen notranslate" translate="no">
             <div class="command-center-shade" aria-hidden="true"></div>
-            <button id="back-from-command-btn" class="btn-secondary screen-back-btn" type="button">⬅ Stadtkarte</button>
+            <button id="back-from-command-btn" class="btn-secondary screen-back-btn" type="button" title="Zurück zur Stadtkarte">⬅ Zurück</button>
 
             <header class="command-center-header">
                 <span class="command-phase-badge">Phase 2 · Flugzeug-Briefing</span>
@@ -308,7 +316,7 @@
 
         <!-- HALO insertion and persistent book-district map -->
         <section id="halo-screen" class="screen halo-screen notranslate" translate="no">
-            <button id="back-from-halo-btn" class="btn-secondary screen-back-btn" type="button">⬅ Einsatzwahl</button>
+            <button id="back-from-halo-btn" class="btn-secondary screen-back-btn" type="button" title="Zurück zur Einsatzwahl">⬅ Zurück</button>
             <button id="skip-halo-video-btn" class="btn-secondary halo-skip-btn" type="button" title="Absprung überspringen">Überspringen ⏩</button>
 
             <header class="halo-header">

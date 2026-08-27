@@ -249,6 +249,8 @@ body.command-active::before {
 
 .grade-card,
 .subject-card {
+    position: relative;
+    overflow: hidden;
     min-height: 105px;
     padding: 18px 22px;
     color: white;
@@ -259,13 +261,14 @@ body.command-active::before {
     font-size: 2rem;
     font-family: 'Roboto', sans-serif;
     font-weight: bold;
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.3s ease, opacity 0.3s ease;
 }
 
 .grade-card:hover,
 .subject-card:not(:disabled):hover {
-    transform: translateY(-3px);
+    transform: translateY(-6px) scale(1.02);
     border-color: var(--accent-color);
+    box-shadow: 0 0 18px rgba(0, 255, 136, 0.3);
 }
 
 .grade-card.active,
@@ -288,6 +291,253 @@ body.command-active::before {
     opacity: 0.45;
     filter: grayscale(0.8);
 }
+/* === Course Selection Wow Animations === */
+
+/* Neon scan line on active cards */
+.grade-card.active::after,
+.subject-card.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    animation: neonScanLine 2.8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* Shimmer effect on hover */
+.grade-card:hover::before,
+.subject-card:not(:disabled):hover::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: cardHoverShimmer 0.6s ease forwards;
+    pointer-events: none;
+}
+
+/* Shockwave ring on grade button activation */
+.grade-card.shockwave::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-color);
+    transform: translate(-50%, -50%);
+    animation: selectionShockwave 0.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Staggered entry for subject cards */
+.subject-card.entering {
+    animation: subjectCardFlipIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Glitch flicker on the subject container during grade switch */
+.subject-selection.switching {
+    animation: glitchFlicker 0.2s steps(3) forwards;
+}
+
+/* Select pulse on chosen card */
+.subject-card.selecting {
+    animation: cardSelectPulse 0.35s ease-out;
+}
+
+/* Deselect shrink on unchosen cards */
+.subject-card.deselecting {
+    animation: cardDeselectShrink 0.3s ease-out;
+}
+
+/* Grade deselect fade */
+.grade-card.deselecting {
+    animation: cardDeselectShrink 0.3s ease-out;
+}
+
+/* Confirm button ready glow */
+#confirm-course-btn.confirm-ready {
+    animation: confirmButtonReady 0.5s ease-out;
+}
+
+/* === Course Selection Keyframes === */
+
+@keyframes neonScanLine {
+    0% { left: -75%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { left: 125%; opacity: 0; }
+}
+
+@keyframes cardHoverShimmer {
+    0% { left: -100%; }
+    100% { left: 200%; }
+}
+
+@keyframes selectionShockwave {
+    0% {
+        width: 20px;
+        height: 20px;
+        opacity: 1;
+        border-width: 3px;
+    }
+    100% {
+        width: 300px;
+        height: 200px;
+        opacity: 0;
+        border-width: 1px;
+    }
+}
+
+@keyframes subjectCardFlipIn {
+    0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+        filter: blur(4px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(-4px) scale(1.03);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+@keyframes glitchFlicker {
+    0% { opacity: 1; transform: translateX(0); }
+    33% { opacity: 0.4; transform: translateX(-3px); }
+    66% { opacity: 0.7; transform: translateX(2px); }
+    100% { opacity: 0; transform: translateX(0); }
+}
+
+@keyframes cardSelectPulse {
+    0% { box-shadow: 0 0 22px rgba(0, 255, 136, 0.45); }
+    50% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.8), 0 0 80px rgba(0, 255, 136, 0.3); transform: scale(1.06); }
+    100% { box-shadow: 0 0 22px rgba(0, 255, 136, 0.45); transform: scale(1); }
+}
+
+@keyframes cardDeselectShrink {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.96); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes confirmButtonReady {
+    0% { box-shadow: none; }
+    40% { box-shadow: 0 0 30px var(--accent-color), 0 0 60px rgba(0, 255, 136, 0.4); transform: scale(1.08); }
+    100% { box-shadow: 0 0 20px var(--accent-color); transform: scale(1); }
+}
+
+/* Grade card stagger entry */
+.grade-card.entering-left {
+    animation: courseCardSlideInLeft 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.grade-card.entering-right {
+    animation: courseCardSlideInRight 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes courseCardSlideInLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-60px) scale(0.9);
+        filter: blur(4px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(5px) scale(1.02);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+@keyframes courseCardSlideInRight {
+    0% {
+        opacity: 0;
+        transform: translateX(60px) scale(0.9);
+        filter: blur(4px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-5px) scale(1.02);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+/* Course selection stagger entry for the whole box */
+.course-selection-box.stagger-entry .course-intro {
+    animation: subjectCardFlipIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 0.05s;
+}
+
+.course-selection-box.stagger-entry .course-step:nth-child(2) {
+    animation: subjectCardFlipIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 0.15s;
+}
+
+.course-selection-box.stagger-entry .course-step:nth-child(3) {
+    animation: subjectCardFlipIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 0.3s;
+}
+
+.course-selection-box.stagger-entry #confirm-course-btn {
+    animation: subjectCardFlipIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 0.45s;
+}
+
+/* prefers-reduced-motion: disable all course selection animations */
+@media (prefers-reduced-motion: reduce) {
+    .grade-card.active::after,
+    .subject-card.active::after,
+    .grade-card:hover::before,
+    .subject-card:not(:disabled):hover::before {
+        animation: none;
+        display: none;
+    }
+
+    .grade-card.shockwave::before {
+        animation: none;
+        display: none;
+    }
+
+    .subject-card.entering,
+    .subject-selection.switching,
+    .subject-card.selecting,
+    .subject-card.deselecting,
+    .grade-card.deselecting,
+    .grade-card.entering-left,
+    .grade-card.entering-right,
+    #confirm-course-btn.confirm-ready {
+        animation: none;
+    }
+
+    .course-selection-box.stagger-entry .course-intro,
+    .course-selection-box.stagger-entry .course-step:nth-child(2),
+    .course-selection-box.stagger-entry .course-step:nth-child(3),
+    .course-selection-box.stagger-entry #confirm-course-btn {
+        animation: none;
+    }
+}
 
 /* Mission selection: play style is separate from the translation direction. */
 .screen-back-btn {
@@ -302,12 +552,10 @@ body.command-active::before {
     font-size: 1.5rem;
 }
 
-.mission-selection-screen .screen-back-btn {
-    top: 70px;
-}
 
 .mission-selection-screen > .title {
     margin-top: 60px;
+    margin-bottom: 24px;
 }
 
 .mission-screen-kicker {
@@ -2097,18 +2345,6 @@ body.command-active.turbulence-active::before,
     }
 }
 
-.course-change-btn {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    z-index: 20;
-    padding: 8px 16px;
-    background: rgba(0, 0, 0, 0.9);
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-    font-family: 'Roboto', sans-serif;
-    font-size: 1.25rem;
-}
 
 .mysterious-text {
     font-size: 1.8rem;
@@ -4099,7 +4335,10 @@ select {
 #show-leaderboard-start-btn, #info-btn,
 #show-leaderboard-hunter-btn, #info-hunter-btn,
 #show-leaderboard-city-btn, #info-city-btn,
-#profile-start-btn, #profile-hunter-btn, #profile-city-btn {
+#show-leaderboard-course-btn, #info-course-btn,
+#show-leaderboard-mission-btn, #info-mission-btn,
+#profile-start-btn, #profile-hunter-btn, #profile-city-btn,
+#profile-course-btn, #profile-mission-btn {
     font-size: 4.5rem;
     animation: pulseGlow 2s infinite alternate;
 }
@@ -4112,7 +4351,10 @@ select {
 #show-leaderboard-start-btn:hover, #info-btn:hover,
 #show-leaderboard-hunter-btn:hover, #info-hunter-btn:hover,
 #show-leaderboard-city-btn:hover, #info-city-btn:hover,
-#profile-start-btn:hover, #profile-hunter-btn:hover, #profile-city-btn:hover {
+#show-leaderboard-course-btn:hover, #info-course-btn:hover,
+#show-leaderboard-mission-btn:hover, #info-mission-btn:hover,
+#profile-start-btn:hover, #profile-hunter-btn:hover, #profile-city-btn:hover,
+#profile-course-btn:hover, #profile-mission-btn:hover {
     animation: none; /* stop pulse on hover */
     transform: rotate(20deg) scale(1.2);
     filter: drop-shadow(0 0 20px var(--accent-color)) drop-shadow(0 0 50px var(--accent-color));

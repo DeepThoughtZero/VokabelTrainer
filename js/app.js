@@ -1235,7 +1235,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingGrade = 5;
     let pendingCourseId = 'en-5';
 
-    function renderSubjectSelection() {
+    /** Helper: trigger a one-shot CSS animation class, removed after it finishes. */
+    function animateOnce(el, className, onDone) {
+        if (!el) return;
+        el.classList.add(className);
+        const handler = () => {
+            el.removeEventListener('animationend', handler);
+            el.classList.remove(className);
+            if (onDone) onDone();
+        };
+        el.addEventListener('animationend', handler);
+    }
+
+    /**
+     * Full re-render of subject cards with optional stagger animation.
+     * @param {boolean} animate – if true, cards get the entering animation
+     */
+    function renderSubjectSelection(animate) {
         const container = document.getElementById('subject-selection');
         if (!container) return;
         container.innerHTML = '';
@@ -1246,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pendingCourseId = available[0]?.id || '';
         }
 
-        courses.forEach(course => {
+        courses.forEach((course, index) => {
             const vocabCount = (window.VOCABULARIES[course.id] || []).length;
             const enabled = course.available && vocabCount > 0;
             const button = document.createElement('button');
@@ -1256,24 +1272,82 @@ document.addEventListener('DOMContentLoaded', () => {
             button.disabled = !enabled;
             button.setAttribute('aria-pressed', course.id === pendingCourseId ? 'true' : 'false');
             button.innerHTML = `${course.subjectLabel}<small>${enabled ? `${vocabCount} Vokabeln` : 'Wird vorbereitet'}</small>`;
+
+            // Subject click: toggle in-place with select/deselect pulse (no re-render)
             button.addEventListener('click', () => {
+                if (course.id === pendingCourseId) return;
+                const oldId = pendingCourseId;
                 pendingCourseId = course.id;
-                renderSubjectSelection();
+
+                // Animate all cards in the container
+                container.querySelectorAll('.subject-card').forEach(card => {
+                    const isNewActive = card.dataset.courseId === course.id;
+                    const wasActive = card.dataset.courseId === oldId;
+                    card.classList.toggle('active', isNewActive);
+                    card.setAttribute('aria-pressed', isNewActive ? 'true' : 'false');
+                    if (isNewActive) {
+                        animateOnce(card, 'selecting');
+                    } else if (wasActive) {
+                        animateOnce(card, 'deselecting');
+                    }
+                });
+
+                // Pulse the confirm button
+                const confirmBtn = document.getElementById('confirm-course-btn');
+                animateOnce(confirmBtn, 'confirm-ready');
             });
+
+            // Stagger entry animation
+            if (animate) {
+                button.classList.add('entering');
+                button.style.animationDelay = `${index * 80}ms`;
+                const cleanup = () => {
+                    button.removeEventListener('animationend', cleanup);
+                    button.classList.remove('entering');
+                    button.style.animationDelay = '';
+                };
+                button.addEventListener('animationend', cleanup);
+            }
+
             container.appendChild(button);
         });
-
     }
 
     document.querySelectorAll('.grade-card').forEach(button => {
         button.addEventListener('click', () => {
-            pendingGrade = Number(button.dataset.grade);
+            const newGrade = Number(button.dataset.grade);
+            if (newGrade === pendingGrade) return; // already selected
+            pendingGrade = newGrade;
+
+            // Animate grade buttons: shockwave on the new active, deselect on the old
             document.querySelectorAll('.grade-card').forEach(card => {
-                const active = card === button;
-                card.classList.toggle('active', active);
-                card.setAttribute('aria-pressed', active ? 'true' : 'false');
+                const isActive = card === button;
+                card.classList.toggle('active', isActive);
+                card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                if (isActive) {
+                    animateOnce(card, 'shockwave');
+                } else {
+                    animateOnce(card, 'deselecting');
+                }
             });
-            renderSubjectSelection();
+
+            // Glitch-flicker the subject container, then re-render with stagger
+            const subjectContainer = document.getElementById('subject-selection');
+            if (subjectContainer) {
+                subjectContainer.classList.add('switching');
+                const onFlickerEnd = () => {
+                    subjectContainer.removeEventListener('animationend', onFlickerEnd);
+                    subjectContainer.classList.remove('switching');
+                    renderSubjectSelection(true);
+                };
+                subjectContainer.addEventListener('animationend', onFlickerEnd);
+            } else {
+                renderSubjectSelection(true);
+            }
+
+            // Pulse the confirm button
+            const confirmBtn = document.getElementById('confirm-course-btn');
+            animateOnce(confirmBtn, 'confirm-ready');
         });
     });
 
@@ -1782,6 +1856,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const showLeaderboardHunterBtn = document.getElementById('show-leaderboard-hunter-btn');
     const showLeaderboardCityBtn = document.getElementById('show-leaderboard-city-btn');
     const showLeaderboardStartBtn = document.getElementById('show-leaderboard-start-btn');
+    const showLeaderboardCourseBtn = document.getElementById('show-leaderboard-course-btn');
+    const showLeaderboardMissionBtn = document.getElementById('show-leaderboard-mission-btn');
     const handleLeaderboardClick = () => {
         if (typeof window.openLeaderboardDialog === 'function') {
             window.openLeaderboardDialog(-1, '', '', 0, getCourseLabel());
@@ -1798,6 +1874,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showLeaderboardStartBtn) {
         showLeaderboardStartBtn.addEventListener('click', handleLeaderboardClick);
     }
+    if (showLeaderboardCourseBtn) {
+        showLeaderboardCourseBtn.addEventListener('click', handleLeaderboardClick);
+    }
+    if (showLeaderboardMissionBtn) {
+        showLeaderboardMissionBtn.addEventListener('click', handleLeaderboardClick);
+    }
 
     const infoBtnStart = document.getElementById('info-btn');
     if (infoBtnStart) {
@@ -1813,6 +1895,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const infoCourseBtn = document.getElementById('info-course-btn');
+    if (infoCourseBtn) {
+        infoCourseBtn.addEventListener('click', () => {
+            openInfoDialog();
+        });
+    }
+
+    const infoMissionBtn = document.getElementById('info-mission-btn');
+    if (infoMissionBtn) {
+        infoMissionBtn.addEventListener('click', () => {
+            openInfoDialog();
+        });
+    }
+
     if (closeInfoBtn) {
         closeInfoBtn.addEventListener('click', () => {
             infoDialog.classList.add('hidden');
@@ -1823,6 +1919,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileHunterBtn = document.getElementById('profile-hunter-btn');
     const profileCityBtn = document.getElementById('profile-city-btn');
     const profileStartBtn = document.getElementById('profile-start-btn');
+    const profileCourseBtn = document.getElementById('profile-course-btn');
+    const profileMissionBtn = document.getElementById('profile-mission-btn');
     const closeProfileBtn = document.getElementById('close-profile-btn');
     const profileDialog = document.getElementById('profile-dialog');
 
@@ -1834,6 +1932,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileHunterBtn) profileHunterBtn.addEventListener('click', handleProfileClick);
     if (profileCityBtn) profileCityBtn.addEventListener('click', handleProfileClick);
     if (profileStartBtn) profileStartBtn.addEventListener('click', handleProfileClick);
+    if (profileCourseBtn) profileCourseBtn.addEventListener('click', handleProfileClick);
+    if (profileMissionBtn) profileMissionBtn.addEventListener('click', handleProfileClick);
     
     if (closeProfileBtn) {
         closeProfileBtn.addEventListener('click', () => {
@@ -2494,12 +2594,38 @@ document.addEventListener('DOMContentLoaded', () => {
     function showCourseSelectionScreen() {
         pendingGrade = activeCourse?.grade || 5;
         pendingCourseId = activeCourse?.id || 'en-5';
-        document.querySelectorAll('.grade-card').forEach(card => {
+        document.querySelectorAll('.grade-card').forEach((card, i) => {
             const selected = Number(card.dataset.grade) === pendingGrade;
             card.classList.toggle('active', selected);
             card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+
+            // Stagger entry: first card slides from left, second from right
+            const entryClass = i === 0 ? 'entering-left' : 'entering-right';
+            card.classList.add(entryClass);
+            card.style.animationDelay = `${150 + i * 100}ms`;
+            const cleanup = () => {
+                card.removeEventListener('animationend', cleanup);
+                card.classList.remove(entryClass);
+                card.style.animationDelay = '';
+            };
+            card.addEventListener('animationend', cleanup);
         });
-        renderSubjectSelection();
+        renderSubjectSelection(true);
+
+        // Stagger-entry for the whole box (intro text, steps, confirm button)
+        const box = document.querySelector('.course-selection-box');
+        if (box) {
+            box.classList.remove('stagger-entry');
+            // Force reflow to restart animation
+            void box.offsetWidth;
+            box.classList.add('stagger-entry');
+            const onDone = () => {
+                box.removeEventListener('animationend', onDone);
+                box.classList.remove('stagger-entry');
+            };
+            box.addEventListener('animationend', onDone);
+        }
+
         showScreen('course');
     }
 
@@ -3162,7 +3288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('halo-title').firstChild.textContent = 'Einsatzkarte ';
         document.getElementById('halo-subtitle').textContent = 'Wo soll das Rettungsteam landen?';
         document.getElementById('halo-map-eyebrow').textContent = 'Zielgebiet direkt markieren';
-        document.getElementById('back-from-halo-btn').textContent = '⬅ Einsatzwahl';
+        document.getElementById('back-from-halo-btn').textContent = '⬅ Zurück';
         const deployButton = document.getElementById('halo-deploy-btn');
         deployButton.disabled = !suggested;
         deployButton.textContent = 'Briefing im Flugzeug starten';
@@ -3209,7 +3335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `${activeDistrict.label} · ${activeDistrict.subtitle}`
             : '';
         document.getElementById('halo-map-eyebrow').textContent = 'Markierte Landezone';
-        document.getElementById('back-from-halo-btn').textContent = '⬅ Stadtkarte';
+        document.getElementById('back-from-halo-btn').textContent = '⬅ Zurück';
         const landingDistrictEl = document.getElementById('halo-landing-district');
         if (landingDistrictEl) {
             landingDistrictEl.textContent = activeDistrict
